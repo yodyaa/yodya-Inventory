@@ -378,7 +378,7 @@
               // ดึง URL มาใช้
               payload.imageAfter = await snap.ref.getDownloadURL();
             }
-          }
+          
           // update report
           await db.ref("repairReports/" + id2).update(payload);
 
