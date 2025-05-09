@@ -27,6 +27,15 @@
         <a href="./Devices.html" class="block bg-slate-800 hover:bg-gray-600 text-white py-2 px-4 rounded">อุปกรณ์</a>
         <a href="./User.html" class="block bg-slate-800 hover:bg-gray-600 text-white py-2 px-4 rounded">สมาชิก</a>
       </nav>
+      <div class="p-4 mt-10 rounded-lg bg-gray-900">
+        <label class="block text-sm text-white text-center font-medium mb-4">แจ้งเตือนอุปกรณ์ยังไม่คืน</label>
+        <input id="notifyTimeInput" type="time" class="w-full border mb-4 p-2 rounded">
+        <div class="flex items-center space-x-2">
+          <button id="setNotifyTimeBtn" class="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">บันทึก</button>
+          <button id="cancelNotifyBtn"  class="w-full bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">ยกเลิก</button>
+        </div>
+        <p id="scheduledTimeMsg" class="text-sm mt-2 text-yellow-400"></p>
+      </div>
     </aside>
 
     <!-- Main Content -->
@@ -37,7 +46,7 @@
         <div id="summaryBoxes" class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8"></div>
 
         <!-- อุปกรณ์ที่ยังไม่ได้คืน -->
-        <h2 class="text-2xl font-bold mb-4">อุปกรณ์ที่ยังไม่ได้คืน</h2>
+        <h2 class="text-2xl font-bold mb-4">อุปกรณ์ที่ยังไม่ได้คืน <span><button onclick="notifyAllNotReturned()" class="text-xs bg-blue-600 text-white p-2 rounded">แจ้งเตือน ทั้งหมด</button></span></h2>
         <div id="borrowCards" class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-10"></div>
 
         <!-- รายการงานซ่อม -->
@@ -414,6 +423,45 @@
       for (let [uid, u] of Object.entries(devicesGrouped))
         notifyLine(uid, u.user, u.items.map(i => i.id + " " + i.name).join(", "));
     }
+    // Scheduler variables
+    let scheduledTime = localStorage.getItem('notifyTime');
+    const timeInput = document.getElementById('notifyTimeInput');
+    const setBtn = document.getElementById('setNotifyTimeBtn');
+    const cancelBtn = document.getElementById('cancelNotifyBtn');
+    const msgEl = document.getElementById('scheduledTimeMsg');
+
+    // Load saved time
+    if (scheduledTime) {
+      timeInput.value = scheduledTime;
+      msgEl.textContent = `แจ้งเตือนทุกวันเวลา ${scheduledTime}`;
+    }
+
+    // Set notify time
+    setBtn.onclick = () => {
+      const t = timeInput.value;
+      if (!t) return alert('⚠️ กรุณาเลือกเวลา');
+      localStorage.setItem('notifyTime', t);
+      scheduledTime = t;
+      msgEl.textContent = `แจ้งเตือนทุกวันเวลา ${t}`;
+    };
+
+    // Cancel notify
+    cancelBtn.onclick = () => {
+      localStorage.removeItem('notifyTime');
+      scheduledTime = null;
+      timeInput.value = '';
+      msgEl.textContent = 'ยกเลิกแจ้งเตือนแล้ว';
+    };
+
+    // Interval check
+    setInterval(() => {
+      if (!scheduledTime) return;
+      const now = new Date();
+      const hhmm = now.toTimeString().slice(0, 5);
+      if (hhmm === scheduledTime) {
+        notifyAllNotReturned();
+      }
+    }, 60000);
 
   </script>
 </body>
