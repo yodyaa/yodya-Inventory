@@ -208,14 +208,11 @@
       const file = document.getElementById('imageInput').files[0];
 
        let imageUrl = '';
-        if (file) {
-          try {
-            // สร้าง reference ไปยังโฟลเดอร์
-            const fileRef = storage.ref(`repair_images/${id}`);
-            // อัพโหลดไฟล์
-            const snap = await fileRef.put(file);
-            // ดึง download URL
-            imageUrl = await snap.ref.getDownloadURL();
+       
+         if (file) {
+            const snap = await storage.ref(`repair_images/${id2}`).put(file);
+            payload.imageAfter = await snap.ref.getDownloadURL();
+          }
           } catch (e) {
             console.error('Upload failed', e);
             showCustomAlert('บันทึกรูปไม่สำเร็จ');
