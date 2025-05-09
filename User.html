@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard จัดการพนักงาน</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
+        <script src="firebase-config.js"></script>
+
+</head>
+
+<body class="bg-gray-100">
+
+  <div class="flex min-h-screen">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-gray-800 p-6">
+      <h1 class="text-white text-md font-bold mb-6">จัดการการยืมคืน & แจ้งซ่อม</h1>
+      <nav class="space-y-4">
+        <a href="./Dashboard.html" class="block bg-slate-800 hover:bg-gray-600 text-white py-2 px-4 rounded">หน้าหลัก</a>
+        <a href="./Devices.html" class="block bg-slate-800 hover:bg-gray-600 text-white py-2 px-4 rounded">อุปกรณ์</a>
+        <a href="./User.html" class="block bg-slate-900 hover:bg-gray-600 text-white py-2 px-4 rounded">สมาชิก</a>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 w-full p-6">
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 space-y-4 md:space-y-0">
+        <h2 class="text-xl font-bold">รายชื่อพนักงานทั้งหมด</h2>
+        <button id="openModal" class="bg-[#174D27] text-white  px-6 py-3 rounded-lg text-lg font-semibold">
+          เพิ่มพนักงาน
+        </button>
+      </div>
+
+      <div class="border-2 border-slate-500 rounded-lg overflow-hidden bg-white">
+        <!-- Filters -->
+        <div class="flex flex-wrap items-center px-6 py-4 space-x-6 border-b">
+          <div class="flex items-center space-x-2">
+            <label class="text-sm">รหัส</label>
+            <input id="filterId" type="text" class="w-32 h-8 border border-gray-300 rounded px-2 text-sm">
+          </div>
+          <div class="flex items-center space-x-2">
+            <label class="text-sm">ชื่อ</label>
+            <input id="filterName" type="text" class="w-32 h-8 border border-gray-300 rounded px-2 text-sm">
+          </div>
+          <div class="flex items-center space-x-2">
+            <label class="text-sm">ตำแหน่ง</label>
+            <input id="filterPos" type="text" class="w-32 h-8 border border-gray-300 rounded px-2 text-sm">
+          </div>
+          <div class="flex items-center space-x-2">
+            <label class="text-sm">User LINE</label>
+            <input id="filterLine" type="text" class="w-32 h-8 border border-gray-300 rounded px-2 text-sm">
+          </div>
+        </div>
+        <!-- Table -->
+        <table class="min-w-full table-fixed">
+          <thead class="bg-black text-white">
+            <tr>
+              <th class="py-3 px-4 text-left text-sm">รูป</th>
+              <th class="py-3 px-4 text-left text-sm">รหัส</th>
+              <th class="py-3 px-4 text-left text-sm">ชื่อ - สกุล</th>
+              <th class="py-3 px-4 text-left text-sm">ตำแหน่ง</th>
+              <th class="py-3 px-4 text-left text-sm">อีเมล</th>
+              <th class="py-3 px-4 text-left text-sm">User LINE</th>
+              <th class="py-3 px-4 text-left text-sm">จัดการ</th>
+            </tr>
+          </thead>
+          <tbody id="employeeTable" class="bg-white divide-y divide-gray-200 text-sm"></tbody>
+        </table>
+        <!-- Pagination -->
+        <div class="flex justify-between items-center px-6 py-4 bg-gray-50">
+          <div class="flex items-center space-x-2">
+            <label class="text-sm">แสดง</label>
+            <select id="rowsPerPage" class="w-12 h-8 border border-gray-300 rounded text-sm">
+              <option value="15">15</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+            <span class="text-sm">แถวต่อหน้า</span>
+          </div>
+          <div id="pagination" class="flex space-x-2"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Modal Add/Edit Employee -->
+  <div id="empModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+    <div class="bg-white rounded-lg w-11/12 md:w-1/2 p-6 relative">
+      <button id="closeModal" class="absolute top-3 right-3 text-gray-500 text-2xl">&times;</button>
+      <h2 id="modalTitle" class="text-xl font-semibold mb-4">เพิ่มพนักงาน</h2>
+      <form id="empForm" class="space-y-4">
+        <input type="hidden" id="editId">
+
+        <div>
+          <label class="block text-sm mb-1">รหัสพนักงาน</label>
+          <input id="empId" type="text" required class="w-full border border-gray-300 rounded px-3 py-2 text-sm">
+        </div>
+        <div>
+          <label class="block text-sm mb-1">ชื่อ - สกุล</label>
+          <input id="fullName" type="text" required class="w-full border border-gray-300 rounded px-3 py-2 text-sm">
+        </div>
+        <div>
+          <label class="block text-sm mb-1">ตำแหน่ง</label>
+          <input id="position" type="text" required class="w-full border border-gray-300 rounded px-3 py-2 text-sm">
+        </div>
+        <div>
+          <label class="block text-sm mb-1">อีเมล</label>
+          <input id="email" type="email" required class="w-full border border-gray-300 rounded px-3 py-2 text-sm">
+        </div>
+        <div>
+          <label class="block text-sm mb-1">UserId LINE</label>
+          <input id="userIdLine" type="text" class="w-full border border-gray-300 rounded px-3 py-2 text-sm">
+        </div>
+        <div>
+          <label class="block text-sm mb-1">รูปภาพ</label>
+          <input id="photoInput" type="file" accept="image/*" class="w-full text-sm text-gray-500">
+        </div>
+
+        <div class="flex justify-end space-x-2">
+          <button type="button" id="cancelBtn" class="px-4 py-2 border rounded text-gray-700 hover:bg-gray-100">
+            ยกเลิก
+          </button>
+          <button type="submit" id="saveBtn" class="px-4 py-2 bg-[#09054D] text-white rounded hover:bg-[#06043a] flex items-center">
+            <span id="btnText">บันทึก</span>
+          </button>
+        </div>
+
+        <p id="statusMsg" class="text-sm mt-2"></p>
+      </form>
+    </div>
+  </div>
+
+  <script>
+  
+    // State & elements
+    let empData = [], currentPage = 1, rowsPerPage = 15;
+    const tableEl = document.getElementById('employeeTable');
+    const paginationEl = document.getElementById('pagination');
+    const rowsSelect = document.getElementById('rowsPerPage');
+    const filters = {
+      id: document.getElementById('filterId'),
+      name: document.getElementById('filterName'),
+      pos: document.getElementById('filterPos'),
+      line: document.getElementById('filterLine')
+    };
+
+    const empModal = document.getElementById('empModal');
+    const openModalBtn = document.getElementById('openModal');
+    const closeModalBtn = document.getElementById('closeModal');
+    const cancelBtn = document.getElementById('cancelBtn');
+    const empForm = document.getElementById('empForm');
+    const editIdInput = document.getElementById('editId');
+    const statusMsg = document.getElementById('statusMsg');
+    const saveBtn = document.getElementById('saveBtn');
+    const btnText = document.getElementById('btnText');
+
+    // Filter helper
+    function applyFilters(data) {
+      return data.filter(e => {
+        if (filters.id.value && !e.empId.includes(filters.id.value)) return false;
+        if (filters.name.value && !e.fullName.includes(filters.name.value)) return false;
+        if (filters.pos.value && !e.position.includes(filters.pos.value)) return false;
+        if (filters.line.value && !e.userIdLine.includes(filters.line.value)) return false;
+        return true;
+      });
+    }
+
+    // Render table & pagination
+    function renderTable() {
+      const filtered = applyFilters(empData);
+      const totalPages = Math.max(1, Math.ceil(filtered.length / rowsPerPage));
+      if (currentPage > totalPages) currentPage = 1;
+
+      const start = (currentPage - 1) * rowsPerPage;
+      const pageData = filtered.slice(start, start + rowsPerPage);
+
+      tableEl.innerHTML = '';
+      pageData.forEach(e => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="py-2 px-3">
+            ${e.photoURL
+              ? `<img src="${e.photoURL}" alt="photo" class="w-12 h-12 object-cover rounded-full">`
+              : `<span class="text-gray-500">ไม่มีรูป</span>`
+            }
+          </td>
+          <td class="py-2 px-3">${e.empId}</td>
+          <td class="py-2 px-3">${e.fullName}</td>
+          <td class="py-2 px-3">${e.position}</td>
+          <td class="py-2 px-3">${e.email}</td>
+          <td class="py-2 px-3">${e.userIdLine ? 'Line' : '<span class="text-gray-500">ไม่มี</span>'}</td>
+          <td class="py-2 px-3 space-x-1">
+            <button onclick="openEdit('${e.empId}')" class="px-2 py-1 bg-yellow-500 text-white rounded text-xs">แก้ไข</button>
+            <button onclick="delEmp('${e.empId}')" class="px-2 py-1 bg-red-500 text-white rounded text-xs">ลบ</button>
+          </td>
+        `;
+        tableEl.appendChild(tr);
+      });
+
+      paginationEl.innerHTML = '';
+      for (let i = 1; i <= totalPages; i++) {
+        const btn = document.createElement('button');
+        btn.textContent = i;
+        btn.className = `px-3 py-1 rounded ${i === currentPage ? 'bg-black text-white' : 'bg-gray-300 text-black'}`;
+        btn.onclick = () => { currentPage = i; renderTable(); };
+        paginationEl.appendChild(btn);
+      }
+    }
+
+    // Load data
+    db.ref('employees').on('value', snap => {
+      empData = [];
+      snap.forEach(child => {
+        const data = child.val();
+        empData.push(data);
+      });
+      renderTable();
+    });
+
+    // Filter listeners
+    Object.values(filters).forEach(f => f.addEventListener('input', () => {
+      currentPage = 1; renderTable();
+    }));
+    rowsSelect.addEventListener('change', e => {
+      rowsPerPage = +e.target.value;
+      currentPage = 1; renderTable();
+    });
+
+    // Modal open/close
+    openModalBtn.onclick = () => {
+      empForm.reset();
+      editIdInput.value = '';
+      statusMsg.textContent = '';
+      btnText.textContent = 'บันทึก';
+      saveBtn.disabled = false;
+      empModal.classList.remove('hidden');
+    };
+    closeModalBtn.onclick = cancelBtn.onclick = () => empModal.classList.add('hidden');
+
+    // Submit form
+    empForm.onsubmit = async e => {
+      e.preventDefault();
+      const empId = document.getElementById('empId').value.trim();
+      const fullName = document.getElementById('fullName').value.trim();
+      const position = document.getElementById('position').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const userIdLine = document.getElementById('userIdLine').value.trim();
+      const file = document.getElementById('photoInput').files[0];
+
+      if (!empId || !fullName || !position || !email) {
+        statusMsg.textContent = '⚠️ กรุณากรอกข้อมูลให้ครบถ้วน';
+        return;
+      }
+
+      // เปลี่ยนสถานะปุ่ม
+      saveBtn.disabled = true;
+      btnText.textContent = 'กำลังบันทึก…';
+      statusMsg.textContent = '';
+
+      try {
+        // อัปโหลดรูปถ้ามี
+        let photoURL = '';
+        if (file) {
+          const fileRef = storage.child(`employee_photos/${empId}_${Date.now()}`);
+          await fileRef.put(file);
+          photoURL = await fileRef.getDownloadURL();
+        }
+
+        // เขียนลงฐานข้อมูล
+        await db.ref(`employees/${empId}`).set({
+          empId, fullName, position, email, userIdLine, photoURL
+        });
+
+        btnText.textContent = 'บันทึกสำเร็จ';
+        setTimeout(() => empModal.classList.add('hidden'), 800);
+      } catch (err) {
+        console.error(err);
+        statusMsg.textContent = '❌ เกิดข้อผิดพลาด กรุณาลองใหม่';
+        saveBtn.disabled = false;
+        btnText.textContent = 'บันทึก';
+      }
+    };
+
+    // Edit and Delete
+    window.openEdit = id => {
+      const e = empData.find(x => x.empId === id);
+      if (!e) return;
+      document.getElementById('empId').value = e.empId;
+      document.getElementById('empId').disabled = true;
+      document.getElementById('fullName').value = e.fullName;
+      document.getElementById('position').value = e.position;
+      document.getElementById('email').value = e.email;
+      document.getElementById('userIdLine').value = e.userIdLine;
+      statusMsg.textContent = '';
+      btnText.textContent = 'บันทึก';
+      saveBtn.disabled = false;
+      empModal.classList.remove('hidden');
+    };
+
+    window.delEmp = async id => {
+      if (confirm(`ต้องการลบพนักงานรหัส ${id} หรือไม่?`)) {
+        await db.ref('employees/' + id).remove();
+      }
+    };
+  </script>
+</body>
+
+</html>
