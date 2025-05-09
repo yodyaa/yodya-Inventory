@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
   <meta charset="UTF-8">
   <title>Dashboard อุปกรณ์</title>
@@ -11,7 +12,9 @@
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
   <script src="firebase-config.js"></script>
+
 </head>
+
 <body class="bg-gray-100">
 
   <div class="flex min-h-screen">
@@ -19,9 +22,10 @@
     <aside class="w-64 bg-gray-800 p-6">
       <h1 class="text-white text-md font-bold mb-6">จัดการการยืมคืน & แจ้งซ่อม</h1>
       <nav class="space-y-4">
-        <a href="https://llll12t.github.io/IIIRN-INVEN/Firebase-Dashboard.html" class="block bg-slate-900 hover:bg-gray-600 text-white py-2 px-4 rounded">หน้าหลัก</a>
-        <a href="https://llll12t.github.io/IIIRN-INVEN/Firebase-devices.html" class="block bg-slate-800 hover:bg-gray-600 text-white py-2 px-4 rounded">อุปกรณ์</a>
-        <a href="https://llll12t.github.io/IIIRN-INVEN/Firebase-User.html" class="block bg-slate-800 hover:bg-gray-600 text-white py-2 px-4 rounded">สมาชิก</a>
+        <a href="./Dashboard.html"
+          class="block bg-slate-900 hover:bg-gray-600 text-white py-2 px-4 rounded">หน้าหลัก</a>
+        <a href="./Devices.html" class="block bg-slate-800 hover:bg-gray-600 text-white py-2 px-4 rounded">อุปกรณ์</a>
+        <a href="./User.html" class="block bg-slate-800 hover:bg-gray-600 text-white py-2 px-4 rounded">สมาชิก</a>
       </nav>
     </aside>
 
@@ -108,6 +112,7 @@
   </div>
 
   <script>
+
     // State
     let devicesGrouped = {}, reportsData = [], currentPage = 1;
     let rowsPerPage = 15, countLoaners = 0, countBorrowedItems = 0;
@@ -117,7 +122,7 @@
     function formatDate(iso) {
       if (!iso) return "-";
       const d = new Date(iso);
-      return `${String(d.getDate()).padStart(2,'0')}-${String(d.getMonth()+1).padStart(2,'0')}-${d.getFullYear()}`;
+      return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
     }
     function getStatusClass(s) {
       if (s === "รอซ่อม") return "bg-red-500 text-white";
@@ -163,9 +168,9 @@
         }
       });
       countLoaners = Object.keys(devicesGrouped).length;
-      countBorrowedItems = Object.values(devicesGrouped).reduce((a,b)=> a+b.items.length, 0);
-      for (let [uid,u] of Object.entries(devicesGrouped)) {
-        const list = u.items.map(i=>`${i.id} ${i.name}`).join(", ");
+      countBorrowedItems = Object.values(devicesGrouped).reduce((a, b) => a + b.items.length, 0);
+      for (let [uid, u] of Object.entries(devicesGrouped)) {
+        const list = u.items.map(i => `${i.id} ${i.name}`).join(", ");
         const card = document.createElement("div");
         card.className = "border rounded-lg p-4 bg-white";
         card.innerHTML = `
@@ -174,7 +179,7 @@
             <button onclick="notifyLine('${uid}','${u.user}','${list}')" class="bg-red-500 text-xs text-white px-3 py-1 rounded-full">แจ้งเตือน</button>
           </div>
           <ul class="mt-2 text-sm space-y-1">
-            ${u.items.map(i=>`<li>• ${i.id} : ${i.name}</li>`).join("")}
+            ${u.items.map(i => `<li>• ${i.id} : ${i.name}</li>`).join("")}
           </ul>
         `;
         document.getElementById("borrowCards").append(card);
@@ -190,17 +195,17 @@
         if (r.status === "ส่งซ่อม") countReported++;
         if (r.status === "ซ่อมสำเร็จ") countSuccess++;
       });
-      reportsData.sort((a,b)=> new Date(b.sendDate) - new Date(a.sendDate));
+      reportsData.sort((a, b) => new Date(b.sendDate) - new Date(a.sendDate));
       updateSummaryBoxes();
       renderTablePage();
     });
 
     // Filters & pagination
-    ["filterDate","filterId","filterName","filterStatus"].forEach(id=>{
-      document.getElementById(id).addEventListener("input",()=>{ currentPage=1; renderTablePage(); });
+    ["filterDate", "filterId", "filterName", "filterStatus"].forEach(id => {
+      document.getElementById(id).addEventListener("input", () => { currentPage = 1; renderTablePage(); });
     });
-    document.getElementById("rowsPerPage").addEventListener("change",e=>{
-      rowsPerPage=+e.target.value; currentPage=1; renderTablePage();
+    document.getElementById("rowsPerPage").addEventListener("change", e => {
+      rowsPerPage = +e.target.value; currentPage = 1; renderTablePage();
     });
 
     function renderTablePage() {
@@ -208,17 +213,17 @@
       const fI = document.getElementById("filterId").value.trim();
       const fN = document.getElementById("filterName").value.trim();
       const fS = document.getElementById("filterStatus").value.trim();
-      let arr = reportsData.filter(r=>{
-        if(fD && r.sendDate.split("T")[0] !== fD) return false;
-        if(fI && !r.deviceId.includes(fI)) return false;
-        if(fN && !r.deviceName.includes(fN)) return false;
-        if(fS && !r.status.includes(fS)) return false;
+      let arr = reportsData.filter(r => {
+        if (fD && r.sendDate.split("T")[0] !== fD) return false;
+        if (fI && !r.deviceId.includes(fI)) return false;
+        if (fN && !r.deviceName.includes(fN)) return false;
+        if (fS && !r.status.includes(fS)) return false;
         return true;
       });
       const tbody = document.getElementById("repairList");
       tbody.innerHTML = "";
-      const start = (currentPage-1)*rowsPerPage;
-      arr.slice(start, start+rowsPerPage).forEach(r=>{
+      const start = (currentPage - 1) * rowsPerPage;
+      arr.slice(start, start + rowsPerPage).forEach(r => {
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td class="py-2 px-4">${r.deviceId}</td>
@@ -230,41 +235,43 @@
           </td>
           <td class="py-2 px-4"><span class="px-2 py-1 rounded-full ${getStatusClass(r.status)}">${r.status}</span></td>
           <td class="py-2 px-4 space-x-2">
-            <button onclick="viewRepair('${r.id}')" class="px-3 py-1 bg-[#7E7AD9] text-white rounded">ดู</button>
-            <button onclick="editRepair('${r.id}')" class="px-3 py-1 bg-[#09054D] text-white rounded">อัปเดต</button>
+            <button onclick="viewRepair('${r.id}')" class="px-3 py-1 bg-[#174D27] text-white rounded">รายการ</button>
+            <button onclick="editRepair('${r.id}')" class="px-3 py-1 bg-[#CADEC3] text-[#174D27] rounded">อัปเดต</button>
+            <button onclick="deleteRepair('${r.id}')" class="px-3 py-1 bg-red-500 text-white rounded">ลบ</button>
           </td>
+
         `;
         tbody.appendChild(tr);
       });
       // pagination
-      const total = Math.ceil(arr.length/rowsPerPage);
-      const pg = document.getElementById("pagination"); pg.innerHTML="";
-      for(let i=1;i<=total;i++){
-        const b=document.createElement("button");
-        b.textContent=i; b.className=`px-3 py-1 rounded ${i===currentPage?'bg-black text-white':'bg-gray-300 text-black'}`;
-        b.onclick=()=>{ currentPage=i; renderTablePage(); };
+      const total = Math.ceil(arr.length / rowsPerPage);
+      const pg = document.getElementById("pagination"); pg.innerHTML = "";
+      for (let i = 1; i <= total; i++) {
+        const b = document.createElement("button");
+        b.textContent = i; b.className = `px-3 py-1 rounded ${i === currentPage ? 'bg-black text-white' : 'bg-gray-300 text-black'}`;
+        b.onclick = () => { currentPage = i; renderTablePage(); };
         pg.appendChild(b);
       }
     }
 
     // Detail modal controls
     const modal = document.getElementById("modal");
-    document.getElementById("closeModal").onclick = ()=>{
+    document.getElementById("closeModal").onclick = () => {
       modal.classList.add("hidden");
       document.body.classList.remove("overflow-hidden");
     };
-    window.addEventListener("click", e=>{
-      if(e.target===modal){
+    window.addEventListener("click", e => {
+      if (e.target === modal) {
         modal.classList.add("hidden");
         document.body.classList.remove("overflow-hidden");
       }
     });
 
     // View details
-    function viewRepair(id){
-      db.ref("repairReports/"+id).once("value").then(snap=>{
-        const r=snap.val();
-        document.getElementById("modalContent").innerHTML=`
+    function viewRepair(id) {
+      db.ref("repairReports/" + id).once("value").then(snap => {
+        const r = snap.val();
+        document.getElementById("modalContent").innerHTML = `
           <h2 class="text-xl font-bold mb-4">รายละเอียดแจ้งซ่อม</h2>
           <p><strong>รหัส:</strong> ${r.deviceId}</p>
           <p><strong>ชื่อ:</strong> ${r.deviceName}</p>
@@ -274,13 +281,13 @@
           <p><strong>ส่งซ่อมวันที่:</strong> ${formatDate(r.sendDate)}</p>
           <p><strong>รูปก่อนซ่อม:</strong><br>
             ${r.imageUrl
-              ? `<img src="${r.imageUrl}" class="mt-2 max-w-48 rounded cursor-pointer" onclick="openImageModal('${r.imageUrl}')">`
-              : "ไม่มี"}
+            ? `<img src="${r.imageUrl}" class="mt-2 max-w-48 rounded cursor-pointer" onclick="openImageModal('${r.imageUrl}')">`
+            : "ไม่มี"}
           </p>
           <p><strong>รูปหลังซ่อม:</strong><br>
             ${r.imageAfter
-              ? `<img src="${r.imageAfter}" class="mt-2 max-w-48 rounded cursor-pointer" onclick="openImageModal('${r.imageAfter}')">`
-              : "ไม่มี"}
+            ? `<img src="${r.imageAfter}" class="mt-2 max-w-48 rounded cursor-pointer" onclick="openImageModal('${r.imageAfter}')">`
+            : "ไม่มี"}
           </p>
         `;
         modal.classList.remove("hidden");
@@ -289,63 +296,63 @@
     }
 
     // Image modal
-    function openImageModal(src){
+    function openImageModal(src) {
       const imgModal = document.getElementById("imageModal");
       const modalImg = document.getElementById("modalImage");
       modalImg.src = src;
       imgModal.classList.remove("hidden");
     }
-    document.getElementById("imageModal").addEventListener("click", ()=>{
+    document.getElementById("imageModal").addEventListener("click", () => {
       document.getElementById("imageModal").classList.add("hidden");
     });
 
-   // Edit / update
- function editRepair(id){
-      db.ref("repairReports/"+id).once("value").then(snap=>{
-        const d=snap.val();
-        document.getElementById("modalContent").innerHTML=`
+    // Edit / update
+    function editRepair(id) {
+      db.ref("repairReports/" + id).once("value").then(snap => {
+        const d = snap.val();
+        document.getElementById("modalContent").innerHTML = `
           <h2 class="text-xl font-bold mb-4">อัปเดตงานซ่อม</h2>
           <form id="updateForm" class="space-y-3">
             <input type="hidden" id="repairId" value="${id}">
             <label class="block">สถานะ</label>
             <select id="status" class="w-full p-2 border rounded">
-              <option ${d.status==='รอซ่อม'?'selected':''}>รอซ่อม</option>
-              <option ${d.status==='ส่งซ่อม'?'selected':''}>ส่งซ่อม</option>
-              <option ${d.status==='ซ่อมสำเร็จ'?'selected':''}>ซ่อมสำเร็จ</option>
+              <option ${d.status === 'รอซ่อม' ? 'selected' : ''}>รอซ่อม</option>
+              <option ${d.status === 'ส่งซ่อม' ? 'selected' : ''}>ส่งซ่อม</option>
+              <option ${d.status === 'ซ่อมสำเร็จ' ? 'selected' : ''}>ซ่อมสำเร็จ</option>
             </select>
             <label class="block">ผู้รับผิดชอบ</label>
-            <input id="responsible" value="${d.responsible||''}" class="w-full p-2 border rounded">
+            <input id="responsible" value="${d.responsible || ''}" class="w-full p-2 border rounded">
             <label class="block">ส่งซ่อมวันที่</label>
-            <input id="sendDate" type="date" value="${d.sendDate?d.sendDate.split('T')[0]:''}" class="w-full p-2 border rounded">
+            <input id="sendDate" type="date" value="${d.sendDate ? d.sendDate.split('T')[0] : ''}" class="w-full p-2 border rounded">
             <label class="block">รายละเอียดการแก้ไข</label>
-            <textarea id="solution" class="w-full p-2 border rounded">${d.solution||''}</textarea>
+            <textarea id="solution" class="w-full p-2 border rounded">${d.solution || ''}</textarea>
             <label class="block">ค่าใช้จ่าย</label>
-            <input id="cost" value="${d.cost||''}" class="w-full p-2 border rounded">
+            <input id="cost" value="${d.cost || ''}" class="w-full p-2 border rounded">
             <label class="block">อัปโหลดรูปหลังซ่อม</label>
             <input id="imageAfterFile" type="file" accept="image/*" class="w-full">
-            <img id="afterPreview" src="${d.imageAfter||'#'}" class="mt-2 max-w-full rounded ${d.imageAfter?'':'hidden'}">
+            <img id="afterPreview" src="${d.imageAfter || '#'}" class="mt-2 max-w-full rounded ${d.imageAfter ? '' : 'hidden'}">
             <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded">💾 บันทึก</button>
           </form>
         `;
         modal.classList.remove("hidden"); document.body.classList.add("overflow-hidden");
 
         // preview หลังซ่อม
-        document.getElementById("imageAfterFile").onchange = e=>{
-          const file=e.target.files[0];
-          if(!file) return;
-          const reader=new FileReader();
-          reader.onload=ev=>{
-            const img=document.getElementById("afterPreview");
-            img.src=ev.target.result; img.classList.remove("hidden");
+        document.getElementById("imageAfterFile").onchange = e => {
+          const file = e.target.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = ev => {
+            const img = document.getElementById("afterPreview");
+            img.src = ev.target.result; img.classList.remove("hidden");
           };
           reader.readAsDataURL(file);
         };
 
         // submit update form
-        document.getElementById("updateForm").onsubmit = async e=>{
+        document.getElementById("updateForm").onsubmit = async e => {
           e.preventDefault();
-          const id2=document.getElementById("repairId").value;
-          const newStatus=document.getElementById("status").value;
+          const id2 = document.getElementById("repairId").value;
+          const newStatus = document.getElementById("status").value;
           const payload = {
             status: newStatus,
             responsible: document.getElementById("responsible").value,
@@ -355,18 +362,18 @@
           };
           // ถ้ามีไฟล์หลังซ่อม ให้ upload
           const file = document.getElementById("imageAfterFile").files[0];
-          if(file){
+          if (file) {
             const snap = await storage.ref(`repair_after/${id2}`).put(file);
             payload.imageAfter = await snap.ref.getDownloadURL();
           }
           // update report
-          await db.ref("repairReports/"+id2).update(payload);
+          await db.ref("repairReports/" + id2).update(payload);
 
           // ถ้าเปลี่ยนเป็น ซ่อมสำเร็จ ให้ update devices status → พร้อมใช้งาน
-          if(newStatus==="ซ่อมสำเร็จ"){
-            const rpt = await db.ref("repairReports/"+id2).get();
+          if (newStatus === "ซ่อมสำเร็จ") {
+            const rpt = await db.ref("repairReports/" + id2).get();
             const devId = rpt.val().deviceId;
-            await db.ref("devices/"+devId).update({ status:"พร้อมใช้งาน" });
+            await db.ref("devices/" + devId).update({ status: "พร้อมใช้งาน" });
           }
 
           alert("✅ อัปเดตเรียบร้อย");
@@ -375,19 +382,40 @@
         };
       });
     }
+
+    function deleteRepair(id) {
+      // ยืนยันก่อนลบ
+      if (!confirm('❗ คุณแน่ใจหรือไม่ว่าจะลบรายการงานซ่อมนี้?')) return;
+      // ลบข้อมูลจาก Firebase
+      db.ref('repairReports/' + id).remove()
+        .then(() => {
+          alert('✅ ลบรายการเรียบร้อย');
+          // รีเฟรชตาราง
+          renderTablePage();
+          // อัปเดตสรุปจำนวน
+          // Firebase listener จะอัปเดตอัตโนมัติ แต่ถ้าต้องการบังคับก็เรียก:
+          // updateSummaryBoxes();
+        })
+        .catch(err => {
+          console.error('Error deleting report:', err);
+          alert('❌ เกิดข้อผิดพลาดในการลบ กรุณาลองใหม่');
+        });
+    }
+
     // Notify via LINE
-    function notifyLine(userId, userName, list){
+    function notifyLine(userId, userName, list) {
       fetch("https://script.google.com/macros/s/AKfycbxgGncjm0mJlbxYgQh5z4kvfbfefUniF_VKA_gcItazeNS0B5H56CyI5UiBDJCvAnFk_w/exec", {
-        method:"POST", mode:"no-cors",
-        headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({ userId, message:`📦 คุณ ${userName} กรุณาคืนอุปกรณ์: ${list}` })
+        method: "POST", mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, message: `📦 คุณ ${userName} กรุณาคืนอุปกรณ์: ${list}` })
       });
     }
-    function notifyAllNotReturned(){
-      for(let [uid,u] of Object.entries(devicesGrouped))
-        notifyLine(uid,u.user,u.items.map(i=>i.id+" "+i.name).join(", "));
+    function notifyAllNotReturned() {
+      for (let [uid, u] of Object.entries(devicesGrouped))
+        notifyLine(uid, u.user, u.items.map(i => i.id + " " + i.name).join(", "));
     }
 
   </script>
 </body>
+
 </html>
