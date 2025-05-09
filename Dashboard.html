@@ -370,9 +370,14 @@
           };
           // ถ้ามีไฟล์หลังซ่อม ให้ upload
           const file = document.getElementById("imageAfterFile").files[0];
-          if (file) {
-            const snap = await storage.ref(`repair_after/${id2}`).put(file);
-            payload.imageAfter = await snap.ref.getDownloadURL();
+            if (file) {
+              // สร้าง reference ไปยัง path ที่ต้องการ
+              const reportRef = storage.ref(`repair_after/${id2}`);
+              // อัปโหลดไฟล์
+              const snap = await reportRef.put(file);
+              // ดึง URL มาใช้
+              payload.imageAfter = await snap.ref.getDownloadURL();
+            }
           }
           // update report
           await db.ref("repairReports/" + id2).update(payload);
