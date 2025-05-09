@@ -124,8 +124,8 @@
         const emp = Object.values(empSnap.val())[0];
         userName = emp.fullName;
         userPosition = emp.position;
-        document.getElementById("empName").textContent = userName;
-        document.getElementById("empPosition").textContent = `ตำแหน่ง: ${userPosition}`;
+        document.getElementById("empName").textContent = `คุณ : ${userName}`;
+        document.getElementById("empPosition").textContent = `ตำแหน่ง : ${userPosition}`;
         loadBorrowed();
       } else {
         ["homePage", "borrowPage", "returnPage"].forEach(id =>
