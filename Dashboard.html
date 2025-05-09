@@ -19,13 +19,13 @@
 
   <div class="flex min-h-screen">
     <!-- Side Nav -->
-    <aside class="w-64 bg-gray-800 p-6">
+    <aside class="w-64 bg-[#174D27]  p-6">
       <h1 class="text-white text-md font-bold mb-6">จัดการการยืมคืน & แจ้งซ่อม</h1>
       <nav class="space-y-4">
         <a href="./Dashboard.html"
-          class="block bg-slate-900 hover:bg-gray-600 text-white py-2 px-4 rounded">หน้าหลัก</a>
-        <a href="./Devices.html" class="block bg-slate-800 hover:bg-gray-600 text-white py-2 px-4 rounded">อุปกรณ์</a>
-        <a href="./User.html" class="block bg-slate-800 hover:bg-gray-600 text-white py-2 px-4 rounded">สมาชิก</a>
+          class="block bg-[#174D27] border border-[#CADEC3] text-white py-2 px-4 rounded">หน้าหลัก</a>
+        <a href="./Devices.html" class="block bg-[#CADEC3] text-[#174D27] py-2 px-4 rounded">อุปกรณ์</a>
+        <a href="./User.html" class="block bg-[#CADEC3] text-[#174D27] py-2 px-4 rounded">สมาชิก</a>
       </nav>
       <div class="p-4 mt-10 rounded-lg bg-gray-900">
         <label class="block text-sm text-white text-center font-medium mb-4">แจ้งเตือนอุปกรณ์ยังไม่คืน</label>
@@ -46,7 +46,7 @@
         <div id="summaryBoxes" class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8"></div>
 
         <!-- อุปกรณ์ที่ยังไม่ได้คืน -->
-        <h2 class="text-2xl font-bold mb-4">อุปกรณ์ที่ยังไม่ได้คืน <span><button onclick="notifyAllNotReturned()" class="text-xs bg-blue-600 text-white p-2 rounded">แจ้งเตือน ทั้งหมด</button></span></h2>
+        <h2 class="text-2xl font-bold mb-4">อุปกรณ์ที่ยังไม่ได้คืน <span><button onclick="notifyAllNotReturned()" class="text-xs bg-[#174D27] text-white p-2 rounded">แจ้งเตือน ทั้งหมด</button></span></h2>
         <div id="borrowCards" class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-10"></div>
 
         <!-- รายการงานซ่อม -->
@@ -74,7 +74,7 @@
 
           <!-- Table -->
           <table class="min-w-full table-fixed rounded-lg overflow-hidden">
-            <thead class="bg-black">
+            <thead class="bg-[#174D27] text-white">
               <tr>
                 <th class="w-24 py-2 px-4 text-left text-white text-sm">รหัส</th>
                 <th class="w-36 py-2 px-4 text-left text-white text-sm">ชื่อ</th>
@@ -150,7 +150,6 @@
         <div class="bg-white border rounded-lg p-4 text-center">
           <div class="text-2xl font-bold">${countBorrowedItems}</div>
           <div class="text-sm">ยังไม่คืน</div>
-          <button onclick="notifyAllNotReturned()" class="mt-2 text-xs bg-blue-600 text-white px-2 py-1 rounded">แจ้งเตือน</button>
         </div>
         <div class="bg-white border rounded-lg p-4 text-center">
           <div class="text-2xl font-bold">${countReported}</div>
@@ -185,7 +184,7 @@
         card.innerHTML = `
           <div class="flex justify-between items-center">
             <h3 class="font-semibold">${u.user}</h3>
-            <button onclick="notifyLine('${uid}','${u.user}','${list}')" class="bg-red-500 text-xs text-white px-3 py-1 rounded-full">แจ้งเตือน</button>
+            <button onclick="notifyLine('${uid}','${u.user}','${list}')" class="bg-red-500 text-xs text-white px-3 py-1 rounded-full">เตือน</button>
           </div>
           <ul class="mt-2 text-sm space-y-1">
             ${u.items.map(i => `<li>• ${i.id} : ${i.name}</li>`).join("")}
@@ -257,7 +256,7 @@
       const pg = document.getElementById("pagination"); pg.innerHTML = "";
       for (let i = 1; i <= total; i++) {
         const b = document.createElement("button");
-        b.textContent = i; b.className = `px-3 py-1 rounded ${i === currentPage ? 'bg-black text-white' : 'bg-gray-300 text-black'}`;
+        b.textContent = i; b.className = `px-3 py-1 rounded ${i === currentPage ? 'bg-[#174D27]  text-white' : 'bg-gray-300 text-black'}`;
         b.onclick = () => { currentPage = i; renderTablePage(); };
         pg.appendChild(b);
       }
@@ -339,8 +338,8 @@
             <input id="cost" value="${d.cost || ''}" class="w-full p-2 border rounded">
             <label class="block">อัปโหลดรูปหลังซ่อม</label>
             <input id="imageAfterFile" type="file" accept="image/*" class="w-full">
-            <img id="afterPreview" src="${d.imageAfter || '#'}" class="mt-2 max-w-full rounded ${d.imageAfter ? '' : 'hidden'}">
-            <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded">💾 บันทึก</button>
+            <img id="afterPreview" src="${d.imageAfter || '#'}" class="mt-2 max-w-48 rounded ${d.imageAfter ? '' : 'hidden'}">
+            <button type="submit" class="bg-[#174D27] text-right text-white px-4 py-2 mt-2 rounded">💾 บันทึก</button>
           </form>
         `;
         modal.classList.remove("hidden"); document.body.classList.add("overflow-hidden");
