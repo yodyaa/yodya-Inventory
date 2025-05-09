@@ -281,6 +281,7 @@
         const r = snap.val();
         document.getElementById("modalContent").innerHTML = `
           <h2 class="text-xl font-bold mb-4">รายละเอียดแจ้งซ่อม</h2>
+         <p><strong>ผู้แจ้ง:</strong> ${r.reporterName || "-"}</p>  
           <p><strong>รหัส:</strong> ${r.deviceId}</p>
           <p><strong>ชื่อ:</strong> ${r.deviceName}</p>
           <p><strong>หัวข้อ:</strong> ${r.title}</p>
