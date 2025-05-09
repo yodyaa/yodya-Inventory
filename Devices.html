@@ -22,12 +22,12 @@
 
     <div class="flex min-h-screen">
         <!-- Sidebar -->
-    <aside class="w-64 bg-gray-800 p-6">
+    <aside class="w-64 bg-[#174D27] p-6">
       <h1 class="text-white text-md font-bold mb-6">จัดการการยืมคืน & แจ้งซ่อม</h1>
       <nav class="space-y-4">
-        <a href="./Dashboard.html" class="block bg-slate-800 hover:bg-gray-600 text-white py-2 px-4 rounded">หน้าหลัก</a>
-        <a href="./Devices.html" class="block bg-slate-900 hover:bg-gray-600 text-white py-2 px-4 rounded">อุปกรณ์</a>
-        <a href="./User.html" class="block bg-slate-800 hover:bg-gray-600 text-white py-2 px-4 rounded">สมาชิก</a>
+        <a href="./Dashboard.html" class="block bg-[#CADEC3] text-[#174D27] py-2 px-4 rounded">หน้าหลัก</a>
+        <a href="./Devices.html" class="block bg-[#174D27] border border-[#CADEC3] text-white py-2 px-4 rounded">อุปกรณ์</a>
+        <a href="./User.html" class="block bg-[#CADEC3] text-[#174D27] py-2 px-4 rounded">สมาชิก</a>
       </nav>
     </aside>
         <!-- Main -->
@@ -75,7 +75,7 @@
 
                 <!-- Table -->
                 <table class="min-w-full table-fixed">
-                    <thead class="bg-black text-white">
+                    <thead class="bg-[#174D27] text-white">
                         <tr>
                             <th class="py-3 px-4 text-left text-sm">รหัส</th>
                             <th class="py-3 px-4 text-left text-sm">ชื่อ</th>
@@ -258,7 +258,7 @@
             }
           </td>
           <td class="py-3 px-4 space-x-2">
-            <button onclick="openEditModal('${d.deviceId}')" class="px-3 py-1 bg-[#09054D] text-white rounded">แก้ไข</button>
+            <button onclick="openEditModal('${d.deviceId}')" class="px-3 py-1 bg-[#174D27] text-white rounded">แก้ไข</button>
             <button onclick="deleteDevice('${d.deviceId}')" class="px-3 py-1 bg-red-400 text-white rounded">ลบ</button>
           </td>
         `;
@@ -279,7 +279,7 @@
             for (let i = 1; i <= totalPages; i++) {
                 const btn = document.createElement('button');
                 btn.textContent = i;
-                btn.className = `px-3 py-1 rounded ${i === currentPage ? 'bg-black text-white' : 'bg-gray-300'}`;
+                btn.className = `px-3 py-1 rounded ${i === currentPage ? 'bg-[#174D27] text-white' : 'bg-gray-300'}`;
                 btn.onclick = () => { currentPage = i; renderTable(); };
                 paginationEl.appendChild(btn);
             }
