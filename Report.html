@@ -207,17 +207,11 @@
       const dt = document.getElementById('details').value.trim();
       const file = document.getElementById('imageInput').files[0];
 
-       let imageUrl = '';
-       
-         if (file) {
-            const snap = await storage.ref(`repair_images/${id2}`).put(file);
-            payload.imageAfter = await snap.ref.getDownloadURL();
-          }
-          } catch (e) {
-            console.error('Upload failed', e);
-            showCustomAlert('บันทึกรูปไม่สำเร็จ');
-          }
-        }
+      let imageUrl = '';
+      if (file) {
+        const snap = await storage.ref(`repair_images/${id}`).put(file);
+        imageUrl = await snap.ref.getDownloadURL();
+      }
 
       await db.ref(`repairReports/${id}`).set({
         id, date: now,
