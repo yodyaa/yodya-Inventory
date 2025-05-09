@@ -49,9 +49,11 @@
     <ul id="basketBorrow" class="mb-4 space-y-2"></ul>
     <p id="scanStatusBorrow" class="font-semibold mb-4"></p>
     <button id="btnConfirmBorrow"
-      onclick="openModal('borrow')"
-      class="w-full bg-[#174D27] text-white py-3 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed"
-      disabled>ยืนยันยืม</button>
+            onclick="openModal('borrow')"
+            class="w-full bg-[#174D27] text-white py-3 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled>
+      ยืนยันยืม
+    </button>
   </div>
 
   <!-- คืนอุปกรณ์ -->
@@ -67,9 +69,11 @@
     <ul id="basketReturn" class="mb-4 space-y-2"></ul>
     <p id="scanStatusReturn" class="font-semibold mb-4"></p>
     <button id="btnConfirmReturn"
-      onclick="openModal('return')"
-      class="w-full bg-[#174D27] text-white py-3 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed"
-      disabled>ยืนยันคืน</button>
+            onclick="openModal('return')"
+            class="w-full bg-[#174D27] text-white py-3 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled>
+      ยืนยันคืน
+    </button>
   </div>
 
   <!-- Confirm Modal -->
@@ -79,7 +83,10 @@
       <p id="modalMessage" class="mb-6">คุณแน่ใจหรือไม่ที่จะดำเนินการนี้?</p>
       <div id="modalActions" class="flex justify-end space-x-2">
         <button onclick="closeModal()" class="px-4 py-3 w-1/3 bg-gray-200 rounded-lg font-medium">ยกเลิก</button>
-        <button onclick="confirmSubmit()" class="px-4 w-2/3 py-3 bg-[#174D27] text-white rounded-lg font-medium">ยืนยัน</button>
+        <button id="modalConfirmBtn" onclick="confirmSubmit()"
+                class="px-4 w-2/3 py-3 bg-[#174D27] text-white rounded-lg font-medium">
+          ยืนยัน
+        </button>
       </div>
       <div id="modalClose" class="flex justify-end hidden">
         <button onclick="closeModal()" class="px-4 py-2 bg-[#174D27] text-white rounded-lg font-medium">
@@ -89,22 +96,19 @@
     </div>
   </div>
 
-  <!-- Error Modal: ไม่พบข้อมูลผู้ใช้ -->
+  <!-- Error Modal -->
   <div id="errorModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
     <div class="bg-white rounded-2xl p-6 w-11/12 max-w-sm text-center">
       <h3 class="text-lg font-semibold mb-4">ไม่พบข้อมูลผู้ใช้</h3>
       <p class="mb-6 text-gray-600">กรุณาลงทะเบียนกับผู้ดูแลระบบก่อนเข้าใช้งาน</p>
-      <button
-        onclick="liff.closeWindow()"
-        class="px-6 py-3 bg-[#174D27] text-white rounded-full font-medium"
-      >
+      <button onclick="liff.closeWindow()"
+              class="px-6 py-3 bg-[#174D27] text-white rounded-full font-medium">
         ปิด
       </button>
     </div>
   </div>
 
   <script>
-    // LIFF
     const LIFF_ID = "2007392451-RbxJlGV1";
     let userIdLine = "", userName = "", userPosition = "";
     let basket = [], currentMode = "", pendingMode = null;
@@ -114,10 +118,8 @@
       if (!liff.isLoggedIn()) liff.login();
       const profile = await liff.getProfile();
       userIdLine = profile.userId;
-
       const empSnap = await db.ref("employees")
         .orderByChild("userIdLine").equalTo(userIdLine).get();
-
       if (empSnap.exists()) {
         const emp = Object.values(empSnap.val())[0];
         userName = emp.fullName;
@@ -126,12 +128,10 @@
         document.getElementById("empPosition").textContent = `ตำแหน่ง: ${userPosition}`;
         loadBorrowed();
       } else {
-        // ซ่อนทุกหน้า แล้วแสดง errorModal
         ["homePage", "borrowPage", "returnPage"].forEach(id =>
           document.getElementById(id).classList.add("hidden")
         );
         document.getElementById("errorModal").classList.remove("hidden");
-        return;
       }
     }
 
@@ -202,17 +202,14 @@
       );
       const snap = await db.ref("devices/" + deviceId).get();
       if (!snap.exists()) {
-        statusEl.textContent = `❌ ไม่พบอุปกรณ์: ${deviceId}`;
-        return;
+        statusEl.textContent = `❌ ไม่พบอุปกรณ์: ${deviceId}`; return;
       }
       const dev = snap.val();
       if (!dev.deviceName?.trim()) {
-        statusEl.textContent = `⚠️ ไม่พบชื่ออุปกรณ์สำหรับรหัส: ${deviceId}`;
-        return;
+        statusEl.textContent = `⚠️ ไม่พบชื่ออุปกรณ์สำหรับรหัส: ${deviceId}`; return;
       }
       if (currentMode === "borrow" && dev.status !== "พร้อมใช้งาน") {
-        statusEl.textContent = `⚠️ ${deviceId} (${dev.deviceName}) ไม่สามารถยืมได้ (สถานะ: ${dev.status})`;
-        return;
+        statusEl.textContent = `⚠️ ${deviceId} (${dev.deviceName}) ไม่สามารถยืมได้ (สถานะ: ${dev.status})`; return;
       }
       if (!basket.some(item => item.id === deviceId)) {
         basket.push({ id: deviceId, name: dev.deviceName });
@@ -258,13 +255,23 @@
 
     async function confirmSubmit() {
       if (!pendingMode) return;
-      await submitAction(pendingMode);
-      document.getElementById('modalTitle').textContent = 'สำเร็จแล้ว!';
-      document.getElementById('modalMessage').textContent = '✅ บันทึกสำเร็จ ระบบจะกลับสู่หน้าหลักในอีก';
-      document.getElementById('modalActions').classList.add('hidden');
-      document.getElementById('modalClose').classList.remove('hidden');
-      startCountdown();
-      pendingMode = null;
+      const btn = document.getElementById('modalConfirmBtn');
+      btn.disabled = true;
+      btn.textContent = 'กำลังบันทึก...';
+      try {
+        await submitAction(pendingMode);
+        document.getElementById('modalTitle').textContent = 'สำเร็จแล้ว!';
+        document.getElementById('modalMessage').textContent = '✅ บันทึกสำเร็จ ระบบจะกลับสู่หน้าหลักในอีก';
+        document.getElementById('modalActions').classList.add('hidden');
+        document.getElementById('modalClose').classList.remove('hidden');
+        startCountdown();
+        pendingMode = null;
+      } catch (err) {
+        console.error(err);
+        btn.disabled = false;
+        btn.textContent = 'ยืนยัน';
+        alert('เกิดข้อผิดพลาดในการบันทึก กรุณาลองใหม่อีกครั้ง');
+      }
     }
 
     function startCountdown() {
@@ -288,18 +295,17 @@
       const statusText = mode === "borrow" ? "ยืม" : "คืน";
       const now = new Date().toISOString();
       for (let item of basket) {
-        const { id: deviceId, name: deviceName } = item;
         const recId = db.ref().child(refName).push().key;
         await db.ref(`${refName}/${recId}`).set({
-          deviceId,
-          deviceName,
+          deviceId: item.id,
+          deviceName: item.name,
           userId: userIdLine,
           userName,
           userPosition,
           status: statusText,
           date: now
         });
-        await db.ref("devices/" + deviceId).update({
+        await db.ref("devices/" + item.id).update({
           status: mode === "borrow" ? "กำลังใช้งาน" : "พร้อมใช้งาน",
           lastUser: `${userName} (${userPosition})`,
           lastUserId: mode === "borrow" ? userIdLine : ""
