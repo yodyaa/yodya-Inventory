@@ -2,7 +2,7 @@
 <html lang="th">
 
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>แจ้งซ่อมอุปกรณ์</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <!-- Tailwind CSS -->
@@ -53,24 +53,18 @@
     </button>
     <p id="statusText" class="mt-4 text-blue-600 text-center font-medium"></p>
 
-    <!-- สถานะกำลังบันทึก -->
-    <div id="savingStatus" class="mt-4 flex items-center space-x-2 text-blue-600 hidden">
-      <svg class="animate-spin h-5 w-5" viewBox="0 0 24 24">
-        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-      </svg>
-      <span>กำลังบันทึก...</span>
-    </div>
-
     <!-- Confirmation Modal -->
     <div id="confirmModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
       <div class="bg-white rounded-lg shadow-lg p-6 w-80">
         <h3 class="text-lg font-semibold mb-4">ยืนยันการแจ้งซ่อม</h3>
         <p class="mb-6">ต้องการส่งแจ้งซ่อมอุปกรณ์ใช่หรือไม่?</p>
         <div class="flex justify-end gap-4">
-          <button id="cancelBtn" class="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300">ยกเลิก</button>
+          <button id="cancelBtn"
+            class="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300">ยกเลิก</button>
           <button id="confirmBtn"
-            class="px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white">ยืนยัน</button>
+            class="px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center gap-2">
+            ยืนยัน
+          </button>
         </div>
       </div>
     </div>
@@ -98,23 +92,18 @@
       const profile = await liff.getProfile();
       userIdLine = profile.userId;
 
-      // **ค้นหาชื่อผู้แจ้งจาก employees**
+      // ค้นหาชื่อผู้แจ้งจาก employees
       const empSnap = await db.ref("employees")
         .orderByChild("userIdLine").equalTo(userIdLine).get();
-
       if (empSnap.exists()) {
-        // ถ้ามีในตาราง ให้ใช้ชื่อเต็มจากฐาน
         reporterName = Object.values(empSnap.val())[0].fullName;
       } else {
-        // ถ้าไม่พบ ให้แจ้งแล้วปิด LIFF
         showCustomAlert('ไม่พบข้อมูลพนักงาน กรุณาลงทะเบียนก่อน');
         setTimeout(() => {
           if (liff.isInClient()) liff.closeWindow();
         }, 2000);
         return;
       }
-
-      // แสดงชื่อผู้แจ้ง
       document.getElementById("reporterName").textContent = reporterName;
     };
 
@@ -183,17 +172,33 @@
     });
     document.getElementById('cancelBtn')
       .addEventListener('click', () => modal.classList.add('hidden'));
+
+    // ตอนนี้ปรับให้ confirmBtn แสดง loading state ในตัวปุ่มเลย
     document.getElementById('confirmBtn')
-      .addEventListener('click', async () => {
-        modal.classList.add('hidden');
+      .addEventListener('click', async function () {
+        const btn = this;
+        const originalHTML = btn.innerHTML;
+        btn.disabled = true;
+        // ใส่ spinner + ข้อความ
+        btn.innerHTML = `
+          <svg class="animate-spin h-5 w-5 inline-block" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor"
+              d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+          </svg>
+          กำลังบันทึก...
+        `;
         await submitRepair();
+        // เปลี่ยนเป็น ✅ บันทึกสำเร็จ
+        btn.innerHTML = '✅ บันทึกสำเร็จ';
+        // รอให้ผู้ใช้เห็นข้อความสักครู่
+        setTimeout(() => {
+          if (liff.isInClient()) liff.closeWindow();
+        }, 1000);
       });
 
-    // Submit + status + LINE + close LIFF
+    // ฟังก์ชันบันทึกลง Firebase + ส่ง LINE
     async function submitRepair() {
-      document.getElementById('statusText').textContent = 'กำลังส่งเรื่อง';
-      document.getElementById('savingStatus').classList.remove('hidden');
-
       const id = db.ref().child('repairReports').push().key;
       const now = new Date().toISOString();
       const dev = document.getElementById('deviceId').value.trim();
@@ -202,13 +207,21 @@
       const dt = document.getElementById('details').value.trim();
       const file = document.getElementById('imageInput').files[0];
 
-      let imageUrl = '';
-      if (file) {
-        const snap = await storage.ref(`repair_images/${id}`).put(file);
-        imageUrl = await snap.ref.getDownloadURL();
-      }
+       let imageUrl = '';
+        if (file) {
+          try {
+            // สร้าง reference ไปยังโฟลเดอร์
+            const fileRef = storage.ref(`repair_images/${id}`);
+            // อัพโหลดไฟล์
+            const snap = await fileRef.put(file);
+            // ดึง download URL
+            imageUrl = await snap.ref.getDownloadURL();
+          } catch (e) {
+            console.error('Upload failed', e);
+            showCustomAlert('บันทึกรูปไม่สำเร็จ');
+          }
+        }
 
-      // บันทึกลง Firebase
       await db.ref(`repairReports/${id}`).set({
         id, date: now,
         timestamp: firebase.database.ServerValue.TIMESTAMP,
@@ -223,16 +236,8 @@
         lastUserId: userIdLine
       });
 
-      // ส่งข้อความไป LINE
       const msg = `แจ้งรายการซ่อม\nรหัส อุปกรณ์: ${dev}\nหัวข้อ: ${ti}\nรายละเอียด: ${dt}`;
       await liff.sendMessages([{ type: 'text', text: msg }]);
-
-      document.getElementById('savingStatus').classList.add('hidden');
-      document.getElementById('statusText').textContent = '✅ แจ้งซ่อมเรียบร้อยแล้ว';
-
-      setTimeout(() => {
-        if (liff.isInClient()) liff.closeWindow();
-      }, 1000);
     }
   </script>
 </body>
