@@ -17,7 +17,7 @@
 
   <!-- หน้าแรก -->
   <div id="homePage" class="max-w-md mx-auto p-4 rounded-2xl mx-2 mt-2">
-    <div class="pb-1 pt-4 px-4 bg-white rounded-2xl  mb-4">
+    <div class="pb-1 pt-4 px-4 bg-white rounded-2xl mb-4">
       <p id="empName" class="font-semibold mb-1">กำลังโหลดชื่อพนักงาน...</p>
       <p id="empPosition" class="text-gray-600 mb-4">&nbsp;</p>
     </div>
@@ -89,12 +89,24 @@
     </div>
   </div>
 
+  <!-- Error Modal: ไม่พบข้อมูลผู้ใช้ -->
+  <div id="errorModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+    <div class="bg-white rounded-2xl p-6 w-11/12 max-w-sm text-center">
+      <h3 class="text-lg font-semibold mb-4">ไม่พบข้อมูลผู้ใช้</h3>
+      <p class="mb-6 text-gray-600">กรุณาลงทะเบียนกับผู้ดูแลระบบก่อนเข้าใช้งาน</p>
+      <button
+        onclick="liff.closeWindow()"
+        class="px-6 py-3 bg-[#174D27] text-white rounded-full font-medium"
+      >
+        ปิด
+      </button>
+    </div>
+  </div>
+
   <script>
     // LIFF
     const LIFF_ID = "2007392451-RbxJlGV1";
     let userIdLine = "", userName = "", userPosition = "";
-
-    // โครงสร้างใหม่: เก็บเป็นอ็อบเจกต์ { id, name }
     let basket = [], currentMode = "", pendingMode = null;
 
     async function initLIFF() {
@@ -105,18 +117,22 @@
 
       const empSnap = await db.ref("employees")
         .orderByChild("userIdLine").equalTo(userIdLine).get();
+
       if (empSnap.exists()) {
         const emp = Object.values(empSnap.val())[0];
         userName = emp.fullName;
         userPosition = emp.position;
+        document.getElementById("empName").textContent = userName;
+        document.getElementById("empPosition").textContent = `ตำแหน่ง: ${userPosition}`;
+        loadBorrowed();
       } else {
-        userName = profile.displayName;
-        userPosition = "ไม่ทราบตำแหน่ง";
+        // ซ่อนทุกหน้า แล้วแสดง errorModal
+        ["homePage", "borrowPage", "returnPage"].forEach(id =>
+          document.getElementById(id).classList.add("hidden")
+        );
+        document.getElementById("errorModal").classList.remove("hidden");
+        return;
       }
-
-      document.getElementById("empName").textContent = userName;
-      document.getElementById("empPosition").textContent = `ตำแหน่ง: ${userPosition}`;
-      loadBorrowed();
     }
 
     function showPage(page) {
@@ -139,7 +155,6 @@
       const tbody = document.getElementById("borrowedList");
       tbody.innerHTML = "";
       let hasData = false;
-
       const snap = await db.ref("devices").once("value");
       snap.forEach(child => {
         const d = child.val();
@@ -152,7 +167,6 @@
             </tr>`;
         }
       });
-
       if (!hasData) {
         tbody.innerHTML = `
           <tr>
@@ -174,7 +188,7 @@
     function tick(video) {
       if (video.readyState === video.HAVE_ENOUGH_DATA) {
         const canvas = document.createElement("canvas");
-        canvas.width = video.videoWidth;canvas.height = video.videoHeight;
+        canvas.width = video.videoWidth; canvas.height = video.videoHeight;
         canvas.getContext("2d").drawImage(video,0,0);
         const code = jsQR(canvas.getContext("2d").getImageData(0,0,canvas.width,canvas.height).data, canvas.width, canvas.height);
         if (code) handleScanResult(code.data.trim());
@@ -182,36 +196,24 @@
       if (video.srcObject) requestAnimationFrame(()=>tick(video));
     }
 
-    // ปรับ handleScanResult ให้กรองชื่ออุปกรณ์และสถานะ
     async function handleScanResult(deviceId) {
       const statusEl = document.getElementById(
         currentMode === "borrow" ? "scanStatusBorrow" : "scanStatusReturn"
       );
       const snap = await db.ref("devices/" + deviceId).get();
-
       if (!snap.exists()) {
         statusEl.textContent = `❌ ไม่พบอุปกรณ์: ${deviceId}`;
         return;
       }
       const dev = snap.val();
-
-      // กรองอุปกรณ์ที่ไม่มีชื่อ
-      if (!dev.deviceName || !dev.deviceName.trim()) {
+      if (!dev.deviceName?.trim()) {
         statusEl.textContent = `⚠️ ไม่พบชื่ออุปกรณ์สำหรับรหัส: ${deviceId}`;
         return;
       }
-
-      // ถ้าโหมดยืม ให้เช็กสถานะก่อน
-      if (currentMode === "borrow") {
-        // ยืมได้เฉพาะเมื่อ status === "พร้อมใช้งาน"
-        if (dev.status !== "พร้อมใช้งาน") {
-          statusEl.textContent = `⚠️ ${deviceId} (${dev.deviceName}) ไม่สามารถยืมได้ (สถานะ: ${dev.status})`;
-          return;
-        }
+      if (currentMode === "borrow" && dev.status !== "พร้อมใช้งาน") {
+        statusEl.textContent = `⚠️ ${deviceId} (${dev.deviceName}) ไม่สามารถยืมได้ (สถานะ: ${dev.status})`;
+        return;
       }
-      // ถ้าโหมดคืน ก็เช็กเฉพาะถ้าไม่ใช่ borrow mode ไม่ต้องกรองเพิ่ม
-
-      // เพิ่มลงตะกร้า
       if (!basket.some(item => item.id === deviceId)) {
         basket.push({ id: deviceId, name: dev.deviceName });
       }
@@ -219,7 +221,6 @@
       updateList();
     }
 
-    // แสดงรหัส + ชื่อในตะกร้า
     function updateList() {
       const listEl = document.getElementById(
         currentMode === "borrow" ? "basketBorrow" : "basketReturn"
@@ -230,7 +231,6 @@
           <button onclick="removeFromBasket('${item.id}')" class="text-red-500 font-bold">ลบ</button>
         </li>
       `).join("");
-
       const btn = document.getElementById(
         currentMode === "borrow" ? "btnConfirmBorrow" : "btnConfirmReturn"
       );
@@ -283,12 +283,10 @@
       }, 1000);
     }
 
-    // ปรับ submitAction ให้ใช้ชื่อจาก basket
     async function submitAction(mode) {
       const refName = mode === "borrow" ? "borrowRecords" : "returnRecords";
       const statusText = mode === "borrow" ? "ยืม" : "คืน";
       const now = new Date().toISOString();
-
       for (let item of basket) {
         const { id: deviceId, name: deviceName } = item;
         const recId = db.ref().child(refName).push().key;
