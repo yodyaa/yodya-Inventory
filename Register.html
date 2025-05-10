@@ -109,9 +109,11 @@
         // อัปโหลดรูป (ถ้ามี)
         let photoURL = "";
         if (file) {
-          const fileRef = storage.child(`employee_photos/${empId}_${Date.now()}`);
-          await fileRef.put(file);
-          photoURL = await fileRef.getDownloadURL();
+        // upload file
+        const fileRef = storageRef.child(`employee_photos/${empId}_${Date.now()}`);
+        await fileRef.put(file);
+        const photoURL = await fileRef.getDownloadURL();
+
         }
 
         // บันทึกข้อมูลลง Realtime Database พร้อม role
