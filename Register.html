@@ -13,8 +13,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
-  <!-- Your Firebase config (defines firebase.initializeApp, db, storage) -->
-  <script src="firebase-config.js"></script>
+
 </head>
 
 <body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
@@ -46,6 +45,20 @@
   </div>
 
   <script>
+    // Config Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyBt0ikC_4GPLgJOeth-CzPIq_9V_jDKmLQ",
+      authDomain: "inventory-f0daa.firebaseapp.com",
+      databaseURL: "https://inventory-f0daa-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "inventory-f0daa",
+      storageBucket: "inventory-f0daa.firebasestorage.app",
+      messagingSenderId: "257202949333",
+      appId: "1:257202949333:web:1e0ed0f840b51f874c265c",
+      measurementId: "G-BHBRN5PECH"  };
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const storage = firebase.storage().ref();
     const LIFF_ID = "2007392451-xb1Ya5r7"; // เปลี่ยนเป็น LIFF ID ของคุณ
 
     window.onload = async () => {
@@ -105,6 +118,7 @@
           btn.disabled = false;
           return;
         }
+
 
         // อัปโหลดรูป (ถ้ามี)
         let photoURL = "";
