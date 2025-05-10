@@ -10,5 +10,5 @@
       measurementId: "G-BHBRN5PECH"  };
   
   firebase.initializeApp(firebaseConfig);
-  const db = firebase.database();
-const storage = firebase.storage();
+    const db = firebase.database();
+    const storageService = firebase.storage(); 
