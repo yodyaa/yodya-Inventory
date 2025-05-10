@@ -13,12 +13,11 @@
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
-  <!-- Your Firebase config (defines firebase.initializeApp, db, storage) -->
-  <script src="firebase-config.js"></script>
 </head>
 
 <body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
-  <div class="bg-white p-6 w-full max-w-md rounded-lg shadow">
+
+  <div class="p-6 w-full max-w-md bg-white rounded-lg shadow">
     <h2 class="text-2xl font-bold mb-6 text-center">ลงทะเบียนพนักงาน</h2>
     <div class="space-y-4">
       <input type="text" id="empId" placeholder="รหัสพนักงาน"
@@ -34,19 +33,34 @@
         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         required>
       <input type="text" id="userIdLine" placeholder="UserId จาก LINE" readonly
-        class="w-full px-4 py-2 border border-gray-200 text-[#CADEC3] rounded-lg bg-gray-100 cursor-not-allowed">
+        class="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-100 cursor-not-allowed">
       <input type="file" id="photo" accept="image/*"
         class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:border file:border-gray-300 file:rounded-lg file:bg-white file:text-sm file:font-semibold hover:file:bg-gray-100">
     </div>
     <button id="saveBtn" onclick="saveEmployee()"
-      class="mt-6 w-full bg-[#174D27] text-white font-semibold py-3 rounded-full disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+      class="mt-6 w-full bg-[#174D27] text-white font-semibold py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
       บันทึกข้อมูล
     </button>
     <p id="status" class="mt-4 text-center text-gray-600"></p>
   </div>
 
   <script>
-    const LIFF_ID = "2007392451-xb1Ya5r7"; // เปลี่ยนเป็น LIFF ID ของคุณ
+    // Config Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyBt0ikC_4GPLgJOeth-CzPIq_9V_jDKmLQ",
+      authDomain: "inventory-f0daa.firebaseapp.com",
+      databaseURL: "https://inventory-f0daa-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "inventory-f0daa",
+      storageBucket: "inventory-f0daa.firebasestorage.app",
+      messagingSenderId: "257202949333",
+      appId: "1:257202949333:web:1e0ed0f840b51f874c265c",
+      measurementId: "G-BHBRN5PECH"  };
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const storage = firebase.storage().ref();
+
+    const LIFF_ID = "2007335399-B181xl9Z"; // เปลี่ยนเป็น LIFF ID ของคุณ
 
     window.onload = async () => {
       await liff.init({ liffId: LIFF_ID });
@@ -59,22 +73,22 @@
     };
 
     async function saveEmployee() {
-      const empId      = document.getElementById("empId").value.trim();
-      const fullName   = document.getElementById("fullName").value.trim();
-      const position   = document.getElementById("position").value.trim();
-      const phone      = document.getElementById("phone").value.trim();
+      const empId = document.getElementById("empId").value.trim();
+      const fullName = document.getElementById("fullName").value.trim();
+      const position = document.getElementById("position").value.trim();
+      const phone = document.getElementById("phone").value.trim();
       const userIdLine = document.getElementById("userIdLine").value;
-      const file       = document.getElementById("photo").files[0];
+      const file = document.getElementById("photo").files[0];
 
       const statusEl = document.getElementById("status");
-      const btn      = document.getElementById("saveBtn");
+      const btn = document.getElementById("saveBtn");
 
       // ตรวจสอบข้อมูลครบ
       if (!empId || !fullName || !position || !phone || !userIdLine) {
         return alert("กรุณากรอกข้อมูลให้ครบถ้วน");
       }
 
-      // ตรวจสอบรูปแบบเบอร์โทร (0 ตามด้วยตัวเลข 9 หลัก)
+      // ตรวจสอบรูปแบบเบอร์โทร
       const phonePattern = /^0\d{9}$/;
       if (!phonePattern.test(phone)) {
         return alert("รูปแบบเบอร์โทรไม่ถูกต้อง (เช่น 0XXXXXXXXX)");
@@ -85,22 +99,21 @@
 
       try {
         // ตรวจสอบ userIdLine ซ้ำ
-        const idSnap = await db.ref("employees")
+        let snap = await db.ref("employees")
           .orderByChild("userIdLine")
           .equalTo(userIdLine)
           .get();
-        if (idSnap.exists()) {
+        if (snap.exists()) {
           statusEl.textContent = "⚠️ userIdLine นี้ลงทะเบียนแล้ว";
           btn.disabled = false;
           return;
         }
-
         // ตรวจสอบเบอร์โทรซ้ำ
-        const phoneSnap = await db.ref("employees")
+        snap = await db.ref("employees")
           .orderByChild("phone")
           .equalTo(phone)
           .get();
-        if (phoneSnap.exists()) {
+        if (snap.exists()) {
           statusEl.textContent = "⚠️ เบอร์โทรนี้ลงทะเบียนแล้ว";
           btn.disabled = false;
           return;
@@ -109,14 +122,12 @@
         // อัปโหลดรูป (ถ้ามี)
         let photoURL = "";
         if (file) {
-        // upload file
-        const fileRef = storageRef.child(`employee_photos/${empId}_${Date.now()}`);
-        await fileRef.put(file);
-        const photoURL = await fileRef.getDownloadURL();
-
+          const fileRef = storage.child(`employee_photos/${empId}_${Date.now()}`);
+          await fileRef.put(file);
+          photoURL = await fileRef.getDownloadURL();
         }
 
-        // บันทึกข้อมูลลง Realtime Database พร้อม role
+        // บันทึกข้อมูลลง Realtime Database พร้อม role = "User"
         await db.ref(`employees/${empId}`).set({
           empId,
           fullName,
@@ -137,6 +148,7 @@
       }
     }
   </script>
+
 </body>
 
 </html>
