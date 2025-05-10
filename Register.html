@@ -114,14 +114,15 @@
           photoURL = await fileRef.getDownloadURL();
         }
 
-        // บันทึกข้อมูลลง Realtime Database
+        // บันทึกข้อมูลลง Realtime Database พร้อม role
         await db.ref(`employees/${empId}`).set({
           empId,
           fullName,
           position,
           phone,
           userIdLine,
-          photoURL
+          photoURL,
+          role: "user"
         });
 
         statusEl.textContent = "✅ บันทึกสำเร็จ";
