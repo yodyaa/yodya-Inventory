@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Dashboard จัดการอุปกรณ์</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+  <script src="firebase-config.js"></script>
+
+</head>
+<body class="bg-gray-100 min-h-screen flex">
+  <aside class="w-64 bg-[#174D27]  p-6">
+    <h1 class="text-white text-md font-bold mb-6">จัดการการยืมคืน & แจ้งซ่อม</h1>
+    <nav class="space-y-4">
+      <a href="./Dashboard.html" class="block bg-[#CADEC3] text-[#174D27] py-2 px-4 rounded">หน้าหลัก</a>
+      <a href="./Devices.html" class="block bg-[#CADEC3] text-[#174D27] py-2 px-4 rounded">อุปกรณ์</a>
+      <a href="./User.html" class="block bg-[#CADEC3] text-[#174D27] py-2 px-4 rounded">สมาชิก</a>
+      <a href="./Setting.html"
+        class="block bg-[#174D27] border border-[#CADEC3] text-white py-2 px-4 rounded">ตั้งค่าการแจ้งเตือน</a>
+    </nav>
+  </aside>
+  <!-- Main content -->
+  <main class="flex-1 p-6 space-y-8">
+    <!-- Summary Boxes -->
+    <div id="summaryBoxes" class="grid grid-cols-2 sm:grid-cols-4 gap-4"></div>
+
+    <!-- อุปกรณ์ที่ยังไม่คืน -->
+    <section>
+      <h2 class="text-2xl font-bold mb-4">อุปกรณ์ที่ยังไม่คืน</h2>
+      <div id="borrowCards" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+    </section>
+
+    <!-- ตั้งเวลาแจ้งเตือน -->
+    <section>
+      <h2 class="text-2xl font-bold mb-4">ตั้งเวลาแจ้งเตือน</h2>
+      <div class="space-y-4">
+        <!-- ช่วงเวลาต่างๆ ตามที่กำหนด -->
+        <!-- พนักงาน: สรุปยืม -->
+        <div class="flex items-center space-x-2">
+          <span class="w-40">พนักงาน : สรุปผลการยืม</span>
+          <input id="empBorrowTime" type="time" class="border p-1 rounded" />
+          <button onclick="saveTime('empBorrowTime','empBorrowMsg')"
+            class="px-3 py-1 bg-[#174D27] text-white rounded">บันทึก</button>
+          <button onclick="notifyEmpBorrowNow()" class="px-3 py-1 bg-green-600 text-white rounded">แจ้งทันที</button>
+          <span id="empBorrowMsg" class="text-sm text-yellow-500"></span>
+        </div>
+        <!-- พนักงาน: เตือนคืน (1) -->
+        <div class="flex items-center space-x-2">
+          <span class="w-40">พนักงาน: แจ้งเตือน ว่าอย่าลืมแสกนคืนอุปกรณ์ </span>
+          <input id="empReturnTime1" type="time" class="border p-1 rounded" />
+          <button onclick="saveTime('empReturnTime1','empReturnMsg1')"
+            class="px-3 py-1 bg-[#174D27] text-white rounded">บันทึก</button>
+          <button onclick="notifyEmpReturnNow()" class="px-3 py-1 bg-green-600 text-white rounded">แจ้งทันที</button>
+          <span id="empReturnMsg1" class="text-sm text-yellow-500"></span>
+        </div>
+        <!-- พนักงาน: เตือนคืน (2) -->
+        <div class="flex items-center space-x-2">
+          <span class="w-40">พนักงาน: ส่งข้อความแจ้งเตือนอีกครั้ง ว่าอย่าลืมแสกนคืนอุปกรณ์</span>
+          <input id="empReturnTime2" type="time" class="border p-1 rounded" />
+          <button onclick="saveTime('empReturnTime2','empReturnMsg2')"
+            class="px-3 py-1 bg-[#174D27] text-white rounded">บันทึก</button>
+          <button onclick="notifyEmpReturnNow()" class="px-3 py-1 bg-green-600 text-white rounded">แจ้งทันที</button>
+          <span id="empReturnMsg2" class="text-sm text-yellow-500"></span>
+        </div>
+        <!-- Admin: สรุปยืม -->
+        <div class="flex items-center space-x-2">
+          <span class="w-40">Admin: รายการยืมทั้งหมดวันนี้</span>
+          <input id="adminBorrowTime" type="time" class="border p-1 rounded" />
+          <button onclick="saveTime('adminBorrowTime','adminBorrowMsg')"
+            class="px-3 py-1 bg-[#174D27] text-white rounded">บันทึก</button>
+          <button onclick="notifyAdminBorrowNow()" class="px-3 py-1 bg-green-600 text-white rounded">แจ้งทันที</button>
+          <span id="adminBorrowMsg" class="text-sm text-yellow-500"></span>
+        </div>
+        <!-- Admin: สรุปคืน -->
+        <div class="flex items-center space-x-2">
+          <span class="w-40">Admin:รายการที่ยังไม่คืน</span>
+          <input id="adminReturnTime" type="time" class="border p-1 rounded" />
+          <button onclick="saveTime('adminReturnTime','adminReturnMsg')"
+            class="px-3 py-1 bg-[#174D27] text-white rounded">บันทึก</button>
+          <button onclick="notifyAdminReturnNow()" class="px-3 py-1 bg-green-600 text-white rounded">แจ้งทันที</button>
+          <span id="adminReturnMsg" class="text-sm text-yellow-500"></span>
+        </div>
+      </div>
+
+      <!-- ปุ่มเคลียร์ค่าเวลา -->
+      <div class="mt-4">
+        <button onclick="clearTimes()" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition">
+          เคลียร์ค่าเวลา
+        </button>
+      </div>
+
+    </section>
+
+  </main>
+
+  <script>
+    const TIMEZONE = 'Asia/Bangkok';
+
+    // Load borrowed devices realtime
+    let devicesByUser = {};
+    function updateSummary() {
+      const loaners = Object.keys(devicesByUser).length;
+      const borrowed = Object.values(devicesByUser).reduce((s, u) => s + u.items.length, 0);
+      document.getElementById('summaryBoxes').innerHTML = `
+        <div class="bg-white p-4 rounded shadow text-center">
+          <div class="text-2xl font-bold">${loaners}</div>
+          <div class="text-sm">ผู้ยืม</div>
+        </div>
+        <div class="bg-white p-4 rounded shadow text-center">
+          <div class="text-2xl font-bold">${borrowed}</div>
+          <div class="text-sm">อุปกรณ์ค้างคืน</div>
+        </div>
+      `;
+    }
+    function loadBorrowed() {
+      db.ref('devices').on('value', snap => {
+        devicesByUser = {};
+        snap.forEach(ch => {
+          const d = ch.val();
+          if (d.status === 'กำลังใช้งาน' && d.lastUserId) {
+            if (!devicesByUser[d.lastUserId]) devicesByUser[d.lastUserId] = { name: d.lastUser, items: [] };
+            devicesByUser[d.lastUserId].items.push({ id: d.deviceId, name: d.deviceName });
+          }
+        });
+        renderBorrowed();
+        updateSummary();
+      });
+    }
+    function renderBorrowed() {
+      const cont = document.getElementById('borrowCards'); cont.innerHTML = '';
+      Object.entries(devicesByUser).forEach(([uid, u]) => {
+        const list = u.items.map(i => `• ${i.id} : ${i.name}`).join('<br>');
+        const card = document.createElement('div'); card.className = 'bg-white p-4 rounded shadow';
+        card.innerHTML = `<div class="flex justify-between items-center">
+            <h3 class="font-semibold">${u.name}</h3>
+            <button onclick="notifyOne('${uid}','${u.name}','${u.items.map(i => i.id + ':' + i.name).join(', ')}')"
+              class="bg-red-500 text-white px-3 py-1 rounded text-xs">🔔</button>
+          </div><div class="mt-2 text-sm">${list}</div>`;
+        cont.appendChild(card);
+      });
+    }
+    loadBorrowed();
+    // Utility
+    function todayDate() {
+      return new Date().toLocaleDateString('en-CA', { timeZone: TIMEZONE });
+    }
+    function sendToGAS(uid, msg) {
+      fetch('https://script.google.com/macros/s/AKfycbxgGncjm0mJlbxYgQh5z4kvfbfefUniF_VKA_gcItazeNS0B5H56CyI5UiBDJCvAnFk_w/exec', { method: 'POST', body: JSON.stringify({ userId: uid, message: msg }) });
+    }
+    function notifyOne(uid, name, list) { sendToGAS(uid, `🔔 คุณ ${name} คืน: ${list}`); }
+    function saveTime(id, msgId) {
+      const t = document.getElementById(id).value; if (!t) return alert('กรุณาเลือกเวลา');
+      localStorage.setItem(id, t); document.getElementById(msgId).textContent = `แจ้งทุกวันเวลา ${t}`;
+    }
+    ['empBorrowTime', 'empReturnTime1', 'empReturnTime2', 'adminBorrowTime', 'adminReturnTime']
+      .forEach(id => { const v = localStorage.getItem(id); if (v) document.getElementById(id).value = v; });
+    setInterval(() => {
+      const now = new Date().toTimeString().slice(0, 5);
+      if (localStorage.getItem('empBorrowTime') === now) notifyEmpBorrowNow();
+      if (['empReturnTime1', 'empReturnTime2'].some(i => localStorage.getItem(i) === now)) notifyEmpReturnNow();
+      if (localStorage.getItem('adminBorrowTime') === now) notifyAdminBorrowNow();
+      if (localStorage.getItem('adminReturnTime') === now) notifyAdminReturnNow();
+    }, 60000);
+
+    // Notification functions
+    function notifyEmpBorrowNow() {
+      // 1) สร้าง ISO-string ของช่วงวัน
+      const today = new Date();
+      const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const startISO = startOfDay.toISOString();
+
+      const endOfDay = new Date(startOfDay);
+      endOfDay.setDate(endOfDay.getDate() + 1);
+      const endISO = endOfDay.toISOString();
+      db.ref('borrowRecords')
+        .orderByChild('date')
+        .startAt(startISO)
+        .endAt(endISO)
+        .once('value')
+        .then(snap => {
+          snap.forEach(ch => {
+            const e = ch.val();
+            sendToGAS(e.userId, `📋 สรุปการยืมวันนี้: \n${e.deviceId}:${e.deviceName}`);
+          });
+        });
+    }
+    function notifyEmpReturnNow() {
+      // แจ้งคืนจาก devices
+      db.ref('devices').once('value').then(snap => {
+        const pend = {};
+        snap.forEach(ch => {
+          const d = ch.val();
+          if (d.status === 'กำลังใช้งาน' && d.lastUserId) {
+            pend[d.lastUserId] = pend[d.lastUserId] || [];
+            pend[d.lastUserId].push(`${d.deviceId}: ${d.deviceName}`);
+          }
+        });
+        Object.entries(pend).forEach(([uid, items]) => {
+          sendToGAS(uid, `🔔 อย่าลืมคืน:\n${items.join(', ')}`);
+        });
+      });
+    }
+    function fetchAdmins() {
+      return db.ref('employees')
+        .orderByChild('role')
+        .equalTo('Admin')        // ตรงกับ Database ของคุณ
+        .once('value')
+        .then(snapshot => {
+          const admins = [];
+          snapshot.forEach(ch => {
+            const u = ch.val();
+            if (u.userIdLine) admins.push(u.userIdLine);
+          });
+          return admins;
+        });
+    }
+    function notifyAdminBorrowNow() {
+      // 1) สร้าง ISO-string ของช่วงวัน
+      const today = new Date();
+      const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const startISO = startOfDay.toISOString();
+
+      const endOfDay = new Date(startOfDay);
+      endOfDay.setDate(endOfDay.getDate() + 1);
+      const endISO = endOfDay.toISOString();
+
+      Promise.all([
+        fetchAdmins(),
+        db.ref('borrowRecords')
+          .orderByChild('date')
+          .startAt(startISO)
+          .endAt(endISO)
+          .once('value')
+      ]).then(([admins, snap]) => {
+        // สรุปข้อมูลเหมือนเดิม...
+        const summary = {};
+        snap.forEach(ch => {
+          const e = ch.val();
+          summary[e.userName] = summary[e.userName] || [];
+          // ในฐานข้อมูลคุณเก็บเป็น deviceName ใช้ตรงนี้แทน deviceId
+          summary[e.userName].push(`${e.deviceId}: ${e.deviceName}`);
+        });
+        const lines = Object.entries(summary).map(([name, names]) =>
+          `${name}\n${names.map(n => `- ${n}`).join('\n')}`
+        );
+        const txt = lines.length
+          ? lines.join('\n\n')
+          : '— ไม่มีรายการยืมวันนี้ —';
+        admins.forEach(id =>
+          sendToGAS(id, `📋 รายการที่ยืมวันนี้:\n\n${txt}`)
+        );
+      });
+    }
+
+    // --- ฟังก์ชันแจ้งรายการที่ยังไม่คืน (ช่วงที่ 2) ---
+    function notifyAdminReturnNow() {
+      Promise.all([
+        fetchAdmins(),
+        db.ref('devices').once('value')
+      ]).then(([admins, snap]) => {
+        const pending = {};
+        snap.forEach(ch => {
+          const d = ch.val();
+          if (d.status === 'กำลังใช้งาน') {
+            pending[d.lastUser] = pending[d.lastUser] || [];
+            pending[d.lastUser].push(`${d.deviceId}: ${d.deviceName}`);
+          }
+        });
+        const lines = Object.entries(pending).map(([name, ids]) =>
+          `${name}\n${ids.map(id => `- ${id}`).join('\n')}`
+        );
+        const txt = lines.length
+          ? lines.join('\n\n')
+          : '— ไม่มีรายการค้างคืน —';
+        admins.forEach(id =>
+          sendToGAS(id, `⚠️ รายการที่ยังไม่คืน:\n\n${txt}`)
+        );
+      });
+    }
+    function clearTimes() {
+      // (ถ้าต้องการ) ยืนยันก่อนลบ
+      if (!confirm('คุณแน่ใจว่าจะลบค่าการตั้งเวลาแจ้งเตือนทั้งหมด?')) return;
+
+      // รายการ ID ของ input และ message span
+      const timeIds = [
+        'empBorrowTime', 'empReturnTime1', 'empReturnTime2',
+        'adminBorrowTime', 'adminReturnTime'
+      ];
+      timeIds.forEach(id => {
+        // ลบจาก localStorage
+        localStorage.removeItem(id);
+        // รีเซ็ต input value
+        const inp = document.getElementById(id);
+        if (inp) inp.value = '';
+      });
+      // รีเซ็ตข้อความสถานะ
+      ['empBorrowMsg', 'empReturnMsg1', 'empReturnMsg2', 'adminBorrowMsg', 'adminReturnMsg']
+        .forEach(msgId => {
+          const sp = document.getElementById(msgId);
+          if (sp) sp.textContent = '';
+        });
+    }
+
+  </script>
+</body>
+
+</html>
