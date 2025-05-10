@@ -292,10 +292,11 @@
 
       try {
         let photoURL = '';
-        if (file) {
-          const fileRef = storage.child(`employee_photos/${empId}_${Date.now()}`);
-          await fileRef.put(file);
-          photoURL = await fileRef.getDownloadURL();
+       if (file) {
+        // เรียก .ref(path) เพื่อสร้าง reference ก่อนอัปโหลด
+        const fileRef = storage.ref(`employee_photos/${empId}_${Date.now()}`);
+        await fileRef.put(file);
+        photoURL = await fileRef.getDownloadURL();
         }
 
         await db.ref(`employees/${empId}`).set({
