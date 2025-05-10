@@ -1,3 +1,4 @@
+
   // Firebase config
   const firebaseConfig = {
       apiKey: "AIzaSyBt0ikC_4GPLgJOeth-CzPIq_9V_jDKmLQ",
@@ -10,5 +11,5 @@
       measurementId: "G-BHBRN5PECH"  };
   
   firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-    const storageService = firebase.storage(); 
+  const db = firebase.database();
+  const storage = firebase.storage();
