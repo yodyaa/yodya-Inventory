@@ -1,474 +1,243 @@
 <!DOCTYPE html>
 <html lang="th">
-
 <head>
-  <meta charset="UTF-8">
-  <title>Dashboard-อุปกรณ์</title>
+  <meta charset="UTF-8" />
+  <title>Dashboard จัดการอุปกรณ์</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Firebase SDKs -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#000000',
+            secondary: '#FFFFFF',
+          }
+        }
+      }
+    }
+  </script>
+  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
+  <!-- your firebase-config.js ต้องกำหนด firebase.initializeApp(...) และ const db = firebase.database(); -->
   <script src="firebase-config.js"></script>
-
 </head>
 
-<body class="bg-gray-100">
+<body class="bg-gray-100 min-h-screen flex">
+  <!-- Sidebar -->
+  <aside class="w-64 bg-primary p-6">
+    <h1 class="text-white text-md font-bold mb-6">จัดการการยืมคืน & แจ้งซ่อม</h1>
+    <nav class="space-y-4">
+      <a href="./Dashboard.html"      class="block bg-primary border border-secondary text-secondary py-2 px-4 rounded">หน้าหลัก</a>
+      <a href="./Report-show.html"    class="block bg-secondary text-primary             py-2 px-4 rounded">แจ้งซ่อม</a>
+      <a href="./team.html"           class="block bg-secondary text-primary             py-2 px-4 rounded">จัดการทีม</a>
+      <a href="./Devices.html"        class="block bg-secondary text-primary             py-2 px-4 rounded">อุปกรณ์</a>
+      <a href="./User.html"           class="block bg-secondary text-primary             py-2 px-4 rounded">สมาชิก</a>
+      <a href="./Setting.html"        class="block bg-secondary text-primary             py-2 px-4 rounded">ตั้งค่าการแจ้งเตือน</a>
+    </nav>
+  </aside>
 
-  <div class="flex min-h-screen">
-    <!-- Side Nav -->
-    <aside class="w-64 bg-[#174D27]  p-6">
-      <h1 class="text-white text-md font-bold mb-6">จัดการการยืมคืน & แจ้งซ่อม</h1>
-      <nav class="space-y-4">
-        <a href="./Dashboard.html" class="block bg-[#174D27] border border-[#CADEC3] text-white py-2 px-4 rounded">หน้าหลัก</a>
-        <a href="./Devices.html" class="block bg-[#CADEC3] text-[#174D27] py-2 px-4 rounded">อุปกรณ์</a>
-        <a href="./User.html" class="block bg-[#CADEC3] text-[#174D27] py-2 px-4 rounded">สมาชิก</a>
-       <a href="./Setting.html" class="block bg-[#CADEC3] text-[#174D27] py-2 px-4 rounded">ตั้งค่าการแจ้งเตือน</a>
-      </nav>
-      <div class="p-4 mt-10 rounded-lg bg-gray-900">
-        <label class="block text-sm text-white text-center font-medium mb-4">แจ้งเตือนอุปกรณ์ยังไม่คืน</label>
-        <input id="notifyTimeInput" type="time" class="w-full border mb-4 p-2 rounded">
-        <div class="flex items-center space-x-2">
-          <button id="setNotifyTimeBtn" class="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">บันทึก</button>
-          <button id="cancelNotifyBtn"  class="w-full bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">ยกเลิก</button>
-        </div>
-        <p id="scheduledTimeMsg" class="text-sm mt-2 text-yellow-400"></p>
-      </div>
-    </aside>
+  <!-- Main content -->
+  <main class="flex-1 p-6 space-y-8">
+    <!-- Summary Boxes -->
+    <div id="summaryBoxes" class="grid grid-cols-2 sm:grid-cols-5 gap-4"></div>
 
-    <!-- Main Content -->
-    <main class="flex-1 p-6">
-      <div class="bg-white p-6 rounded-lg shadow-sm">
+    <!-- ทีมและอุปกรณ์ -->
+    <section>
+      <h2 class="text-lg font-bold mb-4">ทีมและอุปกรณ์</h2>
+      <div id="teamCards" class="grid grid-cols-4 gap-4"></div>
+    </section>
 
-        <!-- Summary Boxes -->
-        <div id="summaryBoxes" class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8"></div>
-
-        <!-- อุปกรณ์ที่ยังไม่ได้คืน -->
-        <h2 class="text-2xl font-bold mb-4">อุปกรณ์ที่ยังไม่ได้คืน <span><button onclick="notifyAllNotReturned()" class="text-xs bg-[#174D27] text-white p-2 rounded">แจ้งเตือน ทั้งหมด</button></span></h2>
-        <div id="borrowCards" class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-10"></div>
-
-        <!-- รายการงานซ่อม -->
-        <div class="border-2 border-slate-500 rounded-lg p-4">
-          <h2 class="text-lg font-semibold mb-4">รายการงานซ่อม</h2>
-          <!-- Filters -->
-          <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4">
-            <div>
-              <label class="block text-sm">วันที่ส่งซ่อม</label>
-              <input id="filterDate" type="date" class="border p-1 rounded w-full">
-            </div>
-            <div>
-              <label class="block text-sm">รหัส</label>
-              <input id="filterId" type="text" placeholder="รหัส" class="border p-1 rounded w-full">
-            </div>
-            <div>
-              <label class="block text-sm">ชื่อ</label>
-              <input id="filterName" type="text" placeholder="ชื่อ" class="border p-1 rounded w-full">
-            </div>
-            <div>
-              <label class="block text-sm">สถานะ</label>
-              <input id="filterStatus" type="text" placeholder="สถานะ" class="border p-1 rounded w-full">
-            </div>
-          </div>
-
-          <!-- Table -->
-          <table class="min-w-full table-fixed rounded-lg overflow-hidden">
-            <thead class="bg-[#174D27] text-white">
-              <tr>
-                <th class="w-24 py-2 px-4 text-left text-white text-sm">รหัส</th>
-                <th class="w-36 py-2 px-4 text-left text-white text-sm">ชื่อ</th>
-                <th class="w-48 py-2 px-4 text-left text-white text-sm">หัวข้อ</th>
-                <th class="w-64 py-2 px-4 text-left text-white text-sm">รายละเอียด</th>
-                <th class="w-32 py-2 px-4 text-left text-white text-sm">รูปก่อนซ่อม</th>
-                <th class="w-32 py-2 px-4 text-left text-white text-sm">สถานะ</th>
-                <th class="w-48 py-2 px-4 text-left text-white text-sm">จัดการ</th>
-              </tr>
-            </thead>
-            <tbody id="repairList" class="bg-white divide-y divide-gray-200 text-sm"></tbody>
-          </table>
-
-          <!-- Footer: Rows-per-page & Pagination -->
-          <div class="flex justify-between items-center mt-4">
-            <div class="flex items-center">
-              <label for="rowsPerPage" class="mr-2">แสดง</label>
-              <select id="rowsPerPage" class="border px-2 py-1 rounded mr-2">
-                <option value="15">15</option>
-                <option value="50">50</option>
-                <option value="100">100</option>
-              </select>
-              <span>แถวต่อหน้า</span>
-            </div>
-            <div id="pagination" class="flex space-x-2"></div>
-          </div>
-        </div>
-
-      </div>
-    </main>
-  </div>
-
-  <!-- Detail Modal -->
-  <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
-    <div class="bg-white rounded-lg w-11/12 md:w-1/2 p-6 relative">
-      <button id="closeModal" class="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
-      <div id="modalContent"></div>
-    </div>
-  </div>
-
-  <!-- Image Modal -->
-  <div id="imageModal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center hidden z-50">
-    <img id="modalImage" src="" class="max-w-full max-h-full rounded-lg shadow-lg">
-  </div>
+    <!-- อุปกรณ์ที่ยังไม่คืน -->
+    <section>
+      <h2 class="text-lg font-bold mb-4">อุปกรณ์ที่ยังไม่คืน</h2>
+      <div id="borrowCards" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+    </section>
+  </main>
 
   <script>
- 
-    // State
-    let devicesGrouped = {}, reportsData = [], currentPage = 1;
-    let rowsPerPage = 15, countLoaners = 0, countBorrowedItems = 0;
-    let countReported = 0, countSuccess = 0;
+    const TIMEZONE = 'Asia/Bangkok';
 
-    // Helpers
-    function formatDate(iso) {
-      if (!iso) return "-";
-      const d = new Date(iso);
-      return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
-    }
-    function getStatusClass(s) {
-      if (s === "รอซ่อม") return "bg-red-500 text-white";
-      if (s === "ส่งซ่อม") return "bg-yellow-300 text-black";
-      if (s === "ซ่อมสำเร็จ") return "bg-green-500 text-white";
-      return "bg-gray-300 text-black";
-    }
+    // Counters
+    let countTeams       = 0;
+    let countMembers     = 0;
+    let countBorrowed    = 0;
+    let countNotReturned = 0;
 
-    // Update summary cards
+    // เก็บอุปกรณ์ที่ยืมตาม user
+    let devicesByUser = {};
+
+    // ฟังก์ชันอัปเดต summaryBoxes
     function updateSummaryBoxes() {
+      const countReturned = countBorrowed - countNotReturned;
       document.getElementById("summaryBoxes").innerHTML = `
         <div class="bg-white border rounded-lg p-4 text-center">
-          <div class="text-2xl font-bold">${countLoaners}</div>
-          <div class="text-sm">ผู้ยืม</div>
+          <div class="text-lg font-bold">${countTeams}</div>
+          <div class="text-sm">จำนวนทีม</div>
         </div>
         <div class="bg-white border rounded-lg p-4 text-center">
-          <div class="text-2xl font-bold">${countBorrowedItems}</div>
+          <div class="text-lg font-bold">${countMembers}</div>
+          <div class="text-sm">จำนวนลูกทีม</div>
+        </div>
+        <div class="bg-white border rounded-lg p-4 text-center">
+          <div class="text-lg font-bold">${countBorrowed}</div>
+          <div class="text-sm">อุปกรณ์ที่ยืม</div>
+        </div>
+        <div class="bg-white border rounded-lg p-4 text-center">
+          <div class="text-lg font-bold">${countNotReturned}</div>
           <div class="text-sm">ยังไม่คืน</div>
         </div>
         <div class="bg-white border rounded-lg p-4 text-center">
-          <div class="text-2xl font-bold">${countReported}</div>
-          <div class="text-sm">แจ้งซ่อม</div>
-        </div>
-        <div class="bg-white border rounded-lg p-4 text-center">
-          <div class="text-2xl font-bold">${countSuccess}</div>
-          <div class="text-sm">ซ่อมสำเร็จ</div>
+          <div class="text-lg font-bold">${countReturned}</div>
+          <div class="text-sm">คืนแล้ว</div>
         </div>
       `;
     }
 
-    // Real-time borrowed devices
-    db.ref("devices").on("value", snap => {
-      devicesGrouped = {}; countLoaners = 0; countBorrowedItems = 0;
-      document.getElementById("borrowCards").innerHTML = "";
+    // ดึงข้อมูลอุปกรณ์
+    function fetchDevicesInfo() {
+      return db.ref('devices').once('value').then(snap => {
+        const map = {};
+        snap.forEach(ch => {
+          const d = ch.val();
+          map[d.deviceId] = { name: d.deviceName, status: d.status };
+        });
+        return map;
+      });
+    }
+
+    // Listener ของ teams → สร้างการ์ดทีม + นับ countTeams, countMembers, countBorrowed
+    db.ref('teams').on('value', teamsSnap => {
+      fetchDevicesInfo().then(devMap => {
+        const container = document.getElementById('teamCards');
+        container.innerHTML = '';
+        countTeams    = 0;
+        countMembers  = 0;
+        countBorrowed = 0;
+
+        teamsSnap.forEach(ch => {
+          const team = ch.val();
+          countTeams++;
+
+          // สมาชิก
+          const memberNames = team.members
+            ? Object.values(team.members).map(m => m.name)
+            : [];
+          countMembers += memberNames.length;
+
+          // อุปกรณ์ที่ยืมจากทีม
+          const equips = team.equipments
+            ? Object.values(team.equipments)
+            : [];
+          countBorrowed += equips.length;
+
+          // สร้างรายการอุปกรณ์ในการ์ด
+          const equipList = equips.map(id => {
+            const info = devMap[id] || { name: 'ไม่ทราบชื่อ', status: 'ไม่ทราบสถานะ' };
+            const isActive = info.status === 'กำลังใช้งาน';
+            const badgeClass = isActive
+              ? 'bg-green-100 text-green-800'
+              : 'bg-red-100 text-red-800';
+            const label = isActive ? 'กำลังใช้งาน' : 'คลังอุปกรณ์';
+            const dot = isActive
+              ? `<span class="inline-block w-2 h-2 mr-1 rounded-full bg-green-500 animate-pulse"></span>`
+              : '';
+            return `
+              <li class="flex justify-between items-center">
+                <span>${id} – ${info.name}</span>
+                <span class="flex items-center px-2 py-0.5 text-xs font-medium rounded ${badgeClass}">
+                  ${dot}${label}
+                </span>
+              </li>`;
+          }).join('');
+          const equipHTML = equips.length
+            ? `<ul class="list-none space-y-1 mt-1">${equipList}</ul>`
+            : `<p class="text-sm italic text-gray-500 mt-1">– ไม่มีอุปกรณ์ –</p>`;
+
+          // สร้างการ์ดทีม
+          const card = document.createElement('div');
+          card.className = 'bg-white p-4 rounded shadow';
+          card.innerHTML = `
+            <h3 class="text-lg font-semibold mb-2">${team.name}</h3>
+            <p class="text-sm"><span class="font-medium">หัวหน้า:</span> ${team.leader?.name || '-'}</p>
+            <p class="text-sm mt-1"><span class="font-medium">สมาชิก:</span> ${memberNames.length ? memberNames.join(', ') : '-'}</p>
+            <div class="mt-2">
+              <span class="font-medium text-sm">อุปกรณ์:</span>
+              ${equipHTML}
+            </div>`;
+          container.appendChild(card);
+        });
+
+        updateSummaryBoxes();
+      });
+    });
+
+    // Listener ของ devices → นับ countNotReturned + กลุ่ม devicesByUser
+    db.ref('devices').on('value', snap => {
+      countNotReturned = 0;
+      devicesByUser    = {};
+
       snap.forEach(ch => {
         const d = ch.val();
-        if (d.status === "กำลังใช้งาน" && d.lastUserId) {
-          if (!devicesGrouped[d.lastUserId]) {
-            devicesGrouped[d.lastUserId] = { user: d.lastUser, items: [] };
+        if (d.status === 'กำลังใช้งาน') {
+          countNotReturned++;
+          if (d.lastUserId) {
+            if (!devicesByUser[d.lastUserId]) {
+              devicesByUser[d.lastUserId] = { name: d.lastUser, items: [] };
+            }
+            devicesByUser[d.lastUserId].items.push({ id: d.deviceId, name: d.deviceName });
           }
-          devicesGrouped[d.lastUserId].items.push({ id: d.deviceId, name: d.deviceName });
         }
       });
-      countLoaners = Object.keys(devicesGrouped).length;
-      countBorrowedItems = Object.values(devicesGrouped).reduce((a, b) => a + b.items.length, 0);
-      for (let [uid, u] of Object.entries(devicesGrouped)) {
-        const list = u.items.map(i => `${i.id} ${i.name}`).join(", ");
-        const card = document.createElement("div");
-        card.className = "border rounded-lg p-4 bg-white";
+
+      renderBorrowed();
+      updateSummaryBoxes();
+    });
+
+    // เรนเดอร์การ์ดผู้ยืม
+    function renderBorrowed() {
+      const cont = document.getElementById('borrowCards');
+      cont.innerHTML = '';
+      Object.entries(devicesByUser).forEach(([uid, u]) => {
+        const list = u.items.map(i => `• ${i.id} : ${i.name}`).join('<br>');
+        const card = document.createElement('div');
+        card.className = 'bg-white p-4 rounded shadow';
         card.innerHTML = `
           <div class="flex justify-between items-center">
-            <h3 class="font-semibold">${u.user}</h3>
-            <button onclick="notifyLine('${uid}','${u.user}','${list}')" class="bg-red-500 text-xs text-white px-3 py-1 rounded-full">เตือน</button>
+            <h3 class="font-semibold">${u.name}</h3>
+            <button onclick="notifyOne(
+                '${uid}',
+                '${u.name}',
+                '${u.items.map(i => `${i.id}:${i.name}`).join(',')}'
+              )"
+              class="bg-red-500 text-white px-3 py-1 rounded text-xs">🔔</button>
           </div>
-          <ul class="mt-2 text-sm space-y-1">
-            ${u.items.map(i => `<li>• ${i.id} : ${i.name}</li>`).join("")}
-          </ul>
-        `;
-        document.getElementById("borrowCards").append(card);
-      }
-      updateSummaryBoxes();
-    });
-
-    // Real-time repair reports
-    db.ref("repairReports").on("value", snap => {
-      reportsData = []; countReported = 0; countSuccess = 0;
-      snap.forEach(ch => {
-        const r = ch.val(); reportsData.push({ id: ch.key, ...r });
-        if (r.status === "ส่งซ่อม") countReported++;
-        if (r.status === "ซ่อมสำเร็จ") countSuccess++;
-      });
-      reportsData.sort((a, b) => new Date(b.sendDate) - new Date(a.sendDate));
-      updateSummaryBoxes();
-      renderTablePage();
-    });
-
-    // Filters & pagination
-    ["filterDate", "filterId", "filterName", "filterStatus"].forEach(id => {
-      document.getElementById(id).addEventListener("input", () => { currentPage = 1; renderTablePage(); });
-    });
-    document.getElementById("rowsPerPage").addEventListener("change", e => {
-      rowsPerPage = +e.target.value; currentPage = 1; renderTablePage();
-    });
-
-    function renderTablePage() {
-      const fD = document.getElementById("filterDate").value;
-      const fI = document.getElementById("filterId").value.trim();
-      const fN = document.getElementById("filterName").value.trim();
-      const fS = document.getElementById("filterStatus").value.trim();
-      let arr = reportsData.filter(r => {
-        if (fD && r.sendDate.split("T")[0] !== fD) return false;
-        if (fI && !r.deviceId.includes(fI)) return false;
-        if (fN && !r.deviceName.includes(fN)) return false;
-        if (fS && !r.status.includes(fS)) return false;
-        return true;
-      });
-      const tbody = document.getElementById("repairList");
-      tbody.innerHTML = "";
-      const start = (currentPage - 1) * rowsPerPage;
-      arr.slice(start, start + rowsPerPage).forEach(r => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td class="py-2 px-4">${r.deviceId}</td>
-          <td class="py-2 px-4">${r.deviceName}</td>
-          <td class="py-2 px-4">${r.title}</td>
-          <td class="py-2 px-4">${r.details}</td>
-          <td class="py-2 px-4">
-            ${r.imageUrl ? `<img src="${r.imageUrl}" class="h-16 rounded cursor-pointer" onclick="openImageModal('${r.imageUrl}')">` : "-"}
-          </td>
-          <td class="py-2 px-4"><span class="px-2 py-1 rounded-full ${getStatusClass(r.status)}">${r.status}</span></td>
-          <td class="py-2 px-4 space-x-2">
-            <button onclick="viewRepair('${r.id}')" class="px-3 py-1 bg-[#174D27] text-white rounded">รายการ</button>
-            <button onclick="editRepair('${r.id}')" class="px-3 py-1 bg-[#CADEC3] text-[#174D27] rounded">อัปเดต</button>
-            <button onclick="deleteRepair('${r.id}')" class="px-3 py-1 bg-red-500 text-white rounded">ลบ</button>
-          </td>
-
-        `;
-        tbody.appendChild(tr);
-      });
-      // pagination
-      const total = Math.ceil(arr.length / rowsPerPage);
-      const pg = document.getElementById("pagination"); pg.innerHTML = "";
-      for (let i = 1; i <= total; i++) {
-        const b = document.createElement("button");
-        b.textContent = i; b.className = `px-3 py-1 rounded ${i === currentPage ? 'bg-[#174D27]  text-white' : 'bg-gray-300 text-black'}`;
-        b.onclick = () => { currentPage = i; renderTablePage(); };
-        pg.appendChild(b);
-      }
-    }
-
-    // Detail modal controls
-    const modal = document.getElementById("modal");
-    document.getElementById("closeModal").onclick = () => {
-      modal.classList.add("hidden");
-      document.body.classList.remove("overflow-hidden");
-    };
-    window.addEventListener("click", e => {
-      if (e.target === modal) {
-        modal.classList.add("hidden");
-        document.body.classList.remove("overflow-hidden");
-      }
-    });
-
-    // View details
-    function viewRepair(id) {
-      db.ref("repairReports/" + id).once("value").then(snap => {
-        const r = snap.val();
-        document.getElementById("modalContent").innerHTML = `
-          <h2 class="text-xl font-bold mb-4">รายละเอียดแจ้งซ่อม</h2>
-         <p><strong>ผู้แจ้ง:</strong> ${r.reporterName || "-"}</p>  
-          <p><strong>รหัส:</strong> ${r.deviceId}</p>
-          <p><strong>ชื่อ:</strong> ${r.deviceName}</p>
-          <p><strong>หัวข้อ:</strong> ${r.title}</p>
-          <p><strong>รายละเอียด:</strong> ${r.details}</p>
-          <p><strong>ผู้รับผิดชอบ:</strong> ${r.responsible || "-"}</p>
-          <p><strong>ส่งซ่อมวันที่:</strong> ${formatDate(r.sendDate)}</p>
-          <p><strong>รูปก่อนซ่อม:</strong><br>
-            ${r.imageUrl
-            ? `<img src="${r.imageUrl}" class="mt-2 max-w-48 rounded cursor-pointer" onclick="openImageModal('${r.imageUrl}')">`
-            : "ไม่มี"}
-          </p>
-          <p><strong>รูปหลังซ่อม:</strong><br>
-            ${r.imageAfter
-            ? `<img src="${r.imageAfter}" class="mt-2 max-w-48 rounded cursor-pointer" onclick="openImageModal('${r.imageAfter}')">`
-            : "ไม่มี"}
-          </p>
-        `;
-        modal.classList.remove("hidden");
-        document.body.classList.add("overflow-hidden");
+          <div class="mt-2 text-sm">${list}</div>`;
+        cont.appendChild(card);
       });
     }
 
-    // Image modal
-    function openImageModal(src) {
-      const imgModal = document.getElementById("imageModal");
-      const modalImg = document.getElementById("modalImage");
-      modalImg.src = src;
-      imgModal.classList.remove("hidden");
-    }
-    document.getElementById("imageModal").addEventListener("click", () => {
-      document.getElementById("imageModal").classList.add("hidden");
-    });
-
-    // Edit / update
-    function editRepair(id) {
-      db.ref("repairReports/" + id).once("value").then(snap => {
-        const d = snap.val();
-        document.getElementById("modalContent").innerHTML = `
-          <h2 class="text-xl font-bold mb-4">อัปเดตงานซ่อม</h2>
-          <form id="updateForm" class="space-y-3">
-            <input type="hidden" id="repairId" value="${id}">
-            <label class="block">สถานะ</label>
-            <select id="status" class="w-full p-2 border rounded">
-              <option ${d.status === 'รอซ่อม' ? 'selected' : ''}>รอซ่อม</option>
-              <option ${d.status === 'ส่งซ่อม' ? 'selected' : ''}>ส่งซ่อม</option>
-              <option ${d.status === 'ซ่อมสำเร็จ' ? 'selected' : ''}>ซ่อมสำเร็จ</option>
-            </select>
-            <label class="block">ผู้รับผิดชอบ</label>
-            <input id="responsible" value="${d.responsible || ''}" class="w-full p-2 border rounded">
-            <label class="block">ส่งซ่อมวันที่</label>
-            <input id="sendDate" type="date" value="${d.sendDate ? d.sendDate.split('T')[0] : ''}" class="w-full p-2 border rounded">
-            <label class="block">รายละเอียดการแก้ไข</label>
-            <textarea id="solution" class="w-full p-2 border rounded">${d.solution || ''}</textarea>
-            <label class="block">ค่าใช้จ่าย</label>
-            <input id="cost" value="${d.cost || ''}" class="w-full p-2 border rounded">
-            <label class="block">อัปโหลดรูปหลังซ่อม</label>
-            <input id="imageAfterFile" type="file" accept="image/*" class="w-full">
-            <img id="afterPreview" src="${d.imageAfter || '#'}" class="mt-2 max-w-48 rounded ${d.imageAfter ? '' : 'hidden'}">
-            <button type="submit" class="bg-[#174D27] text-right text-white px-4 py-2 mt-2 rounded">💾 บันทึก</button>
-          </form>
-        `;
-        modal.classList.remove("hidden"); document.body.classList.add("overflow-hidden");
-
-        // preview หลังซ่อม
-        document.getElementById("imageAfterFile").onchange = e => {
-          const file = e.target.files[0];
-          if (!file) return;
-          const reader = new FileReader();
-          reader.onload = ev => {
-            const img = document.getElementById("afterPreview");
-            img.src = ev.target.result; img.classList.remove("hidden");
-          };
-          reader.readAsDataURL(file);
-        };
-
-        // submit update form
-        document.getElementById("updateForm").onsubmit = async e => {
-          e.preventDefault();
-          const id2 = document.getElementById("repairId").value;
-          const newStatus = document.getElementById("status").value;
-          const payload = {
-            status: newStatus,
-            responsible: document.getElementById("responsible").value,
-            sendDate: document.getElementById("sendDate").value,
-            solution: document.getElementById("solution").value,
-            cost: document.getElementById("cost").value
-          };
-          // ถ้ามีไฟล์หลังซ่อม ให้ upload
-          const file = document.getElementById("imageAfterFile").files[0];
-            if (file) {
-              // สร้าง reference ไปยัง path ที่ต้องการ
-              const reportRef = storage.ref(`repair_after/${id2}`);
-              // อัปโหลดไฟล์
-              const snap = await reportRef.put(file);
-              // ดึง URL มาใช้
-              payload.imageAfter = await snap.ref.getDownloadURL();
-            }
-          
-          // update report
-          await db.ref("repairReports/" + id2).update(payload);
-
-          // ถ้าเปลี่ยนเป็น ซ่อมสำเร็จ ให้ update devices status → พร้อมใช้งาน
-          if (newStatus === "ซ่อมสำเร็จ") {
-            const rpt = await db.ref("repairReports/" + id2).get();
-            const devId = rpt.val().deviceId;
-            await db.ref("devices/" + devId).update({ status: "พร้อมใช้งาน" });
-          }
-
-          alert("✅ อัปเดตเรียบร้อย");
-          modal.classList.add("hidden");
-          document.body.classList.remove("overflow-hidden");
-        };
+    // ส่ง Flex ไป GAS
+    function sendFlexToGAS(uid, flex, altText = "📋 แจ้งเตือนจากระบบ") {
+      fetch('https://script.google.com/macros/s/AKfycbwMyWlJ3lu9oKdxIPWaZldMFKz9JcPF2Ugan4HQy8Lgq9nTT8kDsNRIgre3SpXgCqbB/exec', {
+        method: 'POST',
+        body: JSON.stringify({ userId: uid, flexContent: flex, altText })
       });
     }
 
-    function deleteRepair(id) {
-      // ยืนยันก่อนลบ
-      if (!confirm('❗ คุณแน่ใจหรือไม่ว่าจะลบรายการงานซ่อมนี้?')) return;
-      // ลบข้อมูลจาก Firebase
-      db.ref('repairReports/' + id).remove()
-        .then(() => {
-          alert('✅ ลบรายการเรียบร้อย');
-          // รีเฟรชตาราง
-          renderTablePage();
-          // อัปเดตสรุปจำนวน
-          // Firebase listener จะอัปเดตอัตโนมัติ แต่ถ้าต้องการบังคับก็เรียก:
-          // updateSummaryBoxes();
-        })
-        .catch(err => {
-          console.error('Error deleting report:', err);
-          alert('❌ เกิดข้อผิดพลาดในการลบ กรุณาลองใหม่');
-        });
+    // แจ้งเตือนรายคน
+    function notifyOne(uid, name, list) {
+      const items = list.split(',').map(txt => `- ${txt}`);
+      const contents = [
+        { type: "text", text: "🔔 กรุณาคืนอุปกรณ์", weight: "bold", size: "lg", margin: "md" },
+        { type: "text", text: name, size: "md", weight: "bold", margin: "md" },
+        ...items.map(text => ({ type: "text", text, size: "sm", color: "#555555", wrap: true }))
+      ];
+      const flex = { type: "bubble", body: { type: "box", layout: "vertical", contents } };
+      sendFlexToGAS(uid, flex, "🔔 กรุณาคืนอุปกรณ์");
     }
-
-    // Notify via LINE
-    function notifyLine(userId, userName, list) {
-      fetch("https://script.google.com/macros/s/AKfycbwMyWlJ3lu9oKdxIPWaZldMFKz9JcPF2Ugan4HQy8Lgq9nTT8kDsNRIgre3SpXgCqbB/exec", {
-        method: "POST", mode: "no-cors",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, message: `📦 คุณ ${userName} กรุณาคืนอุปกรณ์: ${list}` })
-      });
-    }
-    function notifyAllNotReturned() {
-      for (let [uid, u] of Object.entries(devicesGrouped))
-        notifyLine(uid, u.user, u.items.map(i => i.id + " " + i.name).join(", "));
-    }
-    // Scheduler variables
-    let scheduledTime = localStorage.getItem('notifyTime');
-    const timeInput = document.getElementById('notifyTimeInput');
-    const setBtn = document.getElementById('setNotifyTimeBtn');
-    const cancelBtn = document.getElementById('cancelNotifyBtn');
-    const msgEl = document.getElementById('scheduledTimeMsg');
-
-    // Load saved time
-    if (scheduledTime) {
-      timeInput.value = scheduledTime;
-      msgEl.textContent = `แจ้งเตือนทุกวันเวลา ${scheduledTime}`;
-    }
-
-    // Set notify time
-    setBtn.onclick = () => {
-      const t = timeInput.value;
-      if (!t) return alert('⚠️ กรุณาเลือกเวลา');
-      localStorage.setItem('notifyTime', t);
-      scheduledTime = t;
-      msgEl.textContent = `แจ้งเตือนทุกวันเวลา ${t}`;
-    };
-
-    // Cancel notify
-    cancelBtn.onclick = () => {
-      localStorage.removeItem('notifyTime');
-      scheduledTime = null;
-      timeInput.value = '';
-      msgEl.textContent = 'ยกเลิกแจ้งเตือนแล้ว';
-    };
-
-    // Interval check
-    setInterval(() => {
-      if (!scheduledTime) return;
-      const now = new Date();
-      const hhmm = now.toTimeString().slice(0, 5);
-      if (hhmm === scheduledTime) {
-        notifyAllNotReturned();
-      }
-    }, 60000);
-
   </script>
 </body>
-
 </html>
