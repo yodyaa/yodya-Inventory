@@ -15,18 +15,32 @@
   <!-- PapaParse for CSV import -->
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <script src="firebase-config.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#174D27',
+            secondary: '#CADEC3',
+          }
+        }
+      }
+    }
+  </script>
 </head>
 
 <body class="bg-gray-100">
   <div class="flex min-h-screen">
     <!-- Sidebar -->
-    <aside class="w-64 bg-[#174D27] p-6">
+    <aside class="w-64 bg-primary p-6">
       <h1 class="text-white text-md font-bold mb-6">จัดการการยืมคืน & แจ้งซ่อม</h1>
-      <nav class="space-y-4">
-        <a href="./Dashboard.html" class="block bg-[#CADEC3] text-[#174D27] py-2 px-4 rounded">หน้าหลัก</a>
-        <a href="./Devices.html" class="block bg-[#174D27] border border-[#CADEC3] text-white py-2 px-4 rounded">อุปกรณ์</a>
-        <a href="./User.html" class="block bg-[#CADEC3] text-[#174D27] py-2 px-4 rounded">สมาชิก</a>
-        <a href="./Setting.html" class="block bg-[#CADEC3] text-[#174D27] py-2 px-4 rounded">ตั้งค่าการแจ้งเตือน</a>
+        <nav class="space-y-4">
+        <a href="./Dashboard.html" class="block bg-secondary text-primary py-2 px-4 rounded">หน้าหลัก</a>
+        <a href="./Report-show.html" class="block  bg-secondary text-primary py-2 px-4 rounded">แจ้งซ่อม</a>
+        <a href="./Team.html" class="block bg-secondary text-primary py-2 px-4 rounded">จัดการทีม</a>
+        <a href="./Devices.html" class="block bg-primary border border-secondary text-secondary py-2 px-4 rounded">อุปกรณ์</a>
+        <a href="./User.html" class="block bg-secondary text-primary py-2 px-4 rounded">สมาชิก</a>
+       <a href="./Setting.html" class="block  bg-secondary text-primary  py-2 px-4 rounded">ตั้งค่าการแจ้งเตือน</a>
       </nav>
     </aside>
 
@@ -35,7 +49,7 @@
       <!-- Header + Controls + Summary -->
       <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 space-y-4 md:space-y-0">
         <div class="flex space-x-2">
-          <button id="openModal" class="bg-[#174D27] text-white px-6 py-3 rounded-lg text-md font-semibold">
+          <button id="openModal" class="bg-primary text-white px-6 py-3 rounded-lg text-md font-semibold">
             เพิ่มอุปกรณ์
           </button>
           <button id="exportCsvBtn" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg text-md font-semibold">
@@ -144,7 +158,7 @@
                     <button type="button" id="cancelBtn"
                         class="px-4 py-2 border rounded text-gray-700 hover:bg-gray-100">ยกเลิก</button>
                     <button type="submit" id="saveBtn"
-                        class="px-4 py-2 bg-[#09054D] text-white rounded hover:bg-[#06043a] flex items-center">
+                        class="px-4 py-2 bg-primary text-white rounded flex items-center">
                         บันทึก
                     </button>
                 </div>
