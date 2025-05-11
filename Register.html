@@ -112,11 +112,13 @@
 
         // อัปโหลดรูป (ถ้ามี)
         let photoURL = "";
-        if (file) {
-          const fileRef = storage.child(`employee_photos/${empId}_${Date.now()}`);
-          await fileRef.put(file);
-          photoURL = await fileRef.getDownloadURL();
-        }
+// อัปโหลดรูป
+if (file) {
+  // ตรงนี้ใช้ storage.ref() แทน storage.child()
+  const fileRef = storage.ref(`employee_photos/${empId}_${Date.now()}`);
+  await fileRef.put(file);
+  photoURL = await fileRef.getDownloadURL();
+}
 
         // บันทึกข้อมูลลง Realtime Database พร้อม role = "User"
         await db.ref(`employees/${empId}`).set({
