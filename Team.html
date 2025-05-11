@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <title>จัดการทีม</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+  <!-- your firebase-config.js ต้องกำหนด firebase.initializeApp(...) และ const db = firebase.database(); -->
+  <script src="firebase-config.js"></script>
+    <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+          primary: '#174D27',
+          secondary: '#CADEC3',
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-gray-100 min-h-screen flex">
+  <!-- Sidebar -->
+  <aside class="w-64 bg-primary p-6">
+    <h1 class="text-white text-lg font-bold mb-6">ระบบยืม-คืน & แจ้งซ่อม</h1>
+        <nav class="space-y-4">
+        <a href="./Dashboard.html" class="block bg-secondary text-primary py-2 px-4 rounded">หน้าหลัก</a>
+        <a href="./Report-show.html" class="block  bg-secondary text-primary py-2 px-4 rounded">แจ้งซ่อม</a>
+        <a href="./team.html" class="block bg-primary border border-secondary text-secondary py-2 px-4 rounded">จัดการทีม</a>
+        <a href="./Devices.html" class="block bg-secondary text-primary py-2 px-4 rounded">อุปกรณ์</a>
+        <a href="./User.html" class="block bg-secondary text-primary py-2 px-4 rounded">สมาชิก</a>
+       <a href="./Setting.html" class="block  bg-secondary text-primary text-primary  py-2 px-4 rounded">ตั้งค่าการแจ้งเตือน</a>
+      </nav>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="flex-1 p-6">
+    <div class="flex justify-between items-center mb-6">
+      <h2 class="text-xl font-bold">จัดการทีม</h2>
+      <div class="space-x-2">
+        <button id="openTeamModal" class="bg-primary text-secondary px-4 py-2 rounded hover:bg-blue-700">+ เพิ่มทีม</button>
+        <button id="clearAllBtn" class="bg-red-600 text-secondary px-4 py-2 rounded hover:bg-red-700">ลบทีมทั้งหมด</button>
+      </div>
+    </div>
+
+    <!-- Team List -->
+    <div class="bg-white rounded-lg shadow overflow-x-auto">
+      <table class="min-w-full table-auto">
+        <thead class="bg-primary text-white">
+          <tr>
+            <th class="px-4 py-2 text-left">ชื่อทีม</th>
+            <th class="px-4 py-2 text-left">หัวหน้าทีม</th>
+            <th class="px-4 py-2 text-left">จำนวนสมาชิก</th>
+            <th class="px-4 py-2 text-left">จำนวนอุปกรณ์</th>
+            <th class="px-4 py-2 text-left">จัดการ</th>
+          </tr>
+        </thead>
+        <tbody id="teamTable" class="divide-y divide-gray-200"></tbody>
+      </table>
+    </div>
+  </main>
+
+  <!-- Team Modal -->
+  <div id="teamModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+    <div class="bg-white rounded-lg w-11/12 md:w-1/2 p-6 relative">
+      <button id="closeTeamModal" class="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+      <h3 id="modalTitle" class="text-xl font-semibold mb-4">สร้างทีมใหม่</h3>
+      <form id="teamForm" class="space-y-4">
+        <div>
+          <label for="teamName" class="block text-sm font-medium mb-1">ชื่อทีม</label>
+          <input id="teamName" name="teamName" type="text" required class="w-full border border-gray-300 rounded px-3 py-2" />
+        </div>
+        <div>
+          <label for="teamLeader" class="block text-sm font-medium mb-1">หัวหน้าทีม</label>
+          <select id="teamLeader" name="teamLeader" required class="w-full border border-gray-300 rounded px-3 py-2"></select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">สมาชิกทีม</label>
+          <div class="flex space-x-2 mb-2">
+            <input id="memberFilter" type="text" placeholder="ค้นหาชื่อพนักงาน..." class="flex-1 border border-gray-300 rounded px-3 py-1" />
+            <button type="button" id="clearMembersBtn" class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300">เคลียร์สมาชิก</button>
+          </div>
+          <div id="memberSelect" class="border border-gray-300 rounded p-2 h-32 overflow-y-auto"></div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">อุปกรณ์ที่มอบหมาย</label>
+          <div class="flex space-x-2 mb-2">
+            <input id="equipFilter" type="text" placeholder="ค้นหาอุปกรณ์..." class="flex-1 border border-gray-300 rounded px-3 py-1" />
+            <button type="button" id="clearEquipBtn" class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300">เคลียร์อุปกรณ์</button>
+          </div>
+          <div id="equipmentSelect" class="border border-gray-300 rounded p-2 h-32 overflow-y-auto"></div>
+        </div>
+        <div class="flex justify-end space-x-2 pt-4">
+          <button type="button" id="cancelTeamBtn" class="px-4 py-2 border rounded hover:bg-gray-100">ยกเลิก</button>
+          <!-- ปุ่มบันทึกที่มี spinner -->
+          <button id="saveTeamBtn" type="submit" class="px-4 py-2 bg-primary text-white rounded hover:bg-blue-700">
+            บันทึก
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const dbRef = firebase.database().ref();
+    let employees = {}, devices = {}, editingKey = null;
+
+    const openBtn      = document.getElementById('openTeamModal');
+    const clearAllBtn  = document.getElementById('clearAllBtn');
+    const modal        = document.getElementById('teamModal');
+    const closeBtn     = document.getElementById('closeTeamModal');
+    const cancelBtn    = document.getElementById('cancelTeamBtn');
+    const form         = document.getElementById('teamForm');
+    const teamTable    = document.getElementById('teamTable');
+    const memberFilter = document.getElementById('memberFilter');
+    const clearMembers = document.getElementById('clearMembersBtn');
+    const equipFilter  = document.getElementById('equipFilter');
+    const clearEquip   = document.getElementById('clearEquipBtn');
+    const leaderSel    = document.getElementById('teamLeader');
+    const teamNameIn   = document.getElementById('teamName');
+    const saveBtn      = document.getElementById('saveTeamBtn');
+
+    openBtn.onclick = () => openModal();
+    closeBtn.onclick = cancelBtn.onclick = () => resetForm();
+
+    // ฟังก์ชันดึงอุปกรณ์ที่ assign แล้ว ยกเว้น editingKey
+    async function getAssignedEquipments() {
+      const snap = await dbRef.child('teams').once('value');
+      const assigned = new Set();
+      snap.forEach(ch => {
+        if (ch.key !== editingKey) {
+          const t = ch.val();
+          if (t.equipments) t.equipments.forEach(id => assigned.add(id));
+        }
+      });
+      return assigned;
+    }
+
+    function populateEmployeeFields() {
+      const memDiv = document.getElementById('memberSelect');
+      leaderSel.innerHTML = '<option value="">-- เลือกหัวหน้าทีม --</option>';
+      memDiv.innerHTML = '';
+      Object.entries(employees).forEach(([id, emp]) => {
+        const name = emp.fullName || id;
+        const isAssigned = emp.teamId && emp.teamId !== editingKey;
+        // หัวหน้า
+        const opt = document.createElement('option');
+        opt.value = id;
+        opt.textContent = name + (isAssigned ? ' (อยู่ทีมอื่น)' : '');
+        if (isAssigned) opt.disabled = true;
+        leaderSel.appendChild(opt);
+        // สมาชิก
+        const lbl = document.createElement('label');
+        lbl.className = 'block mb-1 flex items-center';
+        const cb = document.createElement('input');
+        cb.type = 'checkbox'; cb.name = 'members'; cb.value = id;
+        if (isAssigned) { cb.disabled = true; lbl.classList.add('opacity-50','cursor-not-allowed'); }
+        lbl.appendChild(cb);
+        lbl.append(' ' + name + (isAssigned ? ' (อยู่ทีมอื่น)' : ''));
+        memDiv.appendChild(lbl);
+      });
+      leaderSel.onchange = () => {
+        const lid = leaderSel.value;
+        if (lid) teamNameIn.value = employees[lid].fullName || '';
+      };
+      memberFilter.value = '';
+      memberFilter.oninput = () => {
+        const q = memberFilter.value.toLowerCase();
+        memDiv.querySelectorAll('label').forEach(lbl => {
+          lbl.style.display = lbl.textContent.toLowerCase().includes(q) ? 'block' : 'none';
+        });
+      };
+      clearMembers.onclick = () => {
+        memDiv.querySelectorAll('input[name="members"]:checked').forEach(cb => cb.checked = false);
+      };
+    }
+
+    async function populateDeviceFields() {
+      const eqDiv = document.getElementById('equipmentSelect');
+      eqDiv.innerHTML = '';
+      const assigned = await getAssignedEquipments();
+      Object.entries(devices).forEach(([id, dev]) => {
+        const display = (dev.code||id) + ' - ' + (dev.name||dev.deviceName||'');
+        const lbl = document.createElement('label');
+        lbl.className = 'block mb-1 flex items-center';
+        const cb = document.createElement('input');
+        cb.type = 'checkbox'; cb.name = 'equipments'; cb.value = id;
+        if (assigned.has(id)) {
+          cb.disabled = true;
+          lbl.classList.add('opacity-50','cursor-not-allowed');
+        }
+        lbl.appendChild(cb);
+        lbl.append(' ' + display);
+        eqDiv.appendChild(lbl);
+      });
+      equipFilter.value = '';
+      equipFilter.oninput = () => {
+        const q = equipFilter.value.toLowerCase();
+        eqDiv.querySelectorAll('label').forEach(lbl => {
+          lbl.style.display = lbl.textContent.toLowerCase().includes(q) ? 'block' : 'none';
+        });
+      };
+      clearEquip.onclick = () => {
+        eqDiv.querySelectorAll('input[name="equipments"]:checked').forEach(cb => cb.checked = false);
+      };
+    }
+
+    async function loadEmployeesAndDevices() {
+      const [eSnap, dSnap] = await Promise.all([
+        dbRef.child('employees').once('value'),
+        dbRef.child('devices').once('value')
+      ]);
+      employees = eSnap.val()||{};
+      devices   = dSnap.val()||{};
+      populateEmployeeFields();
+      await populateDeviceFields();
+      await loadTeams();
+    }
+
+    async function loadTeams() {
+      const snap = await dbRef.child('teams').once('value');
+      teamTable.innerHTML = '';
+      Object.entries(snap.val()||{}).forEach(([key, t]) => {
+        const leaderName = t.leader?.name || '-';
+        const memberCount = t.members ? Object.values(t.members).length : 0;
+        const equipCount  = t.equipments ? t.equipments.length : 0;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="px-4 py-2">${t.name}</td>
+          <td class="px-4 py-2">${leaderName}</td>
+          <td class="px-4 py-2">${memberCount}</td>
+          <td class="px-4 py-2">${equipCount}</td>
+          <td class="px-4 py-2 space-x-2">
+            <button onclick="editTeam('${key}')" class="text-primary hover:underline">แก้ไข</button>
+            <button onclick="deleteTeam('${key}')" class="text-red-600 hover:underline">ลบ</button>
+          </td>`;
+        teamTable.appendChild(tr);
+      });
+    }
+
+    form.onsubmit = async e => {
+      e.preventDefault();
+      // ปุ่มกำลังบันทึก
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg"
+             class="animate-spin h-5 w-5 inline-block mr-2"
+             viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10"
+                  stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor"
+                d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+        </svg>
+        กำลังบันทึก...
+      `;
+      try {
+        const lid = form.teamLeader.value;
+        const leaderObj = { id: lid, name: employees[lid]?.fullName || lid };
+        const memberIds = [...form.querySelectorAll('input[name="members"]:checked')].map(cb=>cb.value);
+        const members   = memberIds.map(id=>({ id, name: employees[id]?.fullName||id }));
+        const equips    = [...form.querySelectorAll('input[name="equipments"]:checked')].map(cb=>cb.value);
+        const data      = {
+          name: form.teamName.value.trim(),
+          leader: leaderObj,
+          members,
+          equipments: equips
+        };
+        if (editingKey) {
+          await dbRef.child(`teams/${editingKey}`).set(data);
+          await syncTeamMembers(editingKey, [lid, ...memberIds]);
+        } else {
+          const ref = await dbRef.child('teams').push(data);
+          await syncTeamMembers(ref.key, [lid, ...memberIds]);
+        }
+        resetForm();
+        await loadEmployeesAndDevices();
+      } catch (err) {
+        console.error(err);
+        alert('บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง');
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = 'บันทึก';
+      }
+    };
+
+    async function syncTeamMembers(teamId, newIds) {
+      const oldSnap = await dbRef.child('employees').orderByChild('teamId').equalTo(teamId).once('value');
+      const upd = {};
+      oldSnap.forEach(ch=>{ if (!newIds.includes(ch.key)) upd[`employees/${ch.key}/teamId`]=null });
+      newIds.forEach(id=>upd[`employees/${id}/teamId`] = teamId);
+      await dbRef.update(upd);
+    }
+
+    window.deleteTeam = async key => {
+      if (!confirm('ลบทีมนี้?')) return;
+      const snap = await dbRef.child('employees').orderByChild('teamId').equalTo(key).once('value');
+      const upd = {}; snap.forEach(ch=>upd[`employees/${ch.key}/teamId`]=null);
+      await dbRef.update(upd);
+      await dbRef.child(`teams/${key}`).remove();
+      await loadEmployeesAndDevices();
+    };
+
+    clearAllBtn.onclick = async () => {
+      if (!confirm('ลบทีมทั้งหมด?')) return;
+      const tSnap = await dbRef.child('teams').once('value');
+      const remT = {}; tSnap.forEach(ch=>remT[`teams/${ch.key}`]=null);
+      await dbRef.update(remT);
+      const eSnap = await dbRef.child('employees').once('value');
+      const remE = {}; eSnap.forEach(ch=>remE[`employees/${ch.key}/teamId`]=null);
+      await dbRef.update(remE);
+      await loadEmployeesAndDevices();
+    };
+
+    function openModal() {
+      editingKey = null;
+      form.reset();
+      document.getElementById('modalTitle').textContent = 'สร้างทีมใหม่';
+      populateEmployeeFields();
+      populateDeviceFields().then(()=> modal.classList.remove('hidden'));
+    }
+
+    window.editTeam = async key => {
+      editingKey = key;
+      document.getElementById('modalTitle').textContent = 'แก้ไขทีม';
+      const snap = await dbRef.child(`teams/${key}`).once('value');
+      const t = snap.val();
+      form.teamName.value = t.name;
+      leaderSel.value     = t.leader.id;
+      populateEmployeeFields();
+      form.querySelectorAll('input[name="members"]').forEach(cb => {
+        cb.checked = t.members?.some(m=>m.id===cb.value);
+      });
+      await populateDeviceFields();
+      form.querySelectorAll('input[name="equipments"]').forEach(cb => {
+        cb.checked = t.equipments?.includes(cb.value);
+      });
+      modal.classList.remove('hidden');
+    };
+
+    function resetForm() {
+      editingKey = null;
+      form.reset();
+      modal.classList.add('hidden');
+    }
+
+    window.onload = loadEmployeesAndDevices;
+  </script>
+</body>
+</html>
