@@ -13,11 +13,18 @@
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
+    <script>
+    tailwind.config = { theme: { extend: {
+    colors: {
+      primary: '#174D27',
+          secondary: '#CADEC3',
+    } } } }
+  </script>
+  <script src="firebase-config.js"></script>
 </head>
-
 <body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
 
-  <div class="p-6 w-full max-w-md bg-white rounded-lg shadow">
+  <div class="p-6 w-full max-w-md">
     <h2 class="text-2xl font-bold mb-6 text-center">ลงทะเบียนพนักงาน</h2>
     <div class="space-y-4">
       <input type="text" id="empId" placeholder="รหัสพนักงาน"
@@ -33,37 +40,21 @@
         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         required>
       <input type="text" id="userIdLine" placeholder="UserId จาก LINE" readonly
-        class="w-full px-4 py-2 text-[#CADEC3] border border-gray-200 rounded-lg bg-gray-100 cursor-not-allowed">
+        class="w-full px-4 py-2 text-secondary border border-gray-200 rounded-lg bg-gray-100 cursor-not-allowed">
       <input type="file" id="photo" accept="image/*"
         class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:border file:border-gray-300 file:rounded-lg file:bg-white file:text-sm file:font-semibold hover:file:bg-gray-100">
     </div>
     <button id="saveBtn" onclick="saveEmployee()"
-      class="mt-6 w-full bg-[#174D27] text-white font-semibold py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+      class="mt-6 w-full bg-primary text-white font-semibold py-2 rounded-full disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
       บันทึกข้อมูล
     </button>
     <p id="status" class="mt-4 text-center text-gray-600"></p>
   </div>
 
   <script>
-    // Config Firebase
-    const firebaseConfig = {
-      apiKey: "AIzaSyBt0ikC_4GPLgJOeth-CzPIq_9V_jDKmLQ",
-      authDomain: "inventory-f0daa.firebaseapp.com",
-      databaseURL: "https://inventory-f0daa-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "inventory-f0daa",
-      storageBucket: "inventory-f0daa.firebasestorage.app",
-      messagingSenderId: "257202949333",
-      appId: "1:257202949333:web:1e0ed0f840b51f874c265c",
-      measurementId: "G-BHBRN5PECH"  };
- 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-    const storage = firebase.storage().ref();
-
-    const LIFF_ID = "2007392451-xb1Ya5r7"; // เปลี่ยนเป็น LIFF ID ของคุณ
 
     window.onload = async () => {
-      await liff.init({ liffId: LIFF_ID });
+      await liff.init({ liffId: '2007392451-xb1Ya5r7' });
       if (!liff.isInClient() && !liff.isLoggedIn()) {
         liff.login();
         return;
