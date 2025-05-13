@@ -11,8 +11,8 @@
       theme: {
         extend: {
           colors: {
-               primary: '#174D27',
-          secondary: '#CADEC3',
+            primary: '#174D27',
+            secondary: '#CADEC3',
           }
         }
       }
@@ -21,7 +21,7 @@
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
-  <!-- your firebase-config.js ต้องกำหนด firebase.initializeApp(...) และ const db = firebase.database(); -->
+  <!-- your firebase-config.js must initialize app and set `const db = firebase.database();` -->
   <script src="firebase-config.js"></script>
 </head>
 
@@ -47,7 +47,7 @@
     <!-- ทีมและอุปกรณ์ -->
     <section>
       <h2 class="text-lg font-bold mb-4">ทีมและอุปกรณ์</h2>
-      <div id="teamCards" class="grid grid-cols-4 gap-4"></div>
+      <div id="teamCards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"></div>
     </section>
 
     <!-- อุปกรณ์ที่ยังไม่คืน -->
@@ -60,16 +60,137 @@
   <script>
     const TIMEZONE = 'Asia/Bangkok';
 
-    // Counters
-    let countTeams       = 0;
-    let countMembers     = 0;
-    let countBorrowed    = 0;
-    let countNotReturned = 0;
+    // Data holders
+    let employees = {}, line2emp = {}, teamsSnap = null;
+    let deviceMap = {}, devicesByUser = {};
+    let countTeams = 0, countMembers = 0, countBorrowed = 0, countNotReturned = 0;
 
-    // เก็บอุปกรณ์ที่ยืมตาม user
-    let devicesByUser = {};
+    // 1) Load employees → build lineId→empKey map
+    db.ref('employees').on('value', snap => {
+      employees = snap.val() || {};
+      line2emp = {};
+      Object.entries(employees).forEach(([empKey, emp]) => {
+        if (emp.userIdLine) line2emp[emp.userIdLine] = empKey;
+      });
+      renderTeams();
+    });
 
-    // ฟังก์ชันอัปเดต summaryBoxes
+    // 2) Load teams snapshot
+    db.ref('teams').on('value', snap => {
+      teamsSnap = snap;
+      renderTeams();
+      updateSummaryBoxes();
+    });
+
+    // 3) Load devices → build deviceMap and devicesByUser
+    db.ref('devices').on('value', snap => {
+      deviceMap = {};
+      devicesByUser = {};
+      countNotReturned = 0;
+
+      snap.forEach(ch => {
+        const d = ch.val(), id = ch.key;
+        deviceMap[id] = {
+          name: d.deviceName || d.name || 'ไม่ทราบชื่อ',
+          status: d.status,
+          lastUserId: d.lastUserId
+        };
+        if (d.status === 'กำลังใช้งาน' && d.lastUserId) {
+          countNotReturned++;
+          if (!devicesByUser[d.lastUserId]) {
+            devicesByUser[d.lastUserId] = { name: d.lastUser, items: [] };
+          }
+          devicesByUser[d.lastUserId].items.push({ id, name: deviceMap[id].name });
+        }
+      });
+
+      renderBorrowed();
+      renderTeams();
+      updateSummaryBoxes();
+    });
+
+    // Render team cards, including both assigned and extra-borrowed equip
+    function renderTeams() {
+      if (!teamsSnap) return;
+      const cont = document.getElementById('teamCards');
+      cont.innerHTML = '';
+
+      countTeams = 0;
+      countMembers = 0;
+      countBorrowed = 0;
+
+      teamsSnap.forEach(ch => {
+        const team = ch.val();
+        const memberIds = team.members || [];
+        countTeams++;
+        countMembers += memberIds.length;
+
+        // assigned equipments
+        const assigned = (team.equipments || []).map(id => ({
+          id,
+          name: deviceMap[id]?.name || '– ไม่ทราบชื่อ –',
+          status: deviceMap[id]?.status
+        }));
+        countBorrowed += assigned.length;
+
+        // extra borrowed by members that aren't in assigned
+        const extra = [];
+        Object.entries(devicesByUser).forEach(([lineId, u]) => {
+          const empKey = line2emp[lineId];
+          if (empKey === team.leader || memberIds.includes(empKey)) {
+            u.items.forEach(item => {
+              if (!assigned.some(a => a.id === item.id)) {
+                extra.push({
+                  id: item.id,
+                  name: item.name,
+                  status: deviceMap[item.id]?.status
+                });
+              }
+            });
+          }
+        });
+
+        const allEquip = [...assigned, ...extra];
+
+        // build HTML
+        let equipHTML;
+        if (allEquip.length) {
+          equipHTML = `<ul class="mt-1 space-y-1">` +
+            allEquip.map(e => {
+              const isActive = e.status === 'กำลังใช้งาน';
+              const badge    = isActive
+                ? 'bg-green-100 text-green-800 animate-pulse'
+                : 'bg-red-100 text-red-800';
+              const label    = isActive ? 'กำลังใช้งาน' : 'คลัง';
+              const prefix   = assigned.some(a => a.id === e.id)
+                ? ''
+                : '<span class="text-xs text-blue-600 ml-1">(ยืมเกิน)</span>';
+              return `
+                <li class="flex justify-between items-center">
+                  <div>${e.id} – ${e.name}${prefix}</div>
+                  <span class="px-2 py-0.5 text-xs font-medium rounded ${badge}">${label}</span>
+                </li>`;
+            }).join('') +
+          `</ul>`;
+        } else {
+          equipHTML = `<p class="italic text-gray-500">– ไม่มีอุปกรณ์ –</p>`;
+        }
+
+        const leaderName  = employees[team.leader]?.fullName || '-';
+        const memberNames = memberIds.map(id => employees[id]?.fullName || id).join(', ') || '-';
+
+        const card = document.createElement('div');
+        card.className = 'bg-white p-4 rounded shadow';
+        card.innerHTML = `
+          <h3 class="font-semibold mb-2">${team.name}</h3>
+          <p><strong>หัวหน้า:</strong> ${leaderName}</p>
+          <p class="mt-1"><strong>สมาชิก:</strong> ${memberNames}</p>
+          <div class="mt-2"><strong>อุปกรณ์:</strong>${equipHTML}</div>`;
+        cont.appendChild(card);
+      });
+    }
+
+    // Render summary boxes
     function updateSummaryBoxes() {
       const countReturned = countBorrowed - countNotReturned;
       document.getElementById("summaryBoxes").innerHTML = `
@@ -96,107 +217,7 @@
       `;
     }
 
-    // ดึงข้อมูลอุปกรณ์
-    function fetchDevicesInfo() {
-      return db.ref('devices').once('value').then(snap => {
-        const map = {};
-        snap.forEach(ch => {
-          const d = ch.val();
-          map[d.deviceId] = { name: d.deviceName, status: d.status };
-        });
-        return map;
-      });
-    }
-
-    // Listener ของ teams → สร้างการ์ดทีม + นับ countTeams, countMembers, countBorrowed
-    db.ref('teams').on('value', teamsSnap => {
-      fetchDevicesInfo().then(devMap => {
-        const container = document.getElementById('teamCards');
-        container.innerHTML = '';
-        countTeams    = 0;
-        countMembers  = 0;
-        countBorrowed = 0;
-
-        teamsSnap.forEach(ch => {
-          const team = ch.val();
-          countTeams++;
-
-          // สมาชิก
-          const memberNames = team.members
-            ? Object.values(team.members).map(m => m.name)
-            : [];
-          countMembers += memberNames.length;
-
-          // อุปกรณ์ที่ยืมจากทีม
-          const equips = team.equipments
-            ? Object.values(team.equipments)
-            : [];
-          countBorrowed += equips.length;
-
-          // สร้างรายการอุปกรณ์ในการ์ด
-          const equipList = equips.map(id => {
-            const info = devMap[id] || { name: 'ไม่ทราบชื่อ', status: 'ไม่ทราบสถานะ' };
-            const isActive = info.status === 'กำลังใช้งาน';
-            const badgeClass = isActive
-              ? 'bg-green-100 text-green-800'
-              : 'bg-red-100 text-red-800';
-            const label = isActive ? 'กำลังใช้งาน' : 'คลังอุปกรณ์';
-            const dot = isActive
-              ? `<span class="inline-block w-2 h-2 mr-1 rounded-full bg-green-500 animate-pulse"></span>`
-              : '';
-            return `
-              <li class="flex justify-between items-center">
-                <span>${id} – ${info.name}</span>
-                <span class="flex items-center px-2 py-0.5 text-xs font-medium rounded ${badgeClass}">
-                  ${dot}${label}
-                </span>
-              </li>`;
-          }).join('');
-          const equipHTML = equips.length
-            ? `<ul class="list-none space-y-1 mt-1">${equipList}</ul>`
-            : `<p class="text-sm italic text-gray-500 mt-1">– ไม่มีอุปกรณ์ –</p>`;
-
-          // สร้างการ์ดทีม
-          const card = document.createElement('div');
-          card.className = 'bg-white p-4 rounded shadow';
-          card.innerHTML = `
-            <h3 class="text-lg font-semibold mb-2">${team.name}</h3>
-            <p class="text-sm"><span class="font-medium">หัวหน้า:</span> ${team.leader?.name || '-'}</p>
-            <p class="text-sm mt-1"><span class="font-medium">สมาชิก:</span> ${memberNames.length ? memberNames.join(', ') : '-'}</p>
-            <div class="mt-2">
-              <span class="font-medium text-sm">อุปกรณ์:</span>
-              ${equipHTML}
-            </div>`;
-          container.appendChild(card);
-        });
-
-        updateSummaryBoxes();
-      });
-    });
-
-    // Listener ของ devices → นับ countNotReturned + กลุ่ม devicesByUser
-    db.ref('devices').on('value', snap => {
-      countNotReturned = 0;
-      devicesByUser    = {};
-
-      snap.forEach(ch => {
-        const d = ch.val();
-        if (d.status === 'กำลังใช้งาน') {
-          countNotReturned++;
-          if (d.lastUserId) {
-            if (!devicesByUser[d.lastUserId]) {
-              devicesByUser[d.lastUserId] = { name: d.lastUser, items: [] };
-            }
-            devicesByUser[d.lastUserId].items.push({ id: d.deviceId, name: d.deviceName });
-          }
-        }
-      });
-
-      renderBorrowed();
-      updateSummaryBoxes();
-    });
-
-    // เรนเดอร์การ์ดผู้ยืม
+    // Render borrowed-by-user cards
     function renderBorrowed() {
       const cont = document.getElementById('borrowCards');
       cont.innerHTML = '';
@@ -207,27 +228,21 @@
         card.innerHTML = `
           <div class="flex justify-between items-center">
             <h3 class="font-semibold">${u.name}</h3>
-            <button onclick="notifyOne(
-                '${uid}',
-                '${u.name}',
-                '${u.items.map(i => `${i.id}:${i.name}`).join(',')}'
-              )"
-              class="bg-red-500 text-white px-3 py-1 rounded text-xs">🔔</button>
+            <button onclick="notifyOne('${uid}','${u.name}','${u.items.map(i=>`${i.id}:${i.name}`).join(',')}')"
+                    class="bg-red-500 text-white px-3 py-1 rounded text-xs">🔔</button>
           </div>
           <div class="mt-2 text-sm">${list}</div>`;
         cont.appendChild(card);
       });
     }
 
-    // ส่ง Flex ไป GAS
-    function sendFlexToGAS(uid, flex, altText = "📋 แจ้งเตือนจากระบบ") {
+    // Flex notify (unchanged)
+    function sendFlexToGAS(uid, flex, altText="📋 แจ้งเตือนจากระบบ") {
       fetch('https://script.google.com/macros/s/AKfycbwMyWlJ3lu9oKdxIPWaZldMFKz9JcPF2Ugan4HQy8Lgq9nTT8kDsNRIgre3SpXgCqbB/exec', {
         method: 'POST',
         body: JSON.stringify({ userId: uid, flexContent: flex, altText })
       });
     }
-
-    // แจ้งเตือนรายคน
     function notifyOne(uid, name, list) {
       const items = list.split(',').map(txt => `- ${txt}`);
       const contents = [
