@@ -5,20 +5,24 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>ระบบยืม-คืนอุปกรณ์</title>
-  <!-- LIFF + Firebase + jsQR + Tailwind -->
+  <!-- LIFF SDK -->
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+  <!-- jsQR for QR scanning -->
   <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- your firebase-config.js must call firebase.initializeApp(...) and set const db = firebase.database(); -->
   <script src="firebase-config.js"></script>
   <script>
     tailwind.config = {
       theme: {
         extend: {
           colors: {
-           primary: '#174D27',
-          secondary: '#CADEC3',
+            primary: '#174D27',
+            secondary: '#CADEC3',
           }
         }
       }
@@ -28,20 +32,22 @@
 <body class="bg-gray-100 font-sans">
 
   <!-- หน้าแรก -->
-  <div id="homePage" class="max-w-md mx-auto p-4 rounded-2xl mx-2 mt-2">
-    <div class="pb-1 pt-4 px-4 bg-white rounded-2xl mb-4">
-      <p id="empName" class="font-semibold mb-1">กำลังโหลดชื่อพนักงาน...</p>
-      <p id="empPosition" class="text-gray-600 mb-4">&nbsp;</p>
-    </div>
+  <div id="homePage" class="max-w-md mx-auto p-4 rounded-2xl mt-2 bg-white">
+    <p id="empName" class="font-semibold mb-1">กำลังโหลดชื่อพนักงาน...</p>
+    <p id="empPosition" class="text-gray-600 mb-4">&nbsp;</p>
+
     <div class="flex space-x-2 mb-4">
-      <button onclick="showPage('borrow')" class="flex-1 bg-primary text-white py-3 rounded-full font-bold">↑ ยืม</button>
-      <button onclick="showPage('return')" class="flex-1 bg-secondary text-primary py-3 rounded-full font-bold">↓ คืน</button>
+      <button onclick="showPage('borrow')"
+              class="flex-1 bg-primary text-white py-3 rounded-full font-bold">↑ ยืม</button>
+      <button onclick="showPage('return')"
+              class="flex-1 bg-secondary text-primary py-3 rounded-full font-bold">↓ คืน</button>
     </div>
-    <table class="w-full border-collapse bg-white rounded-b-2xl">
+
+    <table class="w-full border-collapse">
       <thead>
         <tr>
-          <th class="py-2 px-4 bg-primary w-40 rounded-tl-2xl text-white">รหัสอุปกรณ์</th>
-          <th class="py-2 px-4 bg-secondary rounded-tr-2xl text-primary">ชื่ออุปกรณ์</th>
+          <th class="py-2 px-4 bg-primary text-white rounded-tl-2xl">รหัสอุปกรณ์</th>
+          <th class="py-2 px-4 bg-secondary text-primary rounded-tr-2xl">ชื่ออุปกรณ์</th>
         </tr>
       </thead>
       <tbody id="borrowedList"></tbody>
@@ -49,43 +55,39 @@
   </div>
 
   <!-- หน้ายืม -->
-  <div id="borrowPage" class="max-w-md mx-auto p-4 rounded-2xl mx-2 mt-2 hidden">
-    <h2 class="p-4 text-center bg-white rounded-2xl mb-4">ยืมอุปกรณ์</h2>
+  <div id="borrowPage" class="max-w-md mx-auto p-4 rounded-2xl mt-2 bg-white hidden">
+    <h2 class="text-center mb-4 font-semibold">ยืมอุปกรณ์</h2>
     <div class="flex space-x-2 mb-4">
-      <button onclick="startScan('borrow')" class="flex-1 bg-primary text-white py-3 rounded-full font-bold flex items-center justify-center gap-2">
-        Scan QR
-      </button>
-      <button onclick="showPage('home')" class="flex-1 bg-white border border-gray-300 py-3 rounded-full font-bold">← กลับ</button>
+      <button onclick="startScan('borrow')"
+              class="flex-1 bg-primary text-white py-3 rounded-full font-bold">Scan QR</button>
+      <button onclick="showPage('home')"
+              class="flex-1 bg-gray-200 text-primary py-3 rounded-full font-bold">← กลับ</button>
     </div>
-    <video id="video" playsinline class="w-full h-80 object-cover rounded-lg mb-4 hidden"></video>
-    <ul id="basketBorrow" class="mb-4 space-y-2"></ul>
+    <video id="video" playsinline class="w-full h-64 object-cover rounded-lg mb-4 hidden"></video>
+    <ul id="basketBorrow" class="space-y-2 mb-4"></ul>
     <p id="scanStatusBorrow" class="font-semibold mb-4"></p>
     <button id="btnConfirmBorrow"
             onclick="openModal('borrow')"
             class="w-full bg-primary text-white py-3 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled>
-      ยืนยันยืม
-    </button>
+            disabled>ยืนยันยืม</button>
   </div>
 
-  <!-- คืนอุปกรณ์ -->
-  <div id="returnPage" class="max-w-md mx-auto p-4 rounded-2xl mx-2 mt-2 hidden">
-    <h2 class="p-4 text-center bg-white rounded-2xl mb-4">คืนอุปกรณ์</h2>
+  <!-- หน้าคืน -->
+  <div id="returnPage" class="max-w-md mx-auto p-4 rounded-2xl mt-2 bg-white hidden">
+    <h2 class="text-center mb-4 font-semibold">คืนอุปกรณ์</h2>
     <div class="flex space-x-2 mb-4">
-      <button onclick="startScan('return')" class="flex-1 bg-primary text-white py-3 rounded-full font-bold flex items-center justify-center gap-2">
-        Scan QR
-      </button>
-      <button onclick="showPage('home')" class="flex-1 bg-white border border-gray-300 py-3 rounded-full font-bold">← กลับ</button>
+      <button onclick="startScan('return')"
+              class="flex-1 bg-primary text-white py-3 rounded-full font-bold">Scan QR</button>
+      <button onclick="showPage('home')"
+              class="flex-1 bg-gray-200 text-primary py-3 rounded-full font-bold">← กลับ</button>
     </div>
-    <video id="videoReturn" playsinline class="w-full h-80 object-cover rounded-lg mb-4 hidden"></video>
-    <ul id="basketReturn" class="mb-4 space-y-2"></ul>
+    <video id="videoReturn" playsinline class="w-full h-64 object-cover rounded-lg mb-4 hidden"></video>
+    <ul id="basketReturn" class="space-y-2 mb-4"></ul>
     <p id="scanStatusReturn" class="font-semibold mb-4"></p>
     <button id="btnConfirmReturn"
             onclick="openModal('return')"
             class="w-full bg-primary text-white py-3 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled>
-      ยืนยันคืน
-    </button>
+            disabled>ยืนยันคืน</button>
   </div>
 
   <!-- Confirm Modal -->
@@ -94,14 +96,12 @@
       <h3 id="modalTitle" class="text-lg font-semibold mb-4">ยืนยันการดำเนินการ</h3>
       <p id="modalMessage" class="mb-6">คุณแน่ใจหรือไม่ที่จะดำเนินการนี้?</p>
       <div id="modalActions" class="flex justify-end space-x-2">
-        <button onclick="closeModal()" class="px-4 py-3 w-1/3 bg-gray-200 rounded-lg font-medium">ยกเลิก</button>
+        <button onclick="closeModal()" class="px-4 py-2 bg-gray-200 rounded-lg">ยกเลิก</button>
         <button id="modalConfirmBtn" onclick="confirmSubmit()"
-                class="px-4 w-2/3 py-3 bg-primary text-white rounded-lg font-medium">
-          ยืนยัน
-        </button>
+                class="px-4 py-2 bg-primary text-white rounded-lg">ยืนยัน</button>
       </div>
       <div id="modalClose" class="flex justify-end hidden">
-        <button onclick="closeModal()" class="px-4 py-2 bg-primary text-white rounded-lg font-medium">
+        <button onclick="closeModal()" class="px-4 py-2 bg-primary text-white rounded-lg">
           ปิด (<span id="countdown">3</span>)
         </button>
       </div>
@@ -114,87 +114,97 @@
       <h3 class="text-lg font-semibold mb-4">ไม่พบข้อมูลผู้ใช้</h3>
       <p class="mb-6 text-gray-600">กรุณาลงทะเบียนกับผู้ดูแลระบบก่อนเข้าใช้งาน</p>
       <button onclick="liff.closeWindow()"
-              class="px-6 py-3 bg-primary text-white rounded-full font-medium">
-        ปิด
-      </button>
+              class="px-6 py-3 bg-primary text-white rounded-full">ปิด</button>
     </div>
   </div>
 
   <script>
-    let userIdLine = "", userName = "", userPosition = "";
+    let userIdLine = '', userName = '', userPosition = '';
     let allowedDeviceIds = [];
-    let basket = [], currentMode = "", pendingMode = null;
+    let basket = [], currentMode = '', pendingMode = null;
 
     const LIFF_ID = "2007392451-RbxJlGV1";
 
-    async function initLIFF() {
-      await liff.init({ liffId: LIFF_ID });
-      if (!liff.isLoggedIn()) liff.login();
-      const profile = await liff.getProfile();
-      userIdLine = profile.userId;
+// global ตัวแปร
+let emp = null;
 
-      const empSnap = await db.ref("employees")
-        .orderByChild("userIdLine").equalTo(userIdLine).get();
-      if (!empSnap.exists()) {
-        alert('ไม่พบข้อมูลพนักงาน'); return liff.closeWindow();
-      }
-      const emp = Object.values(empSnap.val())[0];
-      userName = emp.fullName; userPosition = emp.position;
-      document.getElementById("empName").textContent = userName;
-      document.getElementById("empPosition").textContent = `ตำแหน่ง: ${userPosition}`;
-      if (!emp.teamId) {
-        alert('คุณยังไม่ได้รับมอบหมายทีม'); return liff.closeWindow();
-      }
+async function initLIFF() {
+  // 1. เริ่ม LIFF
+  await liff.init({ liffId: LIFF_ID });
+  if (!liff.isLoggedIn()) await liff.login();
 
-      const pathEquip = `teams/${emp.teamId}/equipments`;
-      const pathDev   = `teams/${emp.teamId}/devices`;
-      const snapE = await db.ref(pathEquip).get();
-      const snapD = await db.ref(pathDev).get();
+  // 2. ดึง profile LINE
+  const profile = await liff.getProfile();
+  userIdLine = profile.userId;
 
-      const raw = snapE.exists()
-        ? snapE.val()
-        : snapD.exists()
-          ? snapD.val()
-          : null;
-      if (!raw) {
-        alert('ทีมนี้ยังไม่มีอุปกรณ์มอบหมาย'); return liff.closeWindow();
-      }
-      allowedDeviceIds = Object.values(raw);
+  // 3. ดึงข้อมูลพนักงานจาก Firebase
+  const empSnap = await db.ref('employees')
+    .orderByChild('userIdLine').equalTo(userIdLine).get();
+  if (!empSnap.exists()) {
+    alert('ไม่พบข้อมูลพนักงาน');
+    return liff.closeWindow();
+  }
+  emp = Object.values(empSnap.val())[0];
 
-      loadBorrowed();
+  // 4. ตั้งชื่อ-ตำแหน่ง และเขียนลงหน้า HTML
+  userName     = emp.fullName  || '—';
+  userPosition = emp.position  || '—';
+  document.getElementById('empName').textContent     = userName;
+  document.getElementById('empPosition').textContent = `ตำแหน่ง: ${userPosition}`;
+
+  // 5. เช็กทีม
+  if (!emp.teamId) {
+    alert('คุณยังไม่ได้รับมอบหมายทีม');
+    return liff.closeWindow();
+  }
+
+  // 6. โหลดอุปกรณ์ทั้งหมด แล้วกรองเอาเฉพาะ
+  //    – อุปกรณ์ที่ยังไม่มอบหมาย (d.teamId == null)
+  //    – อุปกรณ์ที่มอบหมายให้ทีมเรา (d.teamId === emp.teamId)
+  const devSnap = await db.ref('devices').once('value');
+  allowedDeviceIds = [];
+  devSnap.forEach(ch => {
+    const d = ch.val();
+    if (!d.teamId || d.teamId === emp.teamId) {
+      allowedDeviceIds.push(ch.key);
     }
+  });
+
+  // 7. โหลดรายการที่กำลังยืมอยู่
+  loadBorrowed();
+}
+
 
     function showPage(page) {
-      ["homePage","borrowPage","returnPage"].forEach(id =>
-        document.getElementById(id).classList.toggle("hidden", id !== `${page}Page`)
+      ['homePage','borrowPage','returnPage'].forEach(id =>
+        document.getElementById(id).classList.toggle('hidden', id !== `${page}Page`)
       );
-      basket = []; updateList();
+      basket = [];
+      updateList();
       document.getElementById(
-        page==="borrow" ? "scanStatusBorrow" : "scanStatusReturn"
-      ).textContent = "";
-      const vid = page==="borrow"
-        ? document.getElementById("video")
-        : document.getElementById("videoReturn");
+        page === 'borrow' ? 'scanStatusBorrow' : 'scanStatusReturn'
+      ).textContent = '';
+      const vid = (page==='borrow') ? document.getElementById('video') : document.getElementById('videoReturn');
       if (vid.srcObject) {
         vid.srcObject.getTracks().forEach(t => t.stop());
-        vid.classList.add("hidden");
+        vid.classList.add('hidden');
       }
       currentMode = page;
-      if (page === "home") loadBorrowed();
+      if (page === 'home') loadBorrowed();
     }
 
     async function loadBorrowed() {
-      const tbody = document.getElementById("borrowedList");
-      tbody.innerHTML = "";
+      const tbody = document.getElementById('borrowedList');
+      tbody.innerHTML = '';
       let has = false;
-      const snap = await db.ref("devices").once("value");
-      snap.forEach(child => {
-        const d = child.val();
-        if (d.status === "กำลังใช้งาน" && d.lastUserId === userIdLine) {
+      const snap = await db.ref('devices').once('value');
+      snap.forEach(ch => {
+        const d = ch.val();
+        if (d.status === 'กำลังใช้งาน' && d.lastUserId === userIdLine) {
           has = true;
           tbody.innerHTML += `
             <tr>
-              <td class="py-2 px-4 text-sm border">${child.key}</td>
+              <td class="py-2 px-4 text-sm border">${ch.key}</td>
               <td class="py-2 px-4 text-sm border">${d.deviceName}</td>
             </tr>`;
         }
@@ -211,66 +221,88 @@
 
     async function startScan(mode) {
       currentMode = mode;
-      const vid = mode==="borrow"
-        ? document.getElementById("video")
-        : document.getElementById("videoReturn");
-      const stream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:"environment" } });
-      vid.srcObject = stream; vid.play(); vid.classList.remove("hidden");
+      const vid = (mode==='borrow') ? document.getElementById('video') : document.getElementById('videoReturn');
+      const stream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:'environment' } });
+      vid.srcObject = stream;
+      vid.play();
+      vid.classList.remove('hidden');
       tick(vid);
     }
 
     function tick(video) {
       if (video.readyState === video.HAVE_ENOUGH_DATA) {
-        const c = document.createElement("canvas");
+        const c = document.createElement('canvas');
         c.width = video.videoWidth; c.height = video.videoHeight;
-        c.getContext("2d").drawImage(video,0,0);
-        const code = jsQR(
-          c.getContext("2d").getImageData(0,0,c.width,c.height).data,
-          c.width, c.height
-        );
+        const ctx = c.getContext('2d');
+        ctx.drawImage(video,0,0);
+        const code = jsQR(ctx.getImageData(0,0,c.width,c.height).data, c.width, c.height);
         if (code) handleScanResult(code.data.trim());
       }
       if (video.srcObject) requestAnimationFrame(() => tick(video));
     }
 
-    async function handleScanResult(deviceId) {
-      const statusEl = document.getElementById(
-        currentMode==="borrow" ? "scanStatusBorrow" : "scanStatusReturn"
-      );
-      if (currentMode === "borrow" && !allowedDeviceIds.includes(deviceId)) {
-        statusEl.textContent = `❌ คุณไม่มีสิทธิ์ยืมอุปกรณ์นี้ (รหัส ${deviceId})`;
-        return;
-      }
-      const snap = await db.ref("devices/"+deviceId).get();
-      if (!snap.exists()) {
-        statusEl.textContent = `❌ ไม่พบอุปกรณ์: ${deviceId}`; return;
-      }
-      const dev = snap.val();
-      if (!dev.deviceName?.trim()) {
-        statusEl.textContent = `⚠️ ไม่มีชื่ออุปกรณ์สำหรับรหัส: ${deviceId}`; return;
-      }
-      if (currentMode==="borrow" && dev.status!=="พร้อมใช้งาน") {
-        statusEl.textContent = `⚠️ ${deviceId} (${dev.deviceName}) ไม่พร้อมยืม`; return;
-      }
-      if (!basket.some(x=>x.id===deviceId)) {
-        basket.push({ id:deviceId, name:dev.deviceName });
-      }
-      statusEl.textContent = `✅ เจออุปกรณ์: ${deviceId} (${dev.deviceName})`;
-      updateList();
+  // เรียกใน Inv.html
+async function handleScanResult(deviceId) {
+  const statusEl = document.getElementById(
+    currentMode === "borrow" ? "scanStatusBorrow" : "scanStatusReturn"
+  );
+
+  // 1) เช็กสิทธิ์ทั้งยืมและคืนด้วย allowedDeviceIds
+  if (!allowedDeviceIds.includes(deviceId)) {
+    statusEl.textContent = 
+      `❌ คุณไม่มีสิทธิ์${currentMode === "borrow" ? "ยืม" : "คืน"}อุปกรณ์นี้ (รหัส ${deviceId})`;
+    return;
+  }
+
+  // 2) ดึงข้อมูลอุปกรณ์
+  const snap = await db.ref(`devices/${deviceId}`).get();
+  if (!snap.exists()) {
+    statusEl.textContent = `❌ ไม่พบอุปกรณ์: ${deviceId}`;
+    return;
+  }
+  const dev = snap.val();
+
+  // 3) สำหรับยืม ให้เช็กว่าพร้อมใช้งานหรือไม่
+  if (currentMode === "borrow" && dev.status !== "พร้อมใช้งาน") {
+    statusEl.textContent = `⚠️ ${deviceId} (${dev.deviceName}) ไม่พร้อมยืม`;
+    return;
+  }
+
+  // 4) สำหรับคืน ให้เช็กว่ามีสถานะกำลังใช้งาน และเป็นของคุณ
+  if (currentMode === "return") {
+    if (dev.status !== "กำลังใช้งาน") {
+      statusEl.textContent = `⚠️ ${deviceId} (${dev.deviceName}) ไม่พร้อมคืน`;
+      return;
     }
+    // **ถ้าต้องการห้ามคืนของคนอื่น ให้เช็ก lastUserId ด้วย**
+    if (dev.lastUserId !== userIdLine) {
+      statusEl.textContent = `❌ อุปกรณ์นี้ถูกยืมโดยคนอื่น คุณไม่สามารถคืนได้`;
+      return;
+    }
+  }
+
+  // 5) เพิ่มลงตะกร้า
+  if (!basket.some(x => x.id === deviceId)) {
+    basket.push({ id: deviceId, name: dev.deviceName });
+  }
+  statusEl.textContent = `✅ เจออุปกรณ์: ${deviceId} (${dev.deviceName})`;
+  updateList();
+}
+
+
 
     function updateList() {
       const listEl = document.getElementById(
-        currentMode==="borrow" ? "basketBorrow" : "basketReturn"
+        currentMode==='borrow' ? 'basketBorrow' : 'basketReturn'
       );
       listEl.innerHTML = basket.map(item => `
         <li class="flex justify-between items-center bg-white p-2 rounded-lg shadow">
           <span>📦 ${item.id} - ${item.name}</span>
           <button onclick="removeFromBasket('${item.id}')" class="text-red-500 font-bold">ลบ</button>
         </li>
-      `).join("");
+      `).join('');
       const btn = document.getElementById(
-        currentMode==="borrow" ? "btnConfirmBorrow" : "btnConfirmReturn"
+        currentMode==='borrow' ? 'btnConfirmBorrow' : 'btnConfirmReturn'
       );
       btn.disabled = basket.length === 0;
     }
@@ -282,9 +314,8 @@
 
     function openModal(mode) {
       pendingMode = mode;
-      const btn = document.getElementById('modalConfirmBtn');
-      btn.disabled = false; btn.textContent = 'ยืนยัน';
-      document.getElementById('modalTitle').textContent = 'ยืนยันการดำเนินการ';
+      document.getElementById('modalConfirmBtn').disabled = false;
+      document.getElementById('modalTitle').textContent   = 'ยืนยันการดำเนินการ';
       document.getElementById('modalMessage').textContent = 'คุณแน่ใจหรือไม่ที่จะดำเนินการนี้?';
       document.getElementById('modalActions').classList.remove('hidden');
       document.getElementById('modalClose').classList.add('hidden');
@@ -299,10 +330,11 @@
     async function confirmSubmit() {
       if (!pendingMode) return;
       const btn = document.getElementById('modalConfirmBtn');
-      btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
+      btn.disabled = true;
+      btn.textContent = 'กำลังบันทึก...';
       try {
         await submitAction(pendingMode);
-        document.getElementById('modalTitle').textContent = 'สำเร็จแล้ว!';
+        document.getElementById('modalTitle').textContent   = 'สำเร็จแล้ว!';
         document.getElementById('modalMessage').textContent = '✅ บันทึกสำเร็จ ระบบจะกลับหน้าหลักในอีก';
         document.getElementById('modalActions').classList.add('hidden');
         document.getElementById('modalClose').classList.remove('hidden');
@@ -310,7 +342,8 @@
         pendingMode = null;
       } catch (e) {
         console.error(e);
-        btn.disabled = false; btn.textContent = 'ยืนยัน';
+        btn.disabled = false;
+        btn.textContent = 'ยืนยัน';
         alert('เกิดข้อผิดพลาดในการบันทึก กรุณาลองใหม่อีกครั้ง');
       }
     }
@@ -332,8 +365,8 @@
     }
 
     async function submitAction(mode) {
-      const refName   = mode === "borrow" ? "borrowRecords" : "returnRecords";
-      const statusText= mode === "borrow" ? "ยืม" : "คืน";
+      const refName   = mode === 'borrow' ? 'borrowRecords' : 'returnRecords';
+      const statusTxt = mode === 'borrow' ? 'ยืม' : 'คืน';
       const now       = new Date().toISOString();
       for (let item of basket) {
         const key = db.ref().child(refName).push().key;
@@ -343,13 +376,13 @@
           userId: userIdLine,
           userName,
           userPosition,
-          status: statusText,
+          status: statusTxt,
           date: now
         });
-        await db.ref("devices/"+item.id).update({
-          status: mode === "borrow" ? "กำลังใช้งาน" : "พร้อมใช้งาน",
+        await db.ref(`devices/${item.id}`).update({
+          status: mode === 'borrow' ? 'กำลังใช้งาน' : 'พร้อมใช้งาน',
           lastUser: `${userName} (${userPosition})`,
-          lastUserId: mode === "borrow" ? userIdLine : ""
+          lastUserId: mode === 'borrow' ? userIdLine : ''
         });
       }
     }
