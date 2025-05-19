@@ -122,75 +122,47 @@
     let userIdLine = '', userName = '', userPosition = '';
     let allowedDeviceIds = [];
     let basket = [], currentMode = '', pendingMode = null;
-
     const LIFF_ID = "2007392451-RbxJlGV1";
+    let emp = null;
 
-// global ตัวแปร
-let emp = null;
-
-async function initLIFF() {
-  // 1. เริ่ม LIFF
-  await liff.init({ liffId: LIFF_ID });
-  if (!liff.isLoggedIn()) await liff.login();
-
-  // 2. ดึง profile LINE
-  const profile = await liff.getProfile();
-  userIdLine = profile.userId;
-
-  // 3. ดึงข้อมูลพนักงานจาก Firebase
-  const empSnap = await db.ref('employees')
-    .orderByChild('userIdLine').equalTo(userIdLine).get();
-  if (!empSnap.exists()) {
-    alert('ไม่พบข้อมูลพนักงาน');
-    return liff.closeWindow();
-  }
-  emp = Object.values(empSnap.val())[0];
-
-  // 4. ตั้งชื่อ-ตำแหน่ง และเขียนลงหน้า HTML
-  userName     = emp.fullName  || '—';
-  userPosition = emp.position  || '—';
-  document.getElementById('empName').textContent     = userName;
-  document.getElementById('empPosition').textContent = `ตำแหน่ง: ${userPosition}`;
-
-  // 5. เช็กทีม
-  if (!emp.teamId) {
-    alert('คุณยังไม่ได้รับมอบหมายทีม');
-    return liff.closeWindow();
-  }
-
-  // 6. โหลดอุปกรณ์ทั้งหมด แล้วกรองเอาเฉพาะ
-  //    – อุปกรณ์ที่ยังไม่มอบหมาย (d.teamId == null)
-  //    – อุปกรณ์ที่มอบหมายให้ทีมเรา (d.teamId === emp.teamId)
-  const devSnap = await db.ref('devices').once('value');
-  allowedDeviceIds = [];
-  devSnap.forEach(ch => {
-    const d = ch.val();
-    if (!d.teamId || d.teamId === emp.teamId) {
-      allowedDeviceIds.push(ch.key);
+    async function initLIFF() {
+      await liff.init({ liffId: LIFF_ID });
+      if (!liff.isLoggedIn()) await liff.login();
+      const profile = await liff.getProfile();
+      userIdLine = profile.userId;
+      const empSnap = await db.ref('employees')
+        .orderByChild('userIdLine').equalTo(userIdLine).get();
+      if (!empSnap.exists()) return liff.closeWindow();
+      emp = Object.values(empSnap.val())[0];
+      userName = emp.fullName || '—';
+      userPosition = emp.position || '—';
+      document.getElementById('empName').textContent     = userName;
+      document.getElementById('empPosition').textContent = `ตำแหน่ง: ${userPosition}`;
+      if (!emp.teamId) return liff.closeWindow();
+      const devSnap = await db.ref('devices').once('value');
+      allowedDeviceIds = [];
+      devSnap.forEach(ch => {
+        const d = ch.val();
+        if (!d.teamId || d.teamId === emp.teamId) allowedDeviceIds.push(ch.key);
+      });
+      loadBorrowed();
     }
-  });
-
-  // 7. โหลดรายการที่กำลังยืมอยู่
-  loadBorrowed();
-}
-
 
     function showPage(page) {
       ['homePage','borrowPage','returnPage'].forEach(id =>
         document.getElementById(id).classList.toggle('hidden', id !== `${page}Page`)
       );
-      basket = [];
-      updateList();
+      basket = []; updateList();
       document.getElementById(
-        page === 'borrow' ? 'scanStatusBorrow' : 'scanStatusReturn'
+        page==='borrow' ? 'scanStatusBorrow' : 'scanStatusReturn'
       ).textContent = '';
-      const vid = (page==='borrow') ? document.getElementById('video') : document.getElementById('videoReturn');
+      const vid = page==='borrow' ? document.getElementById('video') : document.getElementById('videoReturn');
       if (vid.srcObject) {
         vid.srcObject.getTracks().forEach(t => t.stop());
         vid.classList.add('hidden');
       }
       currentMode = page;
-      if (page === 'home') loadBorrowed();
+      if (page==='home') loadBorrowed();
     }
 
     async function loadBorrowed() {
@@ -200,7 +172,7 @@ async function initLIFF() {
       const snap = await db.ref('devices').once('value');
       snap.forEach(ch => {
         const d = ch.val();
-        if (d.status === 'กำลังใช้งาน' && d.lastUserId === userIdLine) {
+        if (d.status==='กำลังใช้งาน' && d.lastUserId===userIdLine) {
           has = true;
           tbody.innerHTML += `
             <tr>
@@ -221,75 +193,56 @@ async function initLIFF() {
 
     async function startScan(mode) {
       currentMode = mode;
-      const vid = (mode==='borrow') ? document.getElementById('video') : document.getElementById('videoReturn');
+      const vid = mode==='borrow'
+        ? document.getElementById('video')
+        : document.getElementById('videoReturn');
       const stream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:'environment' } });
-      vid.srcObject = stream;
-      vid.play();
-      vid.classList.remove('hidden');
+      vid.srcObject = stream; vid.play(); vid.classList.remove('hidden');
       tick(vid);
     }
 
     function tick(video) {
-      if (video.readyState === video.HAVE_ENOUGH_DATA) {
+      if (video.readyState===video.HAVE_ENOUGH_DATA) {
         const c = document.createElement('canvas');
-        c.width = video.videoWidth; c.height = video.videoHeight;
-        const ctx = c.getContext('2d');
+        c.width=video.videoWidth; c.height=video.videoHeight;
+        const ctx=c.getContext('2d');
         ctx.drawImage(video,0,0);
-        const code = jsQR(ctx.getImageData(0,0,c.width,c.height).data, c.width, c.height);
+        const code=jsQR(ctx.getImageData(0,0,c.width,c.height).data,c.width,c.height);
         if (code) handleScanResult(code.data.trim());
       }
-      if (video.srcObject) requestAnimationFrame(() => tick(video));
+      if (video.srcObject) requestAnimationFrame(()=>tick(video));
     }
 
-  // เรียกใน Inv.html
-async function handleScanResult(deviceId) {
-  const statusEl = document.getElementById(
-    currentMode === "borrow" ? "scanStatusBorrow" : "scanStatusReturn"
-  );
-
-  // 1) เช็กสิทธิ์ทั้งยืมและคืนด้วย allowedDeviceIds
-  if (!allowedDeviceIds.includes(deviceId)) {
-    statusEl.textContent = 
-      `❌ คุณไม่มีสิทธิ์${currentMode === "borrow" ? "ยืม" : "คืน"}อุปกรณ์นี้ (รหัส ${deviceId})`;
-    return;
-  }
-
-  // 2) ดึงข้อมูลอุปกรณ์
-  const snap = await db.ref(`devices/${deviceId}`).get();
-  if (!snap.exists()) {
-    statusEl.textContent = `❌ ไม่พบอุปกรณ์: ${deviceId}`;
-    return;
-  }
-  const dev = snap.val();
-
-  // 3) สำหรับยืม ให้เช็กว่าพร้อมใช้งานหรือไม่
-  if (currentMode === "borrow" && dev.status !== "พร้อมใช้งาน") {
-    statusEl.textContent = `⚠️ ${deviceId} (${dev.deviceName}) ไม่พร้อมยืม`;
-    return;
-  }
-
-  // 4) สำหรับคืน ให้เช็กว่ามีสถานะกำลังใช้งาน และเป็นของคุณ
-  if (currentMode === "return") {
-    if (dev.status !== "กำลังใช้งาน") {
-      statusEl.textContent = `⚠️ ${deviceId} (${dev.deviceName}) ไม่พร้อมคืน`;
-      return;
+    async function handleScanResult(deviceId) {
+      const statusEl = document.getElementById(
+        currentMode==="borrow" ? "scanStatusBorrow" : "scanStatusReturn"
+      );
+      if (!allowedDeviceIds.includes(deviceId)) {
+        statusEl.textContent = `❌ คุณไม่มีสิทธิ์${currentMode==="borrow"?"ยืม":"คืน"} (รหัส ${deviceId})`;
+        return;
+      }
+      const snap = await db.ref(`devices/${deviceId}`).get();
+      if (!snap.exists()) {
+        statusEl.textContent = `❌ ไม่พบอุปกรณ์: ${deviceId}`;
+        return;
+      }
+      const dev = snap.val();
+      if (currentMode==="borrow" && dev.status!=="พร้อมใช้งาน") {
+        statusEl.textContent = `⚠️ ${deviceId} (${dev.deviceName}) ไม่พร้อมยืม`;
+        return;
+      }
+      if (currentMode==="return") {
+        if (dev.status!=="กำลังใช้งาน" || dev.lastUserId!==userIdLine) {
+          statusEl.textContent = `❌ ไม่สามารถคืนได้`;
+          return;
+        }
+      }
+      if (!basket.some(x=>x.id===deviceId)) {
+        basket.push({ id: deviceId, name: dev.deviceName });
+      }
+      statusEl.textContent = `✅ เจออุปกรณ์: ${deviceId} (${dev.deviceName})`;
+      updateList();
     }
-    // **ถ้าต้องการห้ามคืนของคนอื่น ให้เช็ก lastUserId ด้วย**
-    if (dev.lastUserId !== userIdLine) {
-      statusEl.textContent = `❌ อุปกรณ์นี้ถูกยืมโดยคนอื่น คุณไม่สามารถคืนได้`;
-      return;
-    }
-  }
-
-  // 5) เพิ่มลงตะกร้า
-  if (!basket.some(x => x.id === deviceId)) {
-    basket.push({ id: deviceId, name: dev.deviceName });
-  }
-  statusEl.textContent = `✅ เจออุปกรณ์: ${deviceId} (${dev.deviceName})`;
-  updateList();
-}
-
-
 
     function updateList() {
       const listEl = document.getElementById(
@@ -301,14 +254,13 @@ async function handleScanResult(deviceId) {
           <button onclick="removeFromBasket('${item.id}')" class="text-red-500 font-bold">ลบ</button>
         </li>
       `).join('');
-      const btn = document.getElementById(
+      document.getElementById(
         currentMode==='borrow' ? 'btnConfirmBorrow' : 'btnConfirmReturn'
-      );
-      btn.disabled = basket.length === 0;
+      ).disabled = basket.length===0;
     }
 
     function removeFromBasket(id) {
-      basket = basket.filter(x => x.id !== id);
+      basket = basket.filter(x=>x.id!==id);
       updateList();
     }
 
@@ -335,7 +287,7 @@ async function handleScanResult(deviceId) {
       try {
         await submitAction(pendingMode);
         document.getElementById('modalTitle').textContent   = 'สำเร็จแล้ว!';
-        document.getElementById('modalMessage').textContent = '✅ บันทึกสำเร็จ ระบบจะกลับหน้าหลักในอีก';
+        document.getElementById('modalMessage').textContent = '✅ บันทึกสำเร็จ ระบบจะรีเฟรชในอีกไม่กี่วินาที';
         document.getElementById('modalActions').classList.add('hidden');
         document.getElementById('modalClose').classList.remove('hidden');
         startCountdown();
@@ -357,7 +309,8 @@ async function handleScanResult(deviceId) {
         if (count <= 0) {
           clearInterval(iv);
           closeModal();
-          showPage('home');
+          // รีเฟรชหน้าใหม่ทั้งหมด
+          window.location.reload();
         } else {
           cnt.textContent = count;
         }
@@ -365,9 +318,9 @@ async function handleScanResult(deviceId) {
     }
 
     async function submitAction(mode) {
-      const refName   = mode === 'borrow' ? 'borrowRecords' : 'returnRecords';
-      const statusTxt = mode === 'borrow' ? 'ยืม' : 'คืน';
-      const now       = new Date().toISOString();
+      const refName = mode==='borrow' ? 'borrowRecords' : 'returnRecords';
+      const statusTxt = mode==='borrow' ? 'ยืม' : 'คืน';
+      const now = new Date().toISOString();
       for (let item of basket) {
         const key = db.ref().child(refName).push().key;
         await db.ref(`${refName}/${key}`).set({
@@ -380,9 +333,9 @@ async function handleScanResult(deviceId) {
           date: now
         });
         await db.ref(`devices/${item.id}`).update({
-          status: mode === 'borrow' ? 'กำลังใช้งาน' : 'พร้อมใช้งาน',
+          status: mode==='borrow' ? 'กำลังใช้งาน' : 'พร้อมใช้งาน',
           lastUser: `${userName} (${userPosition})`,
-          lastUserId: mode === 'borrow' ? userIdLine : ''
+          lastUserId: mode==='borrow' ? userIdLine : ''
         });
       }
     }
