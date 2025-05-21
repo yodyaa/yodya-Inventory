@@ -14,7 +14,8 @@
   <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- your firebase-config.js must call firebase.initializeApp(...) and set const db = firebase.database(); -->
+  <!-- (หากมี SweetAlert2) -->
+  <!-- <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script> -->
   <script src="firebase-config.js"></script>
   <script>
     tailwind.config = {
@@ -35,14 +36,10 @@
   <div id="homePage" class="max-w-md mx-auto p-4 rounded-2xl mt-2 bg-white">
     <p id="empName" class="font-semibold mb-1">กำลังโหลดชื่อพนักงาน...</p>
     <p id="empPosition" class="text-gray-600 mb-4">&nbsp;</p>
-
     <div class="flex space-x-2 mb-4">
-      <button onclick="showPage('borrow')"
-              class="flex-1 bg-primary text-white py-3 rounded-full font-bold">↑ ยืม</button>
-      <button onclick="showPage('return')"
-              class="flex-1 bg-secondary text-primary py-3 rounded-full font-bold">↓ คืน</button>
+      <button onclick="showPage('borrow')" class="flex-1 bg-primary text-white py-3 rounded-full font-bold">↑ ยืม</button>
+      <button onclick="showPage('return')" class="flex-1 bg-secondary text-primary py-3 rounded-full font-bold">↓ คืน</button>
     </div>
-
     <table class="w-full border-collapse">
       <thead>
         <tr>
@@ -58,36 +55,34 @@
   <div id="borrowPage" class="max-w-md mx-auto p-4 rounded-2xl mt-2 bg-white hidden">
     <h2 class="text-center mb-4 font-semibold">ยืมอุปกรณ์</h2>
     <div class="flex space-x-2 mb-4">
-      <button onclick="startScan('borrow')"
-              class="flex-1 bg-primary text-white py-3 rounded-full font-bold">Scan QR</button>
-      <button onclick="showPage('home')"
-              class="flex-1 bg-gray-200 text-primary py-3 rounded-full font-bold">← กลับ</button>
+      <button id="scanBorrowBtn" class="flex-1 bg-primary text-white py-3 rounded-full font-bold">Scan QR</button>
+      <button onclick="showPage('home')" class="flex-1 bg-gray-200 text-primary py-3 rounded-full font-bold">← กลับ</button>
+    </div>
+    <div class="flex space-x-2 mb-4">
+      <input id="manualDeviceBorrowInput" type="text" placeholder="กรอกรหัสอุปกรณ์" class="flex-1 border p-2 rounded" />
+      <button id="manualAddBorrowBtn" class="bg-blue-600 text-white px-4 py-2 rounded">เพิ่มด้วยรหัส</button>
     </div>
     <video id="video" playsinline class="w-full h-64 object-cover rounded-lg mb-4 hidden"></video>
     <ul id="basketBorrow" class="space-y-2 mb-4"></ul>
     <p id="scanStatusBorrow" class="font-semibold mb-4"></p>
-    <button id="btnConfirmBorrow"
-            onclick="openModal('borrow')"
-            class="w-full bg-primary text-white py-3 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled>ยืนยันยืม</button>
+    <button id="btnConfirmBorrow" onclick="openModal('borrow')" class="w-full bg-primary text-white py-3 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed" disabled>ยืนยันยืม</button>
   </div>
 
   <!-- หน้าคืน -->
   <div id="returnPage" class="max-w-md mx-auto p-4 rounded-2xl mt-2 bg-white hidden">
     <h2 class="text-center mb-4 font-semibold">คืนอุปกรณ์</h2>
     <div class="flex space-x-2 mb-4">
-      <button onclick="startScan('return')"
-              class="flex-1 bg-primary text-white py-3 rounded-full font-bold">Scan QR</button>
-      <button onclick="showPage('home')"
-              class="flex-1 bg-gray-200 text-primary py-3 rounded-full font-bold">← กลับ</button>
+      <button id="scanReturnBtn" class="flex-1 bg-primary text-white py-3 rounded-full font-bold">Scan QR</button>
+      <button onclick="showPage('home')" class="flex-1 bg-gray-200 text-primary py-3 rounded-full font-bold">← กลับ</button>
+    </div>
+    <div class="flex space-x-2 mb-4">
+      <input id="manualDeviceReturnInput" type="text" placeholder="กรอกรหัสอุปกรณ์" class="flex-1 border p-2 rounded" />
+      <button id="manualAddReturnBtn" class="bg-blue-600 text-white px-4 py-2 rounded">เพิ่มด้วยรหัส</button>
     </div>
     <video id="videoReturn" playsinline class="w-full h-64 object-cover rounded-lg mb-4 hidden"></video>
     <ul id="basketReturn" class="space-y-2 mb-4"></ul>
     <p id="scanStatusReturn" class="font-semibold mb-4"></p>
-    <button id="btnConfirmReturn"
-            onclick="openModal('return')"
-            class="w-full bg-primary text-white py-3 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled>ยืนยันคืน</button>
+    <button id="btnConfirmReturn" onclick="openModal('return')" class="w-full bg-primary text-white py-3 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed" disabled>ยืนยันคืน</button>
   </div>
 
   <!-- Confirm Modal -->
@@ -97,31 +92,63 @@
       <p id="modalMessage" class="mb-6">คุณแน่ใจหรือไม่ที่จะดำเนินการนี้?</p>
       <div id="modalActions" class="flex justify-end space-x-2">
         <button onclick="closeModal()" class="px-4 py-2 bg-gray-200 rounded-lg">ยกเลิก</button>
-        <button id="modalConfirmBtn" onclick="confirmSubmit()"
-                class="px-4 py-2 bg-primary text-white rounded-lg">ยืนยัน</button>
+        <button id="modalConfirmBtn" onclick="confirmSubmit()" class="px-4 py-2 bg-primary text-white rounded-lg">ยืนยัน</button>
       </div>
       <div id="modalClose" class="flex justify-end hidden">
-        <button onclick="closeModal()" class="px-4 py-2 bg-primary text-white rounded-lg">
-          ปิด (<span id="countdown">3</span>)
-        </button>
+        <button onclick="closeModal()" class="px-4 py-2 bg-primary text-white rounded-lg">ปิด (<span id="countdown">3</span>)</button>
       </div>
     </div>
   </div>
 
-  <!-- Error Modal -->
-  <div id="errorModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+  <!-- Geofence Error Modal -->
+  <div id="geoModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
     <div class="bg-white rounded-2xl p-6 w-11/12 max-w-sm text-center">
-      <h3 class="text-lg font-semibold mb-4">ไม่พบข้อมูลผู้ใช้</h3>
-      <p class="mb-6 text-gray-600">กรุณาลงทะเบียนกับผู้ดูแลระบบก่อนเข้าใช้งาน</p>
-      <button onclick="liff.closeWindow()"
-              class="px-6 py-3 bg-primary text-white rounded-full">ปิด</button>
+      <p id="geoMessage" class="mb-6 text-red-500 font-semibold"></p>
+      <button onclick="closeGeoModal()" class="px-6 py-3 bg-primary text-white rounded-full">ตกลง</button>
     </div>
   </div>
 
   <script>
+    // Geofence config
+    const GEOFENCE_LAT = 18.7525020;
+    const GEOFENCE_LNG = 99.0759761;
+    const GEOFENCE_RAD = 25; // meters
+
+    function calcDistance(lat1, lng1, lat2, lng2) {
+      const toRad = v => v * Math.PI / 180;
+      const R = 6371000;
+      const dLat = toRad(lat2 - lat1);
+      const dLng = toRad(lng2 - lng1);
+      const a = Math.sin(dLat/2)**2 +
+                Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*
+                Math.sin(dLng/2)**2;
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * c;
+    }
+
+    function checkGeofence() {
+      return new Promise((resolve, reject) => {
+        if (!navigator.geolocation) return reject('เบราว์เซอร์ไม่รองรับ GPS');
+        navigator.geolocation.getCurrentPosition(pos => {
+          const { latitude, longitude } = pos.coords;
+          const dist = calcDistance(latitude, longitude, GEOFENCE_LAT, GEOFENCE_LNG);
+          resolve(dist <= GEOFENCE_RAD);
+        }, err => {
+          reject('ไม่สามารถเข้าถึงตำแหน่งได้: ' + err.message);
+        }, { enableHighAccuracy: true, timeout: 10000 });
+      });
+    }
+
+    function showGeoModal(msg) {
+      document.getElementById('geoMessage').textContent = msg;
+      document.getElementById('geoModal').classList.remove('hidden');
+    }
+    function closeGeoModal() {
+      document.getElementById('geoModal').classList.add('hidden');
+    }
+
     let userIdLine = '', userName = '', userPosition = '';
-    let allowedDeviceIds = [];
-    let basket = [], currentMode = '', pendingMode = null;
+    let allowedDeviceIds = [], basket = [], currentMode = '', pendingMode = null;
     const LIFF_ID = "2007392451-RbxJlGV1";
     let emp = null;
 
@@ -130,17 +157,15 @@
       if (!liff.isLoggedIn()) await liff.login();
       const profile = await liff.getProfile();
       userIdLine = profile.userId;
-      const empSnap = await db.ref('employees')
-        .orderByChild('userIdLine').equalTo(userIdLine).get();
+      const empSnap = await db.ref('employees').orderByChild('userIdLine').equalTo(userIdLine).get();
       if (!empSnap.exists()) return liff.closeWindow();
       emp = Object.values(empSnap.val())[0];
       userName = emp.fullName || '—';
       userPosition = emp.position || '—';
-      document.getElementById('empName').textContent     = userName;
+      document.getElementById('empName').textContent = userName;
       document.getElementById('empPosition').textContent = `ตำแหน่ง: ${userPosition}`;
       if (!emp.teamId) return liff.closeWindow();
       const devSnap = await db.ref('devices').once('value');
-      allowedDeviceIds = [];
       devSnap.forEach(ch => {
         const d = ch.val();
         if (!d.teamId || d.teamId === emp.teamId) allowedDeviceIds.push(ch.key);
@@ -148,7 +173,17 @@
       loadBorrowed();
     }
 
-    function showPage(page) {
+    async function showPage(page) {
+      if (page==='borrow' || page==='return') {
+        try {
+          const inZone = await checkGeofence();
+          if (!inZone) {
+            return showGeoModal(`❌ กรุณาอยู่ภายใน ${GEOFENCE_RAD} ม. ของจุดบริการ`);
+          }
+        } catch (e) {
+          return showGeoModal(`❌ ${e}`);
+        }
+      }
       ['homePage','borrowPage','returnPage'].forEach(id =>
         document.getElementById(id).classList.toggle('hidden', id !== `${page}Page`)
       );
@@ -191,11 +226,33 @@
       }
     }
 
+    document.getElementById('scanBorrowBtn').addEventListener('click', () => startScan('borrow'));
+    document.getElementById('scanReturnBtn').addEventListener('click', () => startScan('return'));
+
+    document.getElementById('manualAddBorrowBtn').addEventListener('click', async () => {
+      try {
+        const inZone = await checkGeofence();
+        if (!inZone) return showGeoModal(`❌ กรุณาอยู่ภายใน ${GEOFENCE_RAD} ม.`);
+      } catch (e) {
+        return showGeoModal(`❌ ${e}`);
+      }
+      const id = document.getElementById('manualDeviceBorrowInput').value.trim();
+      handleScanResult(id);
+    });
+    document.getElementById('manualAddReturnBtn').addEventListener('click', async () => {
+      try {
+        const inZone = await checkGeofence();
+        if (!inZone) return showGeoModal(`❌ กรุณาอยู่ภายใน ${GEOFENCE_RAD} ม.`);
+      } catch (e) {
+        return showGeoModal(`❌ ${e}`);
+      }
+      const id = document.getElementById('manualDeviceReturnInput').value.trim();
+      handleScanResult(id);
+    });
+
     async function startScan(mode) {
       currentMode = mode;
-      const vid = mode==='borrow'
-        ? document.getElementById('video')
-        : document.getElementById('videoReturn');
+      const vid = mode==='borrow' ? document.getElementById('video') : document.getElementById('videoReturn');
       const stream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:'environment' } });
       vid.srcObject = stream; vid.play(); vid.classList.remove('hidden');
       tick(vid);
@@ -204,10 +261,10 @@
     function tick(video) {
       if (video.readyState===video.HAVE_ENOUGH_DATA) {
         const c = document.createElement('canvas');
-        c.width=video.videoWidth; c.height=video.videoHeight;
-        const ctx=c.getContext('2d');
+        c.width = video.videoWidth; c.height = video.videoHeight;
+        const ctx = c.getContext('2d');
         ctx.drawImage(video,0,0);
-        const code=jsQR(ctx.getImageData(0,0,c.width,c.height).data,c.width,c.height);
+        const code = jsQR(ctx.getImageData(0,0,c.width,c.height).data,c.width,c.height);
         if (code) handleScanResult(code.data.trim());
       }
       if (video.srcObject) requestAnimationFrame(()=>tick(video));
@@ -267,7 +324,7 @@
     function openModal(mode) {
       pendingMode = mode;
       document.getElementById('modalConfirmBtn').disabled = false;
-      document.getElementById('modalTitle').textContent   = 'ยืนยันการดำเนินการ';
+      document.getElementById('modalTitle').textContent = 'ยืนยันการดำเนินการ';
       document.getElementById('modalMessage').textContent = 'คุณแน่ใจหรือไม่ที่จะดำเนินการนี้?';
       document.getElementById('modalActions').classList.remove('hidden');
       document.getElementById('modalClose').classList.add('hidden');
@@ -282,11 +339,10 @@
     async function confirmSubmit() {
       if (!pendingMode) return;
       const btn = document.getElementById('modalConfirmBtn');
-      btn.disabled = true;
-      btn.textContent = 'กำลังบันทึก...';
+      btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
       try {
         await submitAction(pendingMode);
-        document.getElementById('modalTitle').textContent   = 'สำเร็จแล้ว!';
+        document.getElementById('modalTitle').textContent = 'สำเร็จแล้ว!';
         document.getElementById('modalMessage').textContent = '✅ บันทึกสำเร็จ ระบบจะรีเฟรชในอีกไม่กี่วินาที';
         document.getElementById('modalActions').classList.add('hidden');
         document.getElementById('modalClose').classList.remove('hidden');
@@ -294,26 +350,20 @@
         pendingMode = null;
       } catch (e) {
         console.error(e);
-        btn.disabled = false;
-        btn.textContent = 'ยืนยัน';
-        alert('เกิดข้อผิดพลาดในการบันทึก กรุณาลองใหม่อีกครั้ง');
+        btn.disabled = false; btn.textContent = 'ยืนยัน';
+        showGeoModal('❌ เกิดข้อผิดพลาดในการบันทึก กรุณาลองใหม่อีกครั้ง');
       }
     }
 
     function startCountdown() {
-      let count = 3;
-      const cnt = document.getElementById('countdown');
+      let count = 3; const cnt = document.getElementById('countdown');
       cnt.textContent = count;
       const iv = setInterval(() => {
-        count--;
-        if (count <= 0) {
+        if (--count <= 0) {
           clearInterval(iv);
           closeModal();
-          // รีเฟรชหน้าใหม่ทั้งหมด
           window.location.reload();
-        } else {
-          cnt.textContent = count;
-        }
+        } else cnt.textContent = count;
       }, 1000);
     }
 
@@ -344,3 +394,4 @@
   </script>
 </body>
 </html>
+
