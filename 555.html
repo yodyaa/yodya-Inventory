@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="th">
 
@@ -15,7 +14,6 @@
   <!-- Your Firebase config -->
   <script src="firebase-config.js"></script>
   <script>
-    // Tailwind custom colors
     tailwind.config = {
       theme: {
         extend: {
@@ -155,11 +153,10 @@
   </div>
 
   <script>
- 
+    
 
     let reportsData = [], devicesMap = {}, currentPage = 1, rowsPerPage = 15;
 
-    // จัด class สีตามสถานะ
     function getStatusClass(s) {
       if (s === "แจ้งซ่อม")   return "bg-red-500 text-white";
       if (s === "รอซ่อม")    return "bg-yellow-300 text-black";
@@ -168,14 +165,14 @@
       return "bg-gray-300 text-black";
     }
 
-    // เคลียร์ฟิลเตอร์ตอนโหลดหน้า
+    // เคลียร์ฟิลเตอร์ตอนโหลด
     document.addEventListener('DOMContentLoaded', () => {
       ['filterDate','filterId','filterName','filterStatus'].forEach(id => {
         document.getElementById(id).value = '';
       });
     });
 
-    // โหลดอุปกรณ์ลง dropdown
+    // โหลดอุปกรณ์
     const deviceSelect = document.getElementById("newDeviceId");
     db.ref("devices").on("value", snap => {
       devicesMap = {};
@@ -193,24 +190,24 @@
       document.getElementById("newDeviceName").value = devicesMap[e.target.value] || "";
     });
 
-    // โหลดข้อมูลซ่อมจาก Firebase
+    // โหลดข้อมูลซ่อม พร้อม log
     db.ref("repairReports").on("value", snap => {
+      console.log("📥 Firebase raw:", snap.val());
       reportsData = [];
-      snap.forEach(ch => reportsData.push({ id: ch.key, ...ch.val() }));
-      // เรียงล่าสุดขึ้นก่อน
-      reportsData.sort((a,b) => {
-        const da = new Date(a.sendDate || a.date);
-        const db_ = new Date(b.sendDate || b.date);
-        return db_ - da;
+      snap.forEach(ch => {
+        const r = { id: ch.key, ...ch.val() };
+        console.log("🔄 Record:", r);
+        reportsData.push(r);
       });
+      console.log("🗂️ reportsData:", reportsData.map(r => ({ id: r.id, status: r.status })));
       renderTablePage();
     });
 
-    // ตั้ง listener ฟิลเตอร์ & pagination
+    // ตัวกรอง & pagination listeners
     ["filterDate","filterId","filterName","filterStatus"].forEach(id => {
       const el = document.getElementById(id);
-      el.addEventListener("input", () => { currentPage = 1; renderTablePage(); });
-      el.addEventListener("change", () => { currentPage = 1; renderTablePage(); });
+      el.addEventListener("input", () => { currentPage=1; renderTablePage(); });
+      el.addEventListener("change", () => { currentPage=1; renderTablePage(); });
     });
     document.getElementById("rowsPerPage").addEventListener("change", e => {
       rowsPerPage = +e.target.value;
@@ -223,18 +220,18 @@
       const fI = document.getElementById("filterId").value.trim();
       const fN = document.getElementById("filterName").value.trim();
       const fS = document.getElementById("filterStatus").value;
+      console.log("🔎 Filters:", { date: fD, id: fI, name: fN, status: fS });
 
-      // กรองข้อมูล
       const filtered = reportsData.filter(r => {
-        const recDate = (r.sendDate || r.date || "").split('T')[0];
+        const recDate = (r.sendDate||r.date||"").split("T")[0];
         if (fD && recDate !== fD) return false;
         if (fI && !r.deviceId.includes(fI)) return false;
         if (fN && !r.deviceName.includes(fN)) return false;
         if (fS && r.status !== fS) return false;
         return true;
       });
+      console.log("✅ After filter statuses:", filtered.map(r => r.status));
 
-      // วาดตาราง
       const tbody = document.getElementById("repairList");
       tbody.innerHTML = "";
       const start = (currentPage - 1) * rowsPerPage;
@@ -249,7 +246,7 @@
             ? `<img src="${r.imageUrl}" class="h-16 rounded cursor-pointer" onclick="openImageModal('${r.imageUrl}')">`
             : "-"}</td>
           <td class="py-2 px-4"><span class="px-2 py-1 rounded-full ${getStatusClass(r.status)}">${r.status}</span></td>
-          <td class="py-2 px-4">${r.cost || "-"}</td>
+          <td class="py-2 px-4">${r.cost||"-"}</td>
           <td class="py-2 px-4 space-x-2">
             <button onclick="editRepair('${r.id}')" class="px-3 py-1 bg-primary text-secondary rounded">อัปเดต</button>
             <button onclick="deleteRepair('${r.id}')" class="px-3 py-1 bg-red-500 text-white rounded">ลบ</button>
@@ -257,20 +254,18 @@
         tbody.appendChild(tr);
       });
 
-      // สร้าง pagination
       const totalPages = Math.ceil(filtered.length / rowsPerPage);
       const pg = document.getElementById("pagination");
       pg.innerHTML = "";
       for (let i = 1; i <= totalPages; i++) {
         const btn = document.createElement("button");
         btn.textContent = i;
-        btn.className = `px-3 py-1 rounded ${i === currentPage ? 'bg-primary text-secondary' : 'bg-gray-300 text-black'}`;
-        btn.onclick = () => { currentPage = i; renderTablePage(); };
+        btn.className = `px-3 py-1 rounded ${i===currentPage?'bg-primary text-secondary':'bg-gray-300 text-black'}`;
+        btn.onclick = () => { currentPage=i; renderTablePage(); };
         pg.appendChild(btn);
       }
     }
 
-    // เปิด modal รูป
     function openImageModal(src) {
       document.getElementById("modalImage").src = src;
       document.getElementById("imageModal").classList.remove("hidden");
@@ -279,29 +274,26 @@
       document.getElementById("imageModal").classList.add("hidden");
     };
 
-    // ลบรายการซ่อม
     function deleteRepair(id) {
       if (!confirm('❗ คุณแน่ใจหรือไม่ว่าจะลบรายการนี้?')) return;
-      db.ref('repairReports/' + id).remove().catch(() => alert('❌ เกิดข้อผิดพลาด'));
+      db.ref('repairReports/'+id).remove().catch(()=>alert('❌ เกิดข้อผิดพลาด'));
     }
 
-    // เปิด/ปิด modal เพิ่ม
     const addModal = document.getElementById('addModal');
-    document.getElementById('openAddModal').onclick = () => {
+    document.getElementById('openAddModal').onclick = ()=>{
       addModal.classList.remove('hidden');
       document.body.classList.add('overflow-hidden');
     };
-    document.getElementById('closeAddModal').onclick = () => {
+    document.getElementById('closeAddModal').onclick = ()=>{
       addModal.classList.add('hidden');
       document.body.classList.remove('overflow-hidden');
     };
 
-    // บันทึกฟอร์มเพิ่ม
-    document.getElementById('addForm').onsubmit = async e => {
+    document.getElementById('addForm').onsubmit = async e=>{
       e.preventDefault();
       const reporter = document.getElementById('newReporterName').value.trim();
       const id = document.getElementById('newDeviceId').value;
-      const name = devicesMap[id] || '';
+      const name = devicesMap[id]||'';
       const title = document.getElementById('newTitle').value.trim();
       const details = document.getElementById('newDetails').value.trim();
       const file = document.getElementById('newImageFile').files[0];
@@ -323,22 +315,20 @@
         payload.imageUrl = await snap.ref.getDownloadURL();
       }
       await db.ref('repairReports').push(payload);
-      await db.ref('devices/' + id).update({ status: 'รอซ่อม' });
+      await db.ref('devices/'+id).update({ status:'รอซ่อม' });
       alert('✅ ส่งแจ้งซ่อมเรียบร้อย');
       addModal.classList.add('hidden');
       document.body.classList.remove('overflow-hidden');
     };
 
-    // ปิด modal อัปเดต
     const updateModal = document.getElementById('updateModal');
-    document.getElementById('closeUpdateModal').onclick = () => {
+    document.getElementById('closeUpdateModal').onclick = ()=>{
       updateModal.classList.add('hidden');
       document.body.classList.remove('overflow-hidden');
     };
 
-    // ฟังก์ชันอัปเดต
     async function editRepair(id) {
-      const snap = await db.ref('repairReports/' + id).once('value');
+      const snap = await db.ref('repairReports/'+id).once('value');
       const r = snap.val();
       document.getElementById('updateContent').innerHTML = `
         <h2 class="text-xl font-bold mb-4">อัปเดตงานซ่อม</h2>
@@ -367,7 +357,6 @@
       updateModal.classList.remove('hidden');
       document.body.classList.add('overflow-hidden');
 
-      // preview รูปหลังซ่อม
       document.getElementById('updImageFile').onchange = e => {
         const file = e.target.files[0];
         if (!file) return;
@@ -385,7 +374,6 @@
         reader.readAsDataURL(file);
       };
 
-      // บันทึกอัปเดต
       document.getElementById('updateForm').onsubmit = async ev => {
         ev.preventDefault();
         const id2 = document.getElementById('updId').value;
@@ -402,10 +390,10 @@
           const snap2 = await ref2.put(file2);
           payload.imageAfter = await snap2.ref.getDownloadURL();
         }
-        await db.ref('repairReports/' + id2).update(payload);
+        await db.ref('repairReports/'+id2).update(payload);
         if (newStatus === 'ซ่อมสำเร็จ') {
-          const r2 = (await db.ref('repairReports/' + id2).once('value')).val();
-          await db.ref('devices/' + r2.deviceId).update({ status: 'พร้อมใช้งาน' });
+          const r2 = (await db.ref('repairReports/'+id2).once('value')).val();
+          await db.ref('devices/'+r2.deviceId).update({ status:'พร้อมใช้งาน' });
         }
         alert('✅ อัปเดตเรียบร้อย');
         updateModal.classList.add('hidden');
@@ -416,4 +404,3 @@
 </body>
 
 </html>
-```
