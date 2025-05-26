@@ -153,6 +153,10 @@
   </div>
 
   <script>
+    // Firebase refs
+    const db = firebase.database();
+    const storage = firebase.storage();
+
     let reportsData = [], devicesMap = {}, currentPage = 1, rowsPerPage = 15;
 
     function getStatusClass(s) {
@@ -212,7 +216,7 @@
         if (fD && r.sendDate.split("T")[0] !== fD) return false;
         if (fI && !r.deviceId.includes(fI)) return false;
         if (fN && !r.deviceName.includes(fN)) return false;
-        if (fS !== "ทั้งหมด" && fS && r.status !== fS) return false;
+        if (fS && r.status !== fS) return false;
         return true;
       });
 
@@ -307,13 +311,14 @@
       document.body.classList.remove('overflow-hidden');
     };
 
-    // เปิดโมดัล อัปเดต
+    // ปิดโมดัลอัปเดต
     const updateModal = document.getElementById('updateModal');
     document.getElementById('closeUpdateModal').onclick = () => {
       updateModal.classList.add('hidden');
       document.body.classList.remove('overflow-hidden');
     };
 
+    // ฟังก์ชันอัปเดต
     async function editRepair(id) {
       const snap = await db.ref('repairReports/' + id).once('value');
       const r = snap.val();
