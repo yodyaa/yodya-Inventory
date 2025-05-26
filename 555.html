@@ -1,231 +1,395 @@
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
-  <meta charset="UTF-8" />
-  <title>แจ้งซ่อมอุปกรณ์</title>
+  <meta charset="UTF-8">
+  <title>Dashboard แจ้งซ่อมอุปกรณ์</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- LIFF + Firebase + jsQR -->
-  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
+  <!-- Your Firebase config -->
   <script src="firebase-config.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#174D27',
+            secondary: '#CADEC3',
+          }
+        }
+      }
+    }
+  </script>
 </head>
 
-<body class="bg-gray-100 min-h-screen font-sans">
-  <!-- Custom Alert -->
-  <div id="customAlert"
-    class="fixed top-4 left-1/2 transform -translate-x-1/2 bg-red-500 text-white px-4 py-2 rounded shadow hidden z-50">
-  </div>
+<body class="bg-gray-100 min-h-screen flex">
 
-  <div class="max-w-md mx-auto p-6">
-    <div class="bg-white p-4 rounded-lg mb-4">
-      <h2 class="text-md font-bold">แจ้งซ่อมอุปกรณ์</h2>
-      <p class="pt-2">ชื่อผู้แจ้ง : 
-        <span id="reporterName" class="font-medium">กำลังโหลด...</span>
-      </p>
-    </div>
+  <!-- Sidebar -->
+  <aside class="w-64 bg-primary p-6">
+    <h1 class="text-white text-md font-bold mb-6">จัดการการยืมคืน & แจ้งซ่อม</h1>
+    <nav class="space-y-4">
+      <a href="./Dashboard.html" class="block bg-secondary text-primary py-2 px-4 rounded">หน้าหลัก</a>
+      <a href="./Report-show.html" class="block bg-primary border border-secondary text-secondary py-2 px-4 rounded">แจ้งซ่อม</a>
+      <a href="./Team.html" class="block bg-secondary text-primary py-2 px-4 rounded">จัดการทีม</a>
+      <a href="./Devices.html" class="block bg-secondary text-primary py-2 px-4 rounded">อุปกรณ์</a>
+      <a href="./User.html" class="block bg-secondary text-primary py-2 px-4 rounded">สมาชิก</a>
+      <a href="./Setting.html" class="block bg-secondary text-primary py-2 px-4 rounded">ตั้งค่าการแจ้งเตือน</a>
+    </nav>
+  </aside>
 
-    <button id="scanBtn"
-      class="w-full mb-4 flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-600 text-white py-3 px-4 rounded-full">
-      สแกน QR อุปกรณ์
-    </button>
-    <video id="video" playsinline class="w-full h-80 object-cover rounded-lg mb-4 hidden"></video>
+  <!-- Main Content -->
+  <main class="flex-1 p-6">
+    <div class="bg-white p-6 rounded-lg shadow-sm">
 
-    <div class="space-y-4">
-      <input id="deviceId" type="text" placeholder="รหัสอุปกรณ์" readonly
-        class="w-full border border-gray-300 rounded-lg p-2" />
-      <input id="deviceName" type="text" placeholder="ชื่ออุปกรณ์" readonly
-        class="w-full border border-gray-300 rounded-lg p-2" />
+      <!-- ปุ่มเปิดฟอร์มแจ้งซ่อม -->
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-bold">รายการงานซ่อม</h2>
+        <button id="openAddModal" class="bg-primary text-white px-4 py-2 rounded">แจ้งซ่อม</button>
+      </div>
 
-      <!-- แสดงสถานะปัจจุบัน -->
-      <p id="statusText" class="text-blue-600 font-medium"></p>
-
-      <input id="title" type="text" placeholder="หัวข้อปัญหา"
-        class="w-full border border-gray-300 rounded-lg p-2" />
-      <textarea id="details" placeholder="รายละเอียดเพิ่มเติม"
-        class="w-full border border-gray-300 rounded-lg p-2"></textarea>
-
-      <!-- เพิ่มฟิลด์กรอกราคา -->
-      <input id="price" type="number" placeholder="ราคาในการซ่อม (บาท)"
-        class="w-full border border-gray-300 rounded-lg p-2" />
-
-      <input id="imageInput" type="file" accept="image/*" class="w-full" />
-      <img id="previewImage" src="#" alt="Preview" class="w-48 rounded-lg hidden" />
-    </div>
-
-    <button id="openConfirmBtn"
-      class="w-full my-6 flex items-center justify-center gap-2 bg-green-800 hover:bg-green-600 text-white py-3 px-4 rounded-full">
-      ส่งแจ้งซ่อม
-    </button>
-
-    <!-- Confirmation Modal -->
-    <div id="confirmModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
-      <div class="bg-white rounded-lg shadow-lg p-6 w-80">
-        <h3 class="text-lg font-semibold mb-4">ยืนยันการแจ้งซ่อม</h3>
-        <p class="mb-6">ต้องการส่งแจ้งซ่อมอุปกรณ์ใช่หรือไม่?</p>
-        <div class="flex justify-end gap-4">
-          <button id="cancelBtn"
-            class="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300">ยกเลิก</button>
-          <button id="confirmBtn"
-            class="px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center gap-2">
-            ยืนยัน
-          </button>
+      <!-- ตัวกรอง -->
+      <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4">
+        <div>
+          <label class="block text-sm">วันที่ส่งซ่อม</label>
+          <input id="filterDate" type="date" class="border p-1 rounded w-full">
+        </div>
+        <div>
+          <label class="block text-sm">รหัส</label>
+          <input id="filterId" type="text" placeholder="รหัส" class="border p-1 rounded w-full">
+        </div>
+        <div>
+          <label class="block text-sm">ชื่อ</label>
+          <input id="filterName" type="text" placeholder="ชื่อ" class="border p-1 rounded w-full">
+        </div>
+        <div>
+          <label class="block text-sm">สถานะ</label>
+          <select id="filterStatus" class="border p-1 rounded w-full">
+            <option value="ทั้งหมด">ทั้งหมด</option>
+            <option value="แจ้งซ่อม">แจ้งซ่อม</option>
+            <option value="รอซ่อม">รอซ่อม</option>
+            <option value="ส่งซ่อม">ส่งซ่อม</option>
+            <option value="ซ่อมสำเร็จ">ซ่อมสำเร็จ</option>
+          </select>
         </div>
       </div>
+
+      <!-- ตารางรายการงานซ่อม -->
+      <div class="overflow-x-auto">
+        <table class="min-w-full table-fixed rounded-lg overflow-hidden">
+          <thead class="bg-primary text-white">
+            <tr>
+              <th class="w-24 py-2 px-4 text-left text-sm">รหัส</th>
+              <th class="w-36 py-2 px-4 text-left text-sm">ชื่อ</th>
+              <th class="w-48 py-2 px-4 text-left text-sm">หัวข้อ</th>
+              <th class="w-64 py-2 px-4 text-left text-sm">รายละเอียด</th>
+              <th class="w-32 py-2 px-4 text-left text-sm">รูปก่อนซ่อม</th>
+              <th class="w-32 py-2 px-4 text-left text-sm">สถานะ</th>
+              <th class="w-32 py-2 px-4 text-left text-sm">ค่าใช้จ่าย</th>
+              <th class="w-48 py-2 px-4 text-left text-sm">จัดการ</th>
+            </tr>
+          </thead>
+          <tbody id="repairList" class="bg-white divide-y divide-gray-200 text-sm"></tbody>
+        </table>
+      </div>
+
+      <!-- แถวต่อหน้า & Pagination -->
+      <div class="flex justify-between items-center mt-4">
+        <div class="flex items-center">
+          <label for="rowsPerPage" class="mr-2">แสดง</label>
+          <select id="rowsPerPage" class="border px-2 py-1 rounded mr-2">
+            <option value="15">15</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+          </select>
+          <span>แถวต่อหน้า</span>
+        </div>
+        <div id="pagination" class="flex space-x-2"></div>
+      </div>
+
     </div>
+  </main>
+
+  <!-- โมดัลเพิ่มแจ้งซ่อม -->
+  <div id="addModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+    <div class="bg-white rounded-lg w-11/12 md:w-1/2 p-6 relative">
+      <button id="closeAddModal" class="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+      <h2 class="text-xl font-bold mb-4">ฟอร์มแจ้งซ่อม</h2>
+      <form id="addForm" class="space-y-3">
+        <label>ชื่อผู้แจ้ง</label>
+        <input id="newReporterName" type="text" required class="w-full p-2 border rounded" placeholder="ชื่อผู้แจ้ง">
+        <label>รหัสอุปกรณ์</label>
+        <select id="newDeviceId" required class="w-full p-2 border rounded">
+          <option value="">-- เลือกอุปกรณ์ --</option>
+        </select>
+        <label>ชื่ออุปกรณ์</label>
+        <input id="newDeviceName" type="text" readonly class="w-full p-2 border rounded bg-gray-100" placeholder="(เลือกจากรหัส)">
+        <label>หัวข้อ</label>
+        <input id="newTitle" type="text" required class="w-full p-2 border rounded">
+        <label>รายละเอียด</label>
+        <textarea id="newDetails" required class="w-full p-2 border rounded"></textarea>
+        <label>รูปก่อนซ่อม</label>
+        <input id="newImageFile" type="file" accept="image/*" class="w-full">
+        <button type="submit" class="bg-primary text-secondary px-4 py-2 rounded">ส่งแจ้งซ่อม</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- โมดัลอัปเดตงานซ่อม -->
+  <div id="updateModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+    <div class="bg-white rounded-lg w-11/12 md:w-1/2 p-6 relative">
+      <button id="closeUpdateModal" class="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+      <div id="updateContent"></div>
+    </div>
+  </div>
+
+  <!-- โมดัลดูรูป -->
+  <div id="imageModal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center hidden z-50">
+    <img id="modalImage" src="" class="max-w-full max-h-full rounded-lg shadow-lg">
   </div>
 
   <script>
-    // LIFF init
-    const LIFF_ID = "2007392451-Qj8VqWdw";
-    let userIdLine = "", reporterName = "";
+    // Firebase refs
+    const db = firebase.database();
+    const storage = firebase.storage();
 
-    function showCustomAlert(msg) {
-      const alertBox = document.getElementById('customAlert');
-      alertBox.textContent = msg;
-      alertBox.classList.remove('hidden');
-      setTimeout(() => alertBox.classList.add('hidden'), 3000);
+    let reportsData = [], devicesMap = {}, currentPage = 1, rowsPerPage = 15;
+
+    function getStatusClass(s) {
+      if (s === "แจ้งซ่อม")   return "bg-red-500 text-white";
+      if (s === "รอซ่อม")    return "bg-yellow-300 text-black";
+      if (s === "ส่งซ่อม")   return "bg-indigo-500 text-white";
+      if (s === "ซ่อมสำเร็จ") return "bg-green-500 text-white";
+      return "bg-gray-300 text-black";
     }
 
-    window.onload = async () => {
-      await liff.init({ liffId: LIFF_ID });
-      if (!liff.isInClient() && !liff.isLoggedIn()) {
-        liff.login(); return;
+    // โหลดอุปกรณ์
+    const deviceSelect = document.getElementById("newDeviceId");
+    db.ref("devices").on("value", snap => {
+      devicesMap = {};
+      deviceSelect.innerHTML = '<option value="">-- เลือกอุปกรณ์ --</option>';
+      snap.forEach(ch => {
+        const d = ch.val();
+        devicesMap[d.deviceId] = d.deviceName;
+        const opt = document.createElement("option");
+        opt.value = d.deviceId;
+        opt.textContent = `${d.deviceId} – ${d.deviceName}`;
+        deviceSelect.appendChild(opt);
+      });
+    });
+    deviceSelect.addEventListener("change", e => {
+      document.getElementById("newDeviceName").value = devicesMap[e.target.value] || "";
+    });
+
+    // โหลดรายงานซ่อม
+    db.ref("repairReports").on("value", snap => {
+      reportsData = [];
+      snap.forEach(ch => reportsData.push({ id: ch.key, ...ch.val() }));
+      reportsData.sort((a,b)=>new Date(b.sendDate)-new Date(a.sendDate));
+      renderTablePage();
+    });
+
+    // ตั้ง listener ตัวกรอง & pagination
+    ["filterDate","filterId","filterName","filterStatus"].forEach(id => {
+      document.getElementById(id).addEventListener("input", () => {
+        currentPage = 1;
+        renderTablePage();
+      });
+    });
+    document.getElementById("rowsPerPage").addEventListener("change", e => {
+      rowsPerPage = +e.target.value;
+      currentPage = 1;
+      renderTablePage();
+    });
+
+    function renderTablePage(){
+      const fD = document.getElementById("filterDate").value;
+      const fI = document.getElementById("filterId").value.trim();
+      const fN = document.getElementById("filterName").value.trim();
+      const fS = document.getElementById("filterStatus").value;
+
+      const filtered = reportsData.filter(r => {
+        if (fD && r.sendDate.split("T")[0] !== fD) return false;
+        if (fI && !r.deviceId.includes(fI)) return false;
+        if (fN && !r.deviceName.includes(fN)) return false;
+        if (fS !== "ทั้งหมด" && fS && r.status !== fS) return false;
+        return true;
+      });
+
+      const tbody = document.getElementById("repairList");
+      tbody.innerHTML = "";
+      const start = (currentPage - 1) * rowsPerPage;
+      filtered.slice(start, start + rowsPerPage).forEach(r => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td class="py-2 px-4">${r.deviceId}</td>
+          <td class="py-2 px-4">${r.deviceName}</td>
+          <td class="py-2 px-4">${r.title}</td>
+          <td class="py-2 px-4">${r.details}</td>
+          <td class="py-2 px-4">${r.imageUrl ? `<img src="${r.imageUrl}" class="h-16 rounded cursor-pointer" onclick="openImageModal('${r.imageUrl}')">` : "-"}</td>
+          <td class="py-2 px-4"><span class="px-2 py-1 rounded-full ${getStatusClass(r.status)}">${r.status}</span></td>
+          <td class="py-2 px-4">${r.cost || "-"}</td>
+          <td class="py-2 px-4 space-x-2">
+            <button onclick="editRepair('${r.id}')" class="px-3 py-1 bg-primary text-secondary rounded">อัปเดต</button>
+            <button onclick="deleteRepair('${r.id}')" class="px-3 py-1 bg-red-500 text-white rounded">ลบ</button>
+          </td>`;
+        tbody.appendChild(tr);
+      });
+
+      // pagination
+      const totalPages = Math.ceil(filtered.length / rowsPerPage);
+      const pg = document.getElementById("pagination");
+      pg.innerHTML = "";
+      for (let i = 1; i <= totalPages; i++) {
+        const btn = document.createElement("button");
+        btn.textContent = i;
+        btn.className = `px-3 py-1 rounded ${i === currentPage ? 'bg-primary text-secondary' : 'bg-gray-300 text-black'}`;
+        btn.onclick = () => { currentPage = i; renderTablePage(); };
+        pg.appendChild(btn);
       }
-      const profile = await liff.getProfile();
-      userIdLine = profile.userId;
-      const empSnap = await db.ref("employees")
-        .orderByChild("userIdLine").equalTo(userIdLine).get();
-      if (empSnap.exists()) {
-        reporterName = Object.values(empSnap.val())[0].fullName;
-      } else {
-        showCustomAlert('ไม่พบข้อมูลพนักงาน กรุณาลงทะเบียนก่อน');
-        setTimeout(() => liff.isInClient() && liff.closeWindow(), 2000);
-        return;
-      }
-      document.getElementById("reporterName").textContent = reporterName;
+    }
+
+    // โมดัลรูป
+    function openImageModal(src) {
+      document.getElementById("modalImage").src = src;
+      document.getElementById("imageModal").classList.remove("hidden");
+    }
+    document.getElementById("imageModal").onclick = () => {
+      document.getElementById("imageModal").classList.add("hidden");
     };
 
-    // สแกน QR
-    const canvas = document.createElement('canvas'), ctx = canvas.getContext('2d');
-    document.getElementById('scanBtn').addEventListener('click', startScan);
-    async function startScan() {
-      const video = document.getElementById('video');
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }});
-      video.srcObject = stream; video.play(); video.classList.remove('hidden');
-      requestAnimationFrame(() => scanLoop(video));
-    }
-    function scanLoop(video) {
-      if (video.readyState === video.HAVE_ENOUGH_DATA) {
-        canvas.width = video.videoWidth; canvas.height = video.videoHeight;
-        ctx.drawImage(video, 0, 0);
-        const code = jsQR(ctx.getImageData(0, 0, canvas.width, canvas.height).data,
-                          canvas.width, canvas.height);
-        if (code) {
-          const id = code.data.trim();
-          db.ref(`devices/${id}`).get().then(snap => {
-            if (!snap.exists()) {
-              showCustomAlert('ไม่พบอุปกรณ์นี้');
-            } else {
-              document.getElementById('deviceId').value = id;
-              document.getElementById('deviceName').value = snap.val().deviceName || 'ไม่ทราบชื่อ';
-              // แสดงสถานะปัจจุบัน
-              document.getElementById('statusText').textContent =
-                `สถานะปัจจุบัน: ${snap.val().status || 'ไม่ระบุ'}`;
-            }
-          });
-          video.srcObject.getTracks().forEach(t => t.stop());
-          video.classList.add('hidden');
-        }
-      }
-      if (video.srcObject) requestAnimationFrame(() => scanLoop(video));
+    // ลบรายการ
+    function deleteRepair(id) {
+      if (!confirm('❗ คุณแน่ใจหรือไม่ว่าจะลบรายการนี้?')) return;
+      db.ref('repairReports/' + id).remove().catch(() => alert('❌ เกิดข้อผิดพลาด'));
     }
 
-    // พรีวิวรูป
-    document.getElementById('imageInput').addEventListener('change', e => {
-      const file = e.target.files[0];
+    // เปิด/ปิดโมดัล เพิ่ม
+    const addModal = document.getElementById('addModal');
+    document.getElementById('openAddModal').onclick = () => {
+      addModal.classList.remove('hidden');
+      document.body.classList.add('overflow-hidden');
+    };
+    document.getElementById('closeAddModal').onclick = () => {
+      addModal.classList.add('hidden');
+      document.body.classList.remove('overflow-hidden');
+    };
+
+    // ส่งฟอร์ม เพิ่ม
+    document.getElementById('addForm').onsubmit = async e => {
+      e.preventDefault();
+      const reporter = document.getElementById('newReporterName').value.trim();
+      const id = document.getElementById('newDeviceId').value;
+      const name = devicesMap[id] || '';
+      const title = document.getElementById('newTitle').value.trim();
+      const details = document.getElementById('newDetails').value.trim();
+      const file = document.getElementById('newImageFile').files[0];
+      const nowISO = new Date().toISOString();
+
+      const payload = {
+        reporterName: reporter,
+        deviceId: id,
+        deviceName: name,
+        title,
+        details,
+        sendDate: nowISO,
+        status: 'แจ้งซ่อม'
+      };
       if (file) {
+        const ref = storage.ref(`repair_before/${id}_${Date.now()}`);
+        const snap = await ref.put(file);
+        payload.imageUrl = await snap.ref.getDownloadURL();
+      }
+      await db.ref('repairReports').push(payload);
+      await db.ref('devices/' + id).update({ status: 'รอซ่อม' });
+      alert('✅ ส่งแจ้งซ่อมเรียบร้อย');
+      addModal.classList.add('hidden');
+      document.body.classList.remove('overflow-hidden');
+    };
+
+    // เปิดโมดัล อัปเดต
+    const updateModal = document.getElementById('updateModal');
+    document.getElementById('closeUpdateModal').onclick = () => {
+      updateModal.classList.add('hidden');
+      document.body.classList.remove('overflow-hidden');
+    };
+
+    async function editRepair(id) {
+      const snap = await db.ref('repairReports/' + id).once('value');
+      const r = snap.val();
+      document.getElementById('updateContent').innerHTML = `
+        <h2 class="text-xl font-bold mb-4">อัปเดตงานซ่อม</h2>
+        <form id="updateForm" class="space-y-3">
+          <input type="hidden" id="updId" value="${id}">
+          <label>สถานะ</label>
+          <select id="updStatus" class="w-full p-2 border rounded">
+            <option ${r.status==='แจ้งซ่อม'?'selected':''}>แจ้งซ่อม</option>
+            <option ${r.status==='รอซ่อม'?'selected':''}>รอซ่อม</option>
+            <option ${r.status==='ส่งซ่อม'?'selected':''}>ส่งซ่อม</option>
+            <option ${r.status==='ซ่อมสำเร็จ'?'selected':''}>ซ่อมสำเร็จ</option>
+          </select>
+          <label>ผู้รับผิดชอบ</label>
+          <input id="updResponsible" value="${r.responsible||''}" class="w-full p-2 border rounded">
+          <label>รายละเอียดการแก้ไข</label>
+          <textarea id="updSolution" class="w-full p-2 border rounded">${r.solution||''}</textarea>
+          <label>ค่าใช้จ่าย</label>
+          <input id="updCost" value="${r.cost||''}" class="w-full p-2 border rounded">
+          <label>รูปหลังซ่อม</label>
+          <input id="updImageFile" type="file" accept="image/*" class="w-full">
+          ${r.imageAfter?`<img id="afterPreview" src="${r.imageAfter}" class="mt-2 h-24 rounded cursor-pointer" onclick="openImageModal('${r.imageAfter}')">`:''}
+          <button type="submit" class="bg-primary text-white px-4 py-2 rounded">บันทึก</button>
+        </form>`;
+      updateModal.classList.remove('hidden');
+      document.body.classList.add('overflow-hidden');
+
+      document.getElementById('updImageFile').onchange = e => {
+        const file = e.target.files[0];
+        if (!file) return;
         const reader = new FileReader();
         reader.onload = ev => {
-          const img = document.getElementById('previewImage');
-          img.src = ev.target.result; img.classList.remove('hidden');
+          let img = document.getElementById('afterPreview');
+          if (!img) {
+            img = document.createElement('img');
+            img.id = 'afterPreview';
+            img.className = 'mt-2 h-24 rounded';
+            document.getElementById('updateForm').insertBefore(img, e.target.nextSibling);
+          }
+          img.src = ev.target.result;
         };
         reader.readAsDataURL(file);
-      }
-    });
+      };
 
-    // ควบคุม Modal
-    const modal = document.getElementById('confirmModal');
-    document.getElementById('openConfirmBtn').addEventListener('click', () => {
-      if (!document.getElementById('deviceId').value ||
-          !document.getElementById('title').value ||
-          !document.getElementById('details').value ||
-          !document.getElementById('price').value) {
-        showCustomAlert('กรุณากรอกข้อมูลให้ครบ');
-        return;
-      }
-      modal.classList.remove('hidden');
-    });
-    document.getElementById('cancelBtn').addEventListener('click', () => modal.classList.add('hidden'));
-
-    // ส่งข้อมูล
-    document.getElementById('confirmBtn').addEventListener('click', async function () {
-      const btn = this, originalHTML = btn.innerHTML;
-      btn.disabled = true;
-      btn.innerHTML = `
-        <svg class="animate-spin h-5 w-5 inline-block" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor"
-            d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-        </svg>
-        กำลังบันทึก...
-      `;
-      await submitRepair();
-      btn.innerHTML = '✅ บันทึกสำเร็จ';
-      setTimeout(() => liff.isInClient() && liff.closeWindow(), 1000);
-    });
-
-    async function submitRepair() {
-      const id = db.ref().child('repairReports').push().key;
-      const now = new Date().toISOString();
-      const dev = document.getElementById('deviceId').value.trim();
-      const ti = document.getElementById('title').value.trim();
-      const dt = document.getElementById('details').value.trim();
-      const price = parseFloat(document.getElementById('price').value);
-      const file = document.getElementById('imageInput').files[0];
-
-      let imageUrl = '';
-      if (file) {
-        const snap = await storage.ref(`repair_images/${id}`).put(file);
-        imageUrl = await snap.ref.getDownloadURL();
-      }
-
-      // บันทึกข้อมูลพร้อมราคา
-      await db.ref(`repairReports/${id}`).set({
-        id, date: now,
-        timestamp: firebase.database.ServerValue.TIMESTAMP,
-        reporterName, userIdLine,
-        deviceId: dev,
-        title: ti, details: dt,
-        price: price,
-        status: 'รอซ่อม',
-        imageUrl
-      });
-      // อัปเดตสถานะอุปกรณ์
-      await db.ref(`devices/${dev}`).update({
-        status: 'ส่งซ่อม',
-        lastUser: reporterName,
-        lastUserId: userIdLine
-      });
-
-      // ส่งข้อความ LINE
-      const msg = `แจ้งรายการซ่อม\nรหัส: ${dev}\nหัวข้อ: ${ti}\nรายละเอียด: ${dt}\nราคา: ${price} บาท`;
-      await liff.sendMessages([{ type: 'text', text: msg }]);
+      document.getElementById('updateForm').onsubmit = async ev => {
+        ev.preventDefault();
+        const id2 = document.getElementById('updId').value;
+        const newStatus = document.getElementById('updStatus').value;
+        const payload = {
+          status: newStatus,
+          responsible: document.getElementById('updResponsible').value,
+          solution: document.getElementById('updSolution').value,
+          cost: document.getElementById('updCost').value
+        };
+        const file2 = document.getElementById('updImageFile').files[0];
+        if (file2) {
+          const ref2 = storage.ref(`repair_after/${id2}_${Date.now()}`);
+          const snap2 = await ref2.put(file2);
+          payload.imageAfter = await snap2.ref.getDownloadURL();
+        }
+        await db.ref('repairReports/' + id2).update(payload);
+        if (newStatus === 'ซ่อมสำเร็จ') {
+          const r2 = (await db.ref('repairReports/' + id2).once('value')).val();
+          await db.ref('devices/' + r2.deviceId).update({ status: 'พร้อมใช้งาน' });
+        }
+        alert('✅ อัปเดตเรียบร้อย');
+        updateModal.classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+      };
     }
   </script>
 </body>
+
 </html>
