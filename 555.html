@@ -71,7 +71,7 @@
           <select id="filterStatus" class="border p-1 rounded w-full">
             <option value="">ทั้งหมด</option>
             <option value="แจ้งซ่อม">แจ้งซ่อม</option>
-            <option value="รอซ่อม">รอซ่อม</option>
+            <option value="รอซ่อม">รอซ้อม</option>
             <option value="ส่งซ่อม">ส่งซ่อม</option>
             <option value="ซ่อมสำเร็จ">ซ่อมสำเร็จ</option>
           </select>
@@ -153,7 +153,6 @@
   </div>
 
   <script>
-
     let reportsData = [], devicesMap = {}, currentPage = 1, rowsPerPage = 15;
 
     function getStatusClass(s) {
@@ -186,15 +185,22 @@
     db.ref("repairReports").on("value", snap => {
       reportsData = [];
       snap.forEach(ch => reportsData.push({ id: ch.key, ...ch.val() }));
-      reportsData.sort((a,b)=>new Date(b.sendDate)-new Date(a.sendDate));
+      reportsData.sort((a,b)=>new Date((a.sendDate||a.date)) - new Date((b.sendDate||b.date)));
       renderTablePage();
     });
 
     // ตั้ง listener ตัวกรอง & pagination
     ["filterDate","filterId","filterName","filterStatus"].forEach(id => {
-      document.getElementById(id).addEventListener("input", () => {
+      document.getElementById(id).addEventListener("change", () => {
         currentPage = 1;
         renderTablePage();
+      });
+      // for text inputs
+      document.getElementById(id).addEventListener("input", () => {
+        if (["filterId","filterName"].includes(id)) {
+          currentPage = 1;
+          renderTablePage();
+        }
       });
     });
     document.getElementById("rowsPerPage").addEventListener("change", e => {
@@ -209,14 +215,18 @@
       const fN = document.getElementById("filterName").value.trim();
       const fS = document.getElementById("filterStatus").value;
 
+      // กรอง
       const filtered = reportsData.filter(r => {
-        if (fD && r.sendDate.split("T")[0] !== fD) return false;
+        // ใช้ sendDate หรือ fallback ไปที่ date ถ้าไม่มี
+        const recDate = r.sendDate || r.date || "";
+        if (fD && !recDate.startsWith(fD)) return false;
         if (fI && !r.deviceId.includes(fI)) return false;
         if (fN && !r.deviceName.includes(fN)) return false;
         if (fS && r.status !== fS) return false;
         return true;
       });
 
+      // สร้างแถวในตาราง
       const tbody = document.getElementById("repairList");
       tbody.innerHTML = "";
       const start = (currentPage - 1) * rowsPerPage;
@@ -227,8 +237,14 @@
           <td class="py-2 px-4">${r.deviceName}</td>
           <td class="py-2 px-4">${r.title}</td>
           <td class="py-2 px-4">${r.details}</td>
-          <td class="py-2 px-4">${r.imageUrl ? `<img src="${r.imageUrl}" class="h-16 rounded cursor-pointer" onclick="openImageModal('${r.imageUrl}')">` : "-"}</td>
-          <td class="py-2 px-4"><span class="px-2 py-1 rounded-full ${getStatusClass(r.status)}">${r.status}</span></td>
+          <td class="py-2 px-4">
+            ${r.imageUrl 
+              ? `<img src="${r.imageUrl}" class="h-16 rounded cursor-pointer" onclick="openImageModal('${r.imageUrl}')">`
+              : "-"}
+          </td>
+          <td class="py-2 px-4">
+            <span class="px-2 py-1 rounded-full ${getStatusClass(r.status)}">${r.status}</span>
+          </td>
           <td class="py-2 px-4">${r.cost || "-"}</td>
           <td class="py-2 px-4 space-x-2">
             <button onclick="editRepair('${r.id}')" class="px-3 py-1 bg-primary text-secondary rounded">อัปเดต</button>
@@ -293,7 +309,8 @@
         deviceName: name,
         title,
         details,
-        sendDate: nowISO,
+        date: nowISO,      // เก็บใน property date
+        sendDate: nowISO,  // และเก็บ sendDate ด้วย
         status: 'แจ้งซ่อม'
       };
       if (file) {
@@ -338,12 +355,15 @@
           <input id="updCost" value="${r.cost||''}" class="w-full p-2 border rounded">
           <label>รูปหลังซ่อม</label>
           <input id="updImageFile" type="file" accept="image/*" class="w-full">
-          ${r.imageAfter?`<img id="afterPreview" src="${r.imageAfter}" class="mt-2 h-24 rounded cursor-pointer" onclick="openImageModal('${r.imageAfter}')">`:''}
+          ${r.imageAfter
+            ? `<img id="afterPreview" src="${r.imageAfter}" class="mt-2 h-24 rounded cursor-pointer" onclick="openImageModal('${r.imageAfter}')">`
+            : ''}
           <button type="submit" class="bg-primary text-white px-4 py-2 rounded">บันทึก</button>
         </form>`;
       updateModal.classList.remove('hidden');
       document.body.classList.add('overflow-hidden');
 
+      // พรีวิวรูปหลังซ่อม
       document.getElementById('updImageFile').onchange = e => {
         const file = e.target.files[0];
         if (!file) return;
@@ -361,6 +381,7 @@
         reader.readAsDataURL(file);
       };
 
+      // เมื่อกดบันทึกอัปเดต
       document.getElementById('updateForm').onsubmit = async ev => {
         ev.preventDefault();
         const id2 = document.getElementById('updId').value;
@@ -377,7 +398,9 @@
           const snap2 = await ref2.put(file2);
           payload.imageAfter = await snap2.ref.getDownloadURL();
         }
+        // อัปเดตใน Firebase
         await db.ref('repairReports/' + id2).update(payload);
+        // ถ้าเปลี่ยนเป็นซ่อมสำเร็จ ให้เปลี่ยนสถานะอุปกรณ์กลับเป็นพร้อมใช้งาน
         if (newStatus === 'ซ่อมสำเร็จ') {
           const r2 = (await db.ref('repairReports/' + id2).once('value')).val();
           await db.ref('devices/' + r2.deviceId).update({ status: 'พร้อมใช้งาน' });
