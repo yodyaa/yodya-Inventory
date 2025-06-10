@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <title>จัดการสินค้า</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#174D27',
+            secondary: '#CADEC3'
+          }
+        }
+      }
+    };
+  </script>
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+  <!-- QRCode.js -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+  <!-- Your firebase-config.js -->
+  <script src="firebase-config.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex">
+
+ <!-- Sidebar -->
+  <aside class="w-64 bg-gray-800 p-6">
+    <h1 class="text-white text-lg font-bold mb-6">ระบบยืม-คืน & แจ้งซ่อม</h1>
+    <nav class="space-y-4">
+      <a href="./Dashboard.html"    class="block bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded">หน้าหลัก</a>
+      <a href="./Devices.html"      class="block bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded">อุปกรณ์</a>
+      <a href="./transactions.html" class="block bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded">รับเข้า/เบิก</a>
+      <a href="./products.html"     class="block bg-gray-700 bg-opacity-50 text-white py-2 px-4 rounded">สินค้า</a>
+      <a href="./User.html"         class="block bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded">สมาชิก</a>
+      <a href="./Team.html"         class="block bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded">ทีม</a>
+      <a href="./Setting.html"      class="block bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded">ตั้งค่าแจ้งเตือน</a>
+    </nav>
+  </aside>
+
+  <!-- Main -->
+  <main class="flex-1 p-6">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-2xl font-bold">รายการสินค้า</h2>
+      <div class="space-x-2">
+        <button id="importBtn" class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600">
+          Import CSV
+        </button>
+        <input type="file" id="importFile" accept=".csv" class="hidden">
+        <button id="exportBtn" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+          Export CSV
+        </button>
+        <button id="openAddBtn" class="bg-primary text-white px-4 py-2 rounded hover:bg-primary/90">
+          + เพิ่มสินค้า
+        </button>
+      </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
+      <div id="cardAll" class="bg-white p-4 rounded-lg shadow cursor-pointer hover:shadow-md"
+           onclick="setFilter('all')">
+        <h3 class="text-sm text-gray-500">สินค้าทั้งหมด</h3>
+        <p id="countAll" class="text-3xl font-bold">0</p>
+      </div>
+      <div id="cardLow" class="bg-white p-4 rounded-lg shadow cursor-pointer hover:shadow-md"
+           onclick="setFilter('low')">
+        <h3 class="text-sm text-gray-500">สินค้าใกล้หมด (&lt;10)</h3>
+        <p id="countLow" class="text-3xl font-bold">0</p>
+      </div>
+      <div id="cardOut" class="bg-white p-4 rounded-lg shadow cursor-pointer hover:shadow-md"
+           onclick="setFilter('out')">
+        <h3 class="text-sm text-gray-500">สินค้าหมดแล้ว</h3>
+        <p id="countOut" class="text-3xl font-bold">0</p>
+      </div>
+    </div>
+
+    <!-- Products Table -->
+    <div class="overflow-x-auto bg-white rounded-lg shadow">
+      <table class="min-w-full text-left">
+        <thead class="bg-secondary text-primary">
+          <tr>
+            <th class="px-4 py-2">รหัส</th>
+            <th class="px-4 py-2">ชื่อ</th>
+            <th class="px-4 py-2">หมวดหมู่</th>
+            <th class="px-4 py-2">จำนวน</th>
+            <th class="px-4 py-2">หน่วย</th>
+            <th class="px-4 py-2">QR (คลิกดู)</th>
+            <th class="px-4 py-2">รูป</th>
+            <th class="px-4 py-2">จัดการ</th>
+          </tr>
+        </thead>
+        <tbody id="productList" class="divide-y"></tbody>
+      </table>
+    </div>
+
+    <!-- Modal เพิ่ม/แก้ไข -->
+    <div id="productModal" class="fixed inset-0 hidden flex items-center justify-center bg-black/50 z-50">
+      <div class="bg-white rounded-lg w-full max-w-md p-6">
+        <h3 id="productModalTitle" class="text-xl font-semibold mb-4">เพิ่มสินค้าใหม่</h3>
+        <form id="productForm" class="space-y-4">
+          <div>
+            <label class="block text-sm mb-1">รหัสสินค้า</label>
+            <input type="text" id="prodCode" class="w-full border rounded px-3 py-2" required>
+          </div>
+          <div>
+            <label class="block text-sm mb-1">ชื่อสินค้า</label>
+            <input type="text" id="prodName" class="w-full border rounded px-3 py-2" required>
+          </div>
+          <div>
+            <label class="block text-sm mb-1">หมวดหมู่</label>
+            <input type="text" id="prodCategory" class="w-full border rounded px-3 py-2">
+          </div>
+          <div class="flex space-x-4">
+            <div class="flex-1">
+              <label class="block text-sm mb-1">จำนวนเริ่มต้น</label>
+              <input type="number" id="prodQuantity" min="0" value="0" class="w-full border rounded px-3 py-2">
+            </div>
+            <div class="flex-1">
+              <label class="block text-sm mb-1">หน่วย</label>
+              <input type="text" id="prodUnit" class="w-full border rounded px-3 py-2" placeholder="ชิ้น, กล่อง">
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm mb-1">สถานะเริ่มต้น</label>
+            <select id="prodStatus" class="w-full border rounded px-3 py-2">
+              <option value="พร้อมใช้งาน">พร้อมใช้งาน</option>
+              <option value="รอตรวจสอบ">รอตรวจสอบ</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm mb-1">รูปภาพ</label>
+            <input type="file" id="prodImage" accept="image/*" class="w-full">
+          </div>
+          <div class="flex justify-end space-x-2 pt-4">
+            <button type="button" id="cancelProdBtn" class="px-4 py-2 border rounded hover:bg-gray-100">
+              ยกเลิก
+            </button>
+            <button type="submit" id="saveProdBtn" class="px-4 py-2 bg-primary text-white rounded">
+              บันทึก
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal แสดง QR Code ขนาดใหญ่ -->
+    <div id="qrModal" class="fixed inset-0 hidden flex items-center justify-center bg-black/50 z-50">
+      <div class="bg-white p-6 rounded-lg flex flex-col items-center">
+        <canvas id="qrPopupCanvas" class="mb-4"></canvas>
+        <button id="closeQrBtn" class="px-4 py-2 bg-primary text-white rounded">ปิด</button>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // อ้างอิง Firebase
+    const stockRef = db.ref('stock');
+    const imgStore = firebase.storage().ref('stock_images');
+
+    let products = [];
+    let currentFilter = 'all';
+    let editMode = false;
+    let oldImageUrl = '';
+
+    // DOM Elements
+    const cardAll     = document.getElementById('cardAll');
+    const cardLow     = document.getElementById('cardLow');
+    const cardOut     = document.getElementById('cardOut');
+    const countAll    = document.getElementById('countAll');
+    const countLow    = document.getElementById('countLow');
+    const countOut    = document.getElementById('countOut');
+    const tbody       = document.getElementById('productList');
+    const importFile  = document.getElementById('importFile');
+
+    // ฟังก์ชันตั้ง filter
+    function setFilter(f) {
+      currentFilter = f;
+      [cardAll, cardLow, cardOut].forEach(c => c.classList.remove('border-2','border-primary'));
+      if (f==='all') cardAll.classList.add('border-2','border-primary');
+      if (f==='low') cardLow.classList.add('border-2','border-primary');
+      if (f==='out') cardOut.classList.add('border-2','border-primary');
+      renderProducts();
+    }
+
+    // โหลดข้อมูลจาก Firebase (Realtime)
+    stockRef.on('value', snap => {
+      products = [];
+      snap.forEach(ch => {
+        products.push(ch.val());
+      });
+      // อัพเดตตัวเลขสรุป
+      countAll.textContent = products.length;
+      countLow.textContent = products.filter(d => (d.quantity||0) < 10).length;
+      countOut.textContent = products.filter(d => (d.quantity||0) === 0).length;
+      setFilter(currentFilter);
+    });
+
+    // แสดงแถวสินค้า
+    function renderProducts() {
+      tbody.innerHTML = '';
+      products.forEach(d => {
+        const qty = d.quantity || 0;
+        if (currentFilter === 'low' && qty >= 10) return;
+        if (currentFilter === 'out' && qty > 0) return;
+        const lowFlag = qty < 10;
+        const tr = document.createElement('tr');
+        tr.className = lowFlag ? 'bg-red-50 hover:bg-red-100' : 'hover:bg-gray-50';
+        tr.innerHTML = `
+          <td class="px-4 py-2">${d.code}</td>
+          <td class="px-4 py-2">${d.name}</td>
+          <td class="px-4 py-2">${d.category||''}</td>
+          <td class="px-4 py-2 ${lowFlag?'text-red-600 font-semibold':''}">${qty}</td>
+          <td class="px-4 py-2">${d.unit||''}</td>
+          <td class="px-4 py-2">
+            <canvas
+              id="qr-${d.code}"
+              data-code="${d.code}"
+              class="cursor-pointer"
+              title="คลิกดูใหญ่"
+            ></canvas>
+          </td>
+          <td class="px-4 py-2">
+            ${d.imageUrl
+              ? `<img src="${d.imageUrl}" class="w-10 h-10 object-cover rounded">`
+              : '–'}
+          </td>
+          <td class="px-4 py-2 space-x-2">
+            <button data-code="${d.code}" class="editBtn text-blue-600">แก้ไข</button>
+            <button data-code="${d.code}" class="delBtn text-red-600">ลบ</button>
+          </td>`;
+        tbody.appendChild(tr);
+        QRCode.toCanvas(document.getElementById(`qr-${d.code}`), d.code, { width: 64 });
+      });
+      bindRowButtons();
+    }
+
+    // ผูกปุ่มในแต่ละแถว
+    function bindRowButtons() {
+      // ดู QR เมื่อคลิกที่ canvas เล็ก
+      document.querySelectorAll('canvas[id^="qr-"]').forEach(cvs => {
+        cvs.onclick = () => {
+          const code = cvs.dataset.code;
+          const popup = document.getElementById('qrPopupCanvas');
+          QRCode.toCanvas(popup, code, { width: 200 });
+          document.getElementById('qrModal').classList.remove('hidden');
+        };
+      });
+      document.getElementById('closeQrBtn').onclick = () => {
+        document.getElementById('qrModal').classList.add('hidden');
+      };
+
+      // แก้ไข
+      document.querySelectorAll('.editBtn').forEach(btn => {
+        btn.onclick = () => {
+          editMode = true;
+          stockRef.child(btn.dataset.code).get().then(s => {
+            const d = s.val();
+            oldImageUrl = d.imageUrl || '';
+            document.getElementById('productModalTitle').textContent = 'แก้ไขสินค้า';
+            ['prodCode','prodName','prodCategory','prodQuantity','prodUnit','prodStatus'].forEach(id => {
+              const key = id.replace('prod','').toLowerCase();
+              document.getElementById(id).value = d[key] || '';
+            });
+            document.getElementById('prodCode').disabled = true;
+            document.getElementById('productModal').classList.remove('hidden');
+          });
+        };
+      });
+
+      // ลบ
+      document.querySelectorAll('.delBtn').forEach(btn => {
+        btn.onclick = async () => {
+          if (confirm(`ลบสินค้า ${btn.dataset.code} ?`)) {
+            await stockRef.child(btn.dataset.code).remove();
+          }
+        };
+      });
+    }
+
+    // เปิด modal เพิ่มสินค้า
+    document.getElementById('openAddBtn').onclick = () => {
+      editMode = false;
+      oldImageUrl = '';
+      document.getElementById('productForm').reset();
+      document.getElementById('prodCode').disabled = false;
+      document.getElementById('productModalTitle').textContent = 'เพิ่มสินค้าใหม่';
+      document.getElementById('productModal').classList.remove('hidden');
+    };
+    // ยกเลิก modal เพิ่ม/แก้ไข
+    document.getElementById('cancelProdBtn').onclick = () => {
+      document.getElementById('productModal').classList.add('hidden');
+    };
+
+    // บันทึกสินค้า (เพิ่ม/แก้ไข)
+    document.getElementById('productForm').onsubmit = async ev => {
+      ev.preventDefault();
+      const code     = document.getElementById('prodCode').value.trim();
+      const name     = document.getElementById('prodName').value.trim();
+      const category = document.getElementById('prodCategory').value.trim();
+      const quantity = +document.getElementById('prodQuantity').value || 0;
+      const unit     = document.getElementById('prodUnit').value.trim();
+      const status   = document.getElementById('prodStatus').value;
+      const file     = document.getElementById('prodImage').files[0];
+      let imageUrl   = oldImageUrl;
+      if (file) {
+        const snap = await imgStore.child(`${code}_${Date.now()}`).put(file);
+        imageUrl = await snap.ref.getDownloadURL();
+      }
+      await stockRef.child(code).set({ code, name, category, quantity, unit, status, imageUrl });
+      document.getElementById('productModal').classList.add('hidden');
+    };
+
+    // Export CSV (UTF-8 + BOM)
+    document.getElementById('exportBtn').onclick = () => {
+      if (!products.length) return alert('ไม่มีข้อมูลส่งออก');
+      const header = ['code','name','category','quantity','unit','status'];
+      const rows = products.map(d =>
+        header.map(f => `"${(d[f]||'').toString().replace(/"/g,'""')}"`).join(',')
+      );
+      const csv = '\uFEFF' + header.join(',') + '\n' + rows.join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'products.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    };
+
+    // Import CSV
+    document.getElementById('importBtn').onclick = () => importFile.click();
+    importFile.onchange = ev => {
+      const file = ev.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = async e => {
+        let text = e.target.result;
+        if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+        const lines = text.trim().split('\n');
+        const [headers, ...data] = lines.map(l =>
+          l.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/)
+           .map(cell => cell.replace(/^"|"$/g,'').replace(/""/g,'"'))
+        );
+        const idx = headers.reduce((o,h,i) => (o[h]=i,o), {});
+        for (const cols of data) {
+          const item = {
+            code: cols[idx.code]?.trim(),
+            name: cols[idx.name]?.trim(),
+            category: cols[idx.category]?.trim(),
+            quantity: +cols[idx.quantity]||0,
+            unit: cols[idx.unit]?.trim(),
+            status: cols[idx.status]?.trim()
+          };
+          if (item.code) await stockRef.child(item.code).set(item);
+        }
+        importFile.value = '';
+      };
+      reader.readAsText(file, 'utf-8');
+    };
+  </script>
+</body>
+</html>
