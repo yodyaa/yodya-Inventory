@@ -267,8 +267,8 @@
   <script>
     // Configuration constants
     const LIFF_ID = '2007335399-rmoYp9Md'; // Replace with your LIFF ID
-    const GAS_URL = 'https://script.google.com/macros/s/AKfycbz-x6XGsMhuhkWOlBh8NAoVuiOopCXZdqJ_G3lyiUW5pq0TOGJToiqxHM2Rsit2xSVB/exec'; // Replace with your Google Apps Script URL
-    const LIFF_WEB_URL = 'https://liff.line.me/2007335399-rmoYp9Md'; // URL ของ LIFF Web App ของคุณเอง (สำหรับปุ่มใน Flex Message)
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbxetqC2xndc0vB_-FqFOEqGQUgn8Q9TkOw8bMOR7sewqEPlEw55jUHa1t2CtB5igg/exec'; // Replace with your Google Apps Script URL
+   // const LIFF_WEB_URL = 'https://liff.line.me/XX-XX'; // URL ของ LIFF Web App ของคุณเอง (สำหรับปุ่มใน Flex Message)
 
     // Firebase references (assuming db is initialized in firebase-config.js)
     const stockRef = db.ref('stock');
@@ -774,23 +774,6 @@
               layout: "vertical",
               contents: contentsWithSeparators, // The list of items
               spacing: "md" // Spacing between individual item boxes
-            }
-          ]
-        },
-        footer: {
-          type: "box",
-          layout: "vertical",
-          spacing: "sm",
-          contents: [
-            {
-              type: "button",
-              action: {
-                type: "uri",
-                label: "ดูสถานะคลังสินค้า",
-                uri: LIFF_WEB_URL // Use the defined LIFF URL
-              },
-              style: "primary",
-              color: buttonColor
             }
           ]
         }
