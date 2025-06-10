@@ -72,7 +72,6 @@
 
   <script>
     // LIFF init
-    const LIFF_ID = "2007392451-Qj8VqWdw";
     let userIdLine = "", reporterName = "";
 
     // ฟังก์ชัน Custom Alert
@@ -84,7 +83,7 @@
     }
 
     window.onload = async () => {
-      await liff.init({ liffId: LIFF_ID });
+      await liff.init({ liffId: LIFF_ID_REPORT });
       if (!liff.isInClient() && !liff.isLoggedIn()) {
         liff.login();
         return;
