@@ -14,12 +14,17 @@
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
   <script src="firebase-config.js"></script>
+  <script>
+    tailwind.config = { theme: { extend: {
+      colors: { primary: '#174d27', secondary: '#FFFFFF' }
+    } } };
+  </script>
 </head>
 
 <body class="bg-gray-100 min-h-screen font-sans">
   <!-- Custom Alert -->
   <div id="customAlert"
-    class="fixed top-4 left-1/2 transform -translate-x-1/2 bg-red-500 text-white px-4 py-2 rounded shadow hidden z-50">
+       class="fixed top-4 left-1/2 transform -translate-x-1/2 bg-red-500 text-white px-4 py-2 rounded shadow hidden z-50">
   </div>
 
   <div class="max-w-md mx-auto p-6">
@@ -29,29 +34,30 @@
     </div>
 
     <button id="scanBtn"
-      class="w-full mb-4 flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-600 text-white py-3 px-4 rounded-full">
+            class="w-full mb-4 flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-600 text-white py-3 px-4 rounded-full">
       สแกน QR อุปกรณ์
     </button>
     <video id="video" playsinline class="w-full h-80 object-cover rounded-lg mb-4 hidden"></video>
 
     <div class="space-y-4">
-      <input id="deviceId" type="text" placeholder="รหัสอุปกรณ์" readonly
-        class="w-full border border-gray-300 rounded-lg p-2" />
+      <!-- Allow manual input of device code -->
+      <input id="deviceId" type="text" placeholder="รหัสอุปกรณ์ (สแกนหรือกรอกเองได้)"
+             class="w-full border border-gray-300 rounded-lg p-2" />
       <input id="deviceName" type="text" placeholder="ชื่ออุปกรณ์" readonly
-        class="w-full border border-gray-300 rounded-lg p-2" />
+             class="w-full border border-gray-300 rounded-lg p-2" />
       <input id="title" type="text" placeholder="หัวข้อปัญหา"
-        class="w-full border border-gray-300 rounded-lg p-2" />
+             class="w-full border border-gray-300 rounded-lg p-2" />
       <textarea id="details" placeholder="รายละเอียดเพิ่มเติม"
-        class="w-full border border-gray-300 rounded-lg p-2"></textarea>
+                class="w-full border border-gray-300 rounded-lg p-2"></textarea>
       <input id="imageInput" type="file" accept="image/*" class="w-full" />
-       <img id="previewImage" src="#" alt="Preview" class="w-48 rounded-lg hidden" />
+      <img id="previewImage" src="#" alt="Preview" class="w-48 rounded-lg hidden" />
     </div>
 
     <button id="openConfirmBtn"
-      class="w-full my-6 flex items-center justify-center gap-2 bg-green-800 hover:bg-green-600 text-white py-3 px-4 rounded-full">
+            class="w-full my-6 flex items-center justify-center gap-2 bg-primary hover:bg-primary text-white py-3 px-4 rounded-full">
       ส่งแจ้งซ่อม
     </button>
-    <p id="statusText" class="mt-4 text-blue-600 text-center font-medium"></p>
+    <p id="statusText" class="mt-4 text-primary text-center font-medium"></p>
 
     <!-- Confirmation Modal -->
     <div id="confirmModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
@@ -59,10 +65,9 @@
         <h3 class="text-lg font-semibold mb-4">ยืนยันการแจ้งซ่อม</h3>
         <p class="mb-6">ต้องการส่งแจ้งซ่อมอุปกรณ์ใช่หรือไม่?</p>
         <div class="flex justify-end gap-4">
-          <button id="cancelBtn"
-            class="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300">ยกเลิก</button>
+          <button id="cancelBtn" class="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300">ยกเลิก</button>
           <button id="confirmBtn"
-            class="px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center gap-2">
+                  class="px-4 py-2 rounded-lg bg-primary hover:bg-blue-600 text-white flex items-center justify-center gap-2">
             ยืนยัน
           </button>
         </div>
@@ -72,10 +77,13 @@
 
   <script>
     // LIFF init
-    const LIFF_ID = "2007392451-Qj8VqWdw";
-    let userIdLine = "", reporterName = "";
+   let userIdLine = "", reporterName = "";
+   const LIFF_ID_REPORT = "2007392451-Qj8VqWdw";
+    // URLs
+    const GAS_URL      = 'https://script.google.com/macros/s/AKfycbz7Fk6eljD73EVSG9fjWqd1-Fd_W66qBoSvjEo5AkaL2-kOrohZSZSy-KxFjIEWhUI/exec';
+    const LIFF_WEB_URL = 'https://liff.line.me/xxxxxxxxx';
 
-    // ฟังก์ชัน Custom Alert
+    // Custom Alert
     function showCustomAlert(msg) {
       const alertBox = document.getElementById('customAlert');
       alertBox.textContent = msg;
@@ -83,8 +91,9 @@
       setTimeout(() => alertBox.classList.add('hidden'), 3000);
     }
 
+    // เมื่อโหลดหน้า
     window.onload = async () => {
-      await liff.init({ liffId: LIFF_ID });
+      await liff.init({ liffId: LIFF_ID_REPORT });
       if (!liff.isInClient() && !liff.isLoggedIn()) {
         liff.login();
         return;
@@ -92,29 +101,106 @@
       const profile = await liff.getProfile();
       userIdLine = profile.userId;
 
-      // ค้นหาชื่อผู้แจ้งจาก employees
+      // ดึงชื่อผู้แจ้ง
       const empSnap = await db.ref("employees")
         .orderByChild("userIdLine").equalTo(userIdLine).get();
       if (empSnap.exists()) {
         reporterName = Object.values(empSnap.val())[0].fullName;
       } else {
         showCustomAlert('ไม่พบข้อมูลพนักงาน กรุณาลงทะเบียนก่อน');
-        setTimeout(() => {
-          if (liff.isInClient()) liff.closeWindow();
-        }, 2000);
-        return;
+        setTimeout(() => liff.isInClient() && liff.closeWindow(), 2000);
       }
       document.getElementById("reporterName").textContent = reporterName;
+
+      // กรอก/เปลี่ยนรหัสอุปกรณ์ จะดึงชื่อมาแสดง
+      document.getElementById('deviceId').addEventListener('blur', async () => {
+        const code = document.getElementById('deviceId').value.trim();
+        if (!code) return;
+        const snap = await db.ref(`devices/${code}`).get();
+        if (snap.exists()) {
+          document.getElementById('deviceName').value = snap.val().deviceName || '';
+        } else {
+          document.getElementById('deviceName').value = '';
+          showCustomAlert('ไม่พบอุปกรณ์นี้');
+        }
+      });
     };
 
-    // QR scan
+    // ดึง admin IDs
+    async function getAdminIds() {
+      const snap = await db.ref('employees')
+        .orderByChild('role').equalTo('admin').get();
+      const ids = [];
+      snap.forEach(ch => {
+        const u = ch.val().userIdLine;
+        if (u) ids.push(u);
+      });
+      return ids;
+    }
+
+    // สร้าง Flex Message สำหรับผู้แจ้ง พร้อมวันที่
+    function buildUserRepairFlex(user, dateStr, dev, devName, title, details) {
+      return {
+        type: "bubble",
+        header: {
+          type: "box", layout: "vertical", backgroundColor: "#174d27", paddingAll: "md",
+          contents: [{
+            type: "text",
+            text: "แจ้งซ่อมอุปกรณ์",
+            weight: "bold",
+            size: "md",
+            color: "#FFFFFF",
+            align: "center"
+          }]
+        },
+        body: {
+          type: "box", layout: "vertical", spacing: "sm", paddingAll: "lg",
+          contents: [
+            { type: "text", text: `ผู้แจ้ง: ${user}`, size: "sm", wrap: true },
+            { type: "text", text: `วันที่: ${dateStr}`, size: "sm", wrap: true },
+            { type: "text", text: `รหัส: ${dev}`, size: "sm", wrap: true },
+            { type: "text", text: `ชื่อ: ${devName}`, size: "sm", wrap: true },
+            { type: "text", text: `หัวข้อ: ${title}`, size: "sm", wrap: true },
+            { type: "text", text: `รายละเอียด: ${details}`, size: "sm", wrap: true }
+          ]
+        }
+      };
+    }
+
+    // แจ้งเตือน admin ผ่าน GAS
+    async function notifyAdminsRepair(dev, title, details) {
+      const admins = await getAdminIds();
+      if (!admins.length) return;
+      const payload = {
+        action: 'repair',
+        user: reporterName,
+        items: [{
+          code: dev,
+          name: document.getElementById('deviceName').value || '',
+          title,
+          details
+        }],
+        toList: admins,
+        liffUrl: LIFF_WEB_URL
+      };
+      try {
+        await fetch(GAS_URL, {
+          method: 'POST',
+          mode:   'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      } catch (e) {
+        console.error('Error notifying admins:', e);
+      }
+    }
+
+    // สแกน QR
     const canvas = document.createElement('canvas'), ctx = canvas.getContext('2d');
     document.getElementById('scanBtn').addEventListener('click', startScan);
     async function startScan() {
       const video = document.getElementById('video');
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' }
-      });
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
       video.srcObject = stream; video.play(); video.classList.remove('hidden');
       requestAnimationFrame(() => scanLoop(video));
     }
@@ -122,19 +208,14 @@
       if (video.readyState === video.HAVE_ENOUGH_DATA) {
         canvas.width = video.videoWidth; canvas.height = video.videoHeight;
         ctx.drawImage(video, 0, 0);
-        const code = jsQR(
-          ctx.getImageData(0, 0, canvas.width, canvas.height).data,
-          canvas.width, canvas.height
-        );
+        const code = jsQR(ctx.getImageData(0,0,canvas.width,canvas.height).data, canvas.width, canvas.height);
         if (code) {
           const id = code.data.trim();
           db.ref(`devices/${id}`).get().then(snap => {
-            if (!snap.exists()) {
-              showCustomAlert('ไม่พบอุปกรณ์นี้');
-            } else {
+            if (!snap.exists()) showCustomAlert('ไม่พบอุปกรณ์นี้');
+            else {
               document.getElementById('deviceId').value = id;
-              document.getElementById('deviceName').value =
-                snap.val().deviceName || 'ไม่ทราบชื่อ';
+              document.getElementById('deviceName').value = snap.val().deviceName || '';
             }
           });
           video.srcObject.getTracks().forEach(t => t.stop());
@@ -145,92 +226,96 @@
     }
 
     // Preview image
-    document.getElementById('imageInput')
-      .addEventListener('change', e => {
-        const file = e.target.files[0];
-        if (file) {
-          const reader = new FileReader();
-          reader.onload = ev => {
-            const img = document.getElementById('previewImage');
-            img.src = ev.target.result; img.classList.remove('hidden');
-          };
-          reader.readAsDataURL(file);
+    document.getElementById('imageInput').addEventListener('change', e => {
+      const file = e.target.files[0];
+      let imageUrl = '';
+      if (file) {
+        try {
+          const snap = await storage.ref(`repair_images/${id}`).put(file);
+          imageUrl = await snap.ref.getDownloadURL();
+        } catch (err) {
+          console.error('Upload error:', err);
+          showCustomAlert('❌ ไม่สามารถอัปโหลดรูปภาพ กรุณาลองใหม่');
+          // อาจเลือก return เพื่อไม่เขียนข้อมูลลง DB ต่อ
+          return;
         }
-      });
+      }
 
     // Modal control
     const modal = document.getElementById('confirmModal');
     document.getElementById('openConfirmBtn').addEventListener('click', () => {
       const dev = document.getElementById('deviceId').value.trim();
-      const ti = document.getElementById('title').value.trim();
-      const dt = document.getElementById('details').value.trim();
-      if (!dev || !ti || !dt) {
-        showCustomAlert('กรุณากรอกข้อมูลให้ครบ');
-        return;
-      }
+      const ti  = document.getElementById('title').value.trim();
+      const dt  = document.getElementById('details').value.trim();
+      if (!dev || !ti || !dt) return showCustomAlert('กรุณากรอกข้อมูลให้ครบ');
       modal.classList.remove('hidden');
     });
-    document.getElementById('cancelBtn')
-      .addEventListener('click', () => modal.classList.add('hidden'));
+    document.getElementById('cancelBtn').addEventListener('click', () => modal.classList.add('hidden'));
 
-    // ตอนนี้ปรับให้ confirmBtn แสดง loading state ในตัวปุ่มเลย
-    document.getElementById('confirmBtn')
-      .addEventListener('click', async function () {
-        const btn = this;
-        const originalHTML = btn.innerHTML;
-        btn.disabled = true;
-        // ใส่ spinner + ข้อความ
-        btn.innerHTML = `
-          <svg class="animate-spin h-5 w-5 inline-block" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor"
-              d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-          </svg>
-          กำลังบันทึก...
-        `;
-        await submitRepair();
-        // เปลี่ยนเป็น ✅ บันทึกสำเร็จ
-        btn.innerHTML = '✅ บันทึกสำเร็จ';
-        // รอให้ผู้ใช้เห็นข้อความสักครู่
-        setTimeout(() => {
-          if (liff.isInClient()) liff.closeWindow();
-        }, 1000);
-      });
+    // Confirm & submit
+    document.getElementById('confirmBtn').addEventListener('click', async function() {
+      const btn = this;
+      btn.disabled = true;
+      btn.innerHTML = `
+        <svg class="animate-spin h-5 w-5 inline-block" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor"
+            d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+        </svg> กำลังบันทึก...
+      `;
+      await submitRepair();
+      btn.innerHTML = '✅ บันทึกสำเร็จ';
+      setTimeout(() => liff.isInClient() && liff.closeWindow(), 1000);
+    });
 
-    // ฟังก์ชันบันทึกลง Firebase + ส่ง LINE
+    // บันทึกลง Firebase + ส่งแจ้งเตือน
     async function submitRepair() {
-      const id = db.ref().child('repairReports').push().key;
-      const now = new Date().toISOString();
-      const dev = document.getElementById('deviceId').value.trim();
+      const id      = db.ref().child('repairReports').push().key;
+      const now     = new Date();
+      const dateStr = now.toLocaleString('th-TH', {
+        day: 'numeric', month: 'long', year: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+      });
+      const dev     = document.getElementById('deviceId').value.trim();
       const devName = document.getElementById('deviceName').value.trim();
-      const ti = document.getElementById('title').value.trim();
-      const dt = document.getElementById('details').value.trim();
-      const file = document.getElementById('imageInput').files[0];
+      const ti      = document.getElementById('title').value.trim();
+      const dt      = document.getElementById('details').value.trim();
+      const file    = document.getElementById('imageInput').files[0];
+      let imageUrl  = '';
 
-      let imageUrl = '';
       if (file) {
         const snap = await storage.ref(`repair_images/${id}`).put(file);
         imageUrl = await snap.ref.getDownloadURL();
       }
 
       await db.ref(`repairReports/${id}`).set({
-        id, date: now,
-        timestamp: firebase.database.ServerValue.TIMESTAMP,
+        id, date: now.toISOString(), timestamp: firebase.database.ServerValue.TIMESTAMP,
         reporterName, userIdLine,
         deviceId: dev, deviceName: devName,
         title: ti, details: dt,
         status: 'รอซ่อม', imageUrl
       });
+
       await db.ref(`devices/${dev}`).update({
         status: 'ส่งซ่อม',
         lastUser: reporterName,
         lastUserId: userIdLine
       });
 
-      const msg = `แจ้งรายการซ่อม\nรหัส อุปกรณ์: ${dev}\nหัวข้อ: ${ti}\nรายละเอียด: ${dt}`;
-      await liff.sendMessages([{ type: 'text', text: msg }]);
+      // ส่ง Flex Message ให้ผู้แจ้ง พร้อมวันที่
+      const flexContent = buildUserRepairFlex(reporterName, dateStr, dev, devName, ti, dt);
+      await liff.sendMessages([{
+        type: 'flex',
+        altText: '⚙️ แจ้งซ่อมอุปกรณ์',
+        contents: flexContent
+      }]);
+
+      // แจ้งเตือน Admin
+      await notifyAdminsRepair(dev, ti, dt);
     }
   </script>
 </body>
 
 </html>
+   
+    
