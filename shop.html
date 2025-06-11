@@ -24,16 +24,16 @@
       theme: {
         extend: {
           colors: {
-            primary: { // Custom primary color
-              light: '#60A5FA', // Blue-300
-              DEFAULT: '#3B82F6', // Blue-500
-              dark: '#2563EB',  // Blue-700
+            // Define your new primary color based on #174D27
+            primary: {
+              light: '#3F884B', // A lighter shade for focus rings, subtle accents
+              DEFAULT: '#174D27', // The main primary color as requested
+              dark: '#0E3B1C', // A darker shade for hover states or strong accents
             },
-            secondary: { // A secondary color for accents if needed
-              light: '#A78BFA', // Purple-300
-              DEFAULT: '#8B5CF6', // Purple-500
-              dark: '#7C3AED',  // Purple-700
-            }
+            // You can optionally define secondary or other action colors here if you want full control
+            // Example for action colors if you wanted to define them explicitly:
+            // action_issue: '#EF4444', // Red-500 for issue (keeping standard Tailwind red for clarity)
+            // action_receive: '#22C55E', // Green-500 for receive (keeping standard Tailwind green for clarity)
           },
           fontFamily: {
             sans: ['Sukhumvit Set', 'Kanit', 'sans-serif'], // Add Thai fonts
@@ -91,13 +91,13 @@
     /* Specific styles for active tab border */
     .tab-button.active {
       border-color: var(--tw-colors-primary-DEFAULT);
-      /* Use the primary color defined in Tailwind config */
+      /* Use the new primary color defined in Tailwind config */
       color: var(--tw-colors-primary-DEFAULT);
     }
   </style>
 </head>
 
-<body class="bg-gray-100 flex items-center justify-center p-4">
+<body class="bg-gray-50 flex items-center justify-center p-4"> <!-- Changed bg-gray-100 to bg-gray-50 for a brighter feel -->
 
   <!-- Custom Alert Notification -->
   <div id="customAlert"
@@ -108,23 +108,23 @@
     <span id="alertMessage"></span>
   </div>
 
-  <div class="w-full max-w-md mx-auto overflow-hidden">
+  <div class="w-full max-w-md mx-auto overflow-hidden bg-white rounded-lg shadow-lg"> <!-- Added bg-white, rounded-lg, shadow-lg for the main card -->
     <!-- Tabs -->
     <div class="flex border-b border-gray-200 bg-gray-50">
       <button id="tabIssueBtn"
-        class="tab-button flex-1 py-3 text-center border-b-2 border-primary active font-semibold text-primary transition-colors duration-200">เบิก</button>
+        class="tab-button flex-1 py-3 text-center border-b-2 border-primary-DEFAULT active font-semibold text-primary-DEFAULT transition-colors duration-200">เบิก</button> <!-- Uses primary-DEFAULT -->
       <button id="tabReceiveBtn"
-        class="tab-button flex-1 py-3 text-center border-b-2 border-transparent text-gray-600 hover:text-primary hover:border-primary transition-colors duration-200">รับเข้า</button>
+        class="tab-button flex-1 py-3 text-center border-b-2 border-transparent text-gray-600 hover:text-primary-DEFAULT hover:border-primary-DEFAULT transition-colors duration-200">รับเข้า</button> <!-- Uses primary-DEFAULT -->
       <button id="tabHistoryBtn"
-        class="tab-button flex-1 py-3 text-center border-b-2 border-transparent text-gray-600 hover:text-primary hover:border-primary transition-colors duration-200">ประวัติ</button>
+        class="tab-button flex-1 py-3 text-center border-b-2 border-transparent text-gray-600 hover:text-primary-DEFAULT hover:border-primary-DEFAULT transition-colors duration-200">ประวัติ</button> <!-- Uses primary-DEFAULT -->
     </div>
 
-    <div class="py-6">
+    <div class="p-6"> <!-- Adjusted padding from py-6 to p-6 for consistency -->
       <!-- เบิก (หลายรายการ) -->
       <div id="tabIssue">
         <div class="text-center mb-6">
           <h2 class="text-2xl font-extrabold text-gray-800">เบิกสินค้าหลายรายการ</h2>
-          <p class="text-gray-600 mt-2">ผู้เบิก: <span id="actorIssue" class="font-semibold text-primary">–</span></p>
+          <p class="text-gray-600 mt-2">ผู้เบิก: <span id="actorIssue" class="font-semibold text-primary-DEFAULT">–</span></p> <!-- Uses primary-DEFAULT -->
         </div>
 
         <button id="scanIssueBtn"
@@ -149,14 +149,14 @@
         <!-- Manual input for Issue tab -->
         <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-2 mb-2 items-center">
           <input list="inventoryList" id="manualCodeIssue" placeholder="รหัสหรือชื่อสินค้า"
-            class="flex-1 w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-primary-light focus:border-primary-light transition-all duration-200" />
+            class="flex-1 w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-primary-light focus:border-primary-light transition-all duration-200" /> <!-- Uses primary-light -->
           <div class="flex items-center space-x-2 w-full sm:w-auto">
             <input type="number" id="manualQtyIssue" min="1" value="1"
-              class="w-24 border border-gray-300 rounded-lg p-3 text-center focus:ring-2 focus:ring-primary-light focus:border-primary-light transition-all duration-200" />
+              class="w-24 border border-gray-300 rounded-lg p-3 text-center focus:ring-2 focus:ring-primary-light focus:border-primary-light transition-all duration-200" /> <!-- Uses primary-light -->
             <span id="issueCurrentStockDisplay" class="text-sm text-gray-600 whitespace-nowrap"></span>
           </div>
           <button id="addIssueBtn"
-            class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg shadow-md transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75 w-full sm:w-auto">
+            class="bg-primary-DEFAULT hover:bg-primary-dark text-white px-6 py-3 rounded-lg shadow-md transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary-light focus:ring-opacity-75 w-full sm:w-auto"> <!-- Uses primary-DEFAULT, primary-dark, primary-light -->
             เพิ่ม
           </button>
         </div>
@@ -174,8 +174,8 @@
       <div id="tabReceive" class="hidden">
         <div class="text-center mb-6">
           <h2 class="text-2xl font-extrabold text-gray-800">รับเข้าสินค้าหลายรายการ</h2>
-          <p class="text-gray-600 mt-2">ผู้รับเข้า: <span id="actorReceive" class="font-semibold text-primary">–</span>
-          </p>
+          <p class="text-gray-600 mt-2">ผู้รับเข้า: <span id="actorReceive" class="font-semibold text-primary-DEFAULT">–</span>
+          </p> <!-- Uses primary-DEFAULT -->
         </div>
 
         <button id="scanReceiveBtn"
@@ -200,14 +200,14 @@
         <!-- Manual input for Receive tab -->
         <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-2 mb-6 items-center">
           <input list="inventoryList2" id="manualCodeReceive" placeholder="รหัสหรือชื่อสินค้า"
-            class="flex-1 w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-primary-light focus:border-primary-light transition-all duration-200" />
+            class="flex-1 w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-primary-light focus:border-primary-light transition-all duration-200" /> <!-- Uses primary-light -->
           <div class="flex items-center space-x-2 w-full sm:w-auto">
             <input type="number" id="manualQtyReceive" min="1" value="1"
-              class="w-24 border border-gray-300 rounded-lg p-3 text-center focus:ring-2 focus:ring-primary-light focus:border-primary-light transition-all duration-200" />
+              class="w-24 border border-gray-300 rounded-lg p-3 text-center focus:ring-2 focus:ring-primary-light focus:border-primary-light transition-all duration-200" /> <!-- Uses primary-light -->
             <span id="receiveCurrentStockDisplay" class="text-sm text-gray-600 whitespace-nowrap"></span>
           </div>
           <button id="addReceiveBtn"
-            class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg shadow-md transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75 w-full sm:w-auto">
+            class="bg-primary-DEFAULT hover:bg-primary-dark text-white px-6 py-3 rounded-lg shadow-md transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary-light focus:ring-opacity-75 w-full sm:w-auto"> <!-- Uses primary-DEFAULT, primary-dark, primary-light -->
             เพิ่ม
           </button>
         </div>
@@ -268,7 +268,7 @@
     // Configuration constants
     const LIFF_ID = '2007392451-2Kx53NPb'; // Replace with your LIFF ID
     const GAS_URL = 'https://script.google.com/macros/s/AKfycbxetqC2xndc0vB_-FqFOEqGQUgn8Q9TkOw8bMOR7sewqEPlEw55jUHa1t2CtB5igg/exec'; // Replace with your Google Apps Script URL
-   // const LIFF_WEB_URL = 'https://liff.line.me/XX-XX'; // URL ของ LIFF Web App ของคุณเอง (สำหรับปุ่มใน Flex Message)
+    // const LIFF_WEB_URL = 'https://liff.line.me/XX-XX'; // URL ของ LIFF Web App ของคุณเอง (สำหรับปุ่มใน Flex Message)
 
     // Firebase references (assuming db is initialized in firebase-config.js)
     const stockRef = db.ref('stock');
@@ -685,7 +685,7 @@
             // date will be generated by GAS for consistency with its timezone
             items: simplifiedItems,
             toList, // Send admin IDs to GAS for push messaging
-            liffUrl: LIFF_WEB_URL // Pass LIFF URL to GAS for the button
+            // liffUrl: LIFF_WEB_URL // Pass LIFF URL to GAS for the button (uncomment if LIFF_WEB_URL is defined)
           })
         });
         console.log('Admin notification sent via GAS.');
@@ -712,12 +712,12 @@
       const dateStr = `${datePart} ${timePart}`;
 
       const isIssue = action === 'issue';
-      const headerBgColor = isIssue ? "#FDECEA" : "#E8F5E9";
-      const headerTextColor = isIssue ? "#D32F2F" : "#388E3C";
+      const headerBgColor = isIssue ? "#FDECEA" : "#E8F5E9"; // Light Red/Green for header background
+      const headerTextColor = isIssue ? "#D32F2F" : "#388E3C"; // Dark Red/Green for header text
       const actionText = isIssue ? "แจ้งเบิกสินค้า" : "แจ้งรับเข้าสินค้า";
       const actorLabel = isIssue ? "ผู้เบิก:" : "ผู้รับเข้า:";
       const itemSectionTitle = isIssue ? "รายการสินค้าที่เบิก:" : "รายการสินค้าที่รับเข้า:";
-      const buttonColor = isIssue ? "#D32F2F" : "#388E3C";
+      // const buttonColor = isIssue ? "#D32F2F" : "#388E3C"; // Original button colors (can be customized)
 
       // Create content for each item in the list
       const itemContents = items.map(item => {
@@ -965,22 +965,22 @@
      */
     function activateTab(tabName) {
       tabButtons.forEach(btn => {
-        btn.classList.remove('active', 'border-primary', 'text-primary', 'font-semibold');
+        btn.classList.remove('active', 'border-primary-DEFAULT', 'text-primary-DEFAULT', 'font-semibold'); // Updated primary color class
         btn.classList.add('border-transparent', 'text-gray-600');
       });
       tabContents.forEach(content => content.classList.add('hidden'));
 
       if (tabName === 'issue') {
         document.getElementById('tabIssue').classList.remove('hidden');
-        document.getElementById('tabIssueBtn').classList.add('active', 'border-primary', 'text-primary', 'font-semibold');
+        document.getElementById('tabIssueBtn').classList.add('active', 'border-primary-DEFAULT', 'text-primary-DEFAULT', 'font-semibold'); // Updated primary color class
         document.getElementById('tabIssueBtn').classList.remove('border-transparent', 'text-gray-600');
       } else if (tabName === 'receive') {
         document.getElementById('tabReceive').classList.remove('hidden');
-        document.getElementById('tabReceiveBtn').classList.add('active', 'border-primary', 'text-primary', 'font-semibold');
+        document.getElementById('tabReceiveBtn').classList.add('active', 'border-primary-DEFAULT', 'text-primary-DEFAULT', 'font-semibold'); // Updated primary color class
         document.getElementById('tabReceiveBtn').classList.remove('border-transparent', 'text-gray-600');
       } else if (tabName === 'history') {
         document.getElementById('tabHistory').classList.remove('hidden');
-        document.getElementById('tabHistoryBtn').classList.add('active', 'border-primary', 'text-primary', 'font-semibold');
+        document.getElementById('tabHistoryBtn').classList.add('active', 'border-primary-DEFAULT', 'text-primary-DEFAULT', 'font-semibold'); // Updated primary color class
         document.getElementById('tabHistoryBtn').classList.remove('border-transparent', 'text-gray-600');
         loadHistory(); // Load history when history tab is activated
       }
