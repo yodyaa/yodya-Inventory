@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
   <meta charset="UTF-8">
   <title>Dashboard</title>
@@ -13,7 +14,10 @@
   <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
   <!-- PapaParse for CSV import -->
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-  <!-- firebase-config.js -->
+  <!-- your firebase-config.js must initialize firebase, then:
+       const db = firebase.database();
+       const storage = firebase.storage();
+  -->
   <script src="firebase-config.js"></script>
   <script>
     tailwind.config = {
@@ -35,17 +39,17 @@
     <aside class="w-64 bg-primary p-6">
       <h1 class="text-white text-md font-bold mb-6">จัดการการยืมคืน & แจ้งซ่อม</h1>
       <nav class="space-y-4">
-      <a href="./Dashboard.html"      class="block bg-secondary text-primary py-2 px-4 rounded">หน้าหลัก</a>
-      <a href="./Report-show.html"    class="block bg-secondary text-primary py-2 px-4 rounded">แจ้งซ่อม</a>
-      <a href="./Team.html"           class="block bg-secondary text-primary py-2 px-4 rounded">จัดการทีม</a>
-      <div class="p-2 border  flex flex-col space-y-2 ">
-      <a href="./products.html"       class="block bg-secondary text-primary py-2 px-4 rounded">วัสดุ</a>
-      <a href="./transactions.html"   class="block bg-secondary text-primary py-2 px-4 rounded">รับเข้า/เบิก</a>
-      </div>
-      <a href="./Devices.html"        class="block bg-primary border border-secondary text-secondary py-2 px-4 rounded">อุปกรณ์</a>
-      <a href="./User.html"           class="block bg-secondary text-primary py-2 px-4 rounded">สมาชิก</a>
-      <a href="./Setting.html"        class="block bg-secondary text-primary py-2 px-4 rounded">ตั้งค่าการแจ้งเตือน</a>
-    </nav>
+        <a href="./Dashboard.html"      class="block bg-secondary text-primary py-2 px-4 rounded">หน้าหลัก</a>
+        <a href="./Report-show.html"    class="block bg-secondary text-primary py-2 px-4 rounded">แจ้งซ่อม</a>
+        <a href="./Team.html"           class="block bg-secondary text-primary py-2 px-4 rounded">จัดการทีม</a>
+        <div class="p-2 border  flex flex-col space-y-2 ">
+          <a href="./products.html"       class="block bg-secondary text-primary py-2 px-4 rounded">วัสดุ</a>
+          <a href="./transactions.html"   class="block bg-secondary text-primary py-2 px-4 rounded">รับเข้า/เบิก</a>
+        </div>
+        <a href="./Devices.html"        class="block bg-primary border border-secondary text-secondary py-2 px-4 rounded">อุปกรณ์</a>
+        <a href="./User.html"           class="block bg-secondary text-primary py-2 px-4 rounded">สมาชิก</a>
+        <a href="./Setting.html"        class="block bg-secondary text-primary py-2 px-4 rounded">ตั้งค่าการแจ้งเตือน</a>
+      </nav>
     </aside>
 
     <!-- Main -->
@@ -183,14 +187,16 @@
   </div>
 
   <script>
-    // State
-    let devicesData = [], currentPage = 1, rowsPerPage = 15;
+    // จุดตั้งค่าสำหรับแจ้งเตือน
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbz7Fk6eljD73EVSG9fjWqd1-Fd_W66qBoSvjEo5AkaL2-kOrohZSZSy-KxFjIEWhUI/exec';
+    const LIFF_WEB_URL = 'https://liff.line.me/xxxxxxxxx';
 
-    // Elements
-    const summaryBoxes    = document.getElementById('summaryBoxes');
-    const deviceListEl    = document.getElementById('deviceList');
-    const paginationEl    = document.getElementById('pagination');
-    const rowsPerPageSel  = document.getElementById('rowsPerPage');
+    // State & DOM
+    let devicesData = [], currentPage = 1, rowsPerPage = 15;
+    const summaryBoxes   = document.getElementById('summaryBoxes');
+    const deviceListEl   = document.getElementById('deviceList');
+    const paginationEl   = document.getElementById('pagination');
+    const rowsPerPageSel = document.getElementById('rowsPerPage');
     const filters = {
       id:       document.getElementById('filterId'),
       name:     document.getElementById('filterName'),
@@ -198,7 +204,27 @@
       status:   document.getElementById('filterStatus'),
     };
 
-    // Helpers
+    // ฟังก์ชันแจ้งเตือนซ่อมสำเร็จ
+    async function notifyRepairComplete(deviceId, deviceName) {
+      const payload = {
+        action: 'repairComplete',
+        user: 'ระบบซ่อม',
+        items: [{ code: deviceId, name: deviceName, title: 'ซ่อมเรียบร้อย', details: '' }],
+        liffUrl: LIFF_WEB_URL
+      };
+      try {
+        await fetch(GAS_URL, {
+          method: 'POST',
+          mode:   'no-cors',
+          headers:{ 'Content-Type': 'application/json' },
+          body:   JSON.stringify(payload)
+        });
+      } catch (e) {
+        console.error('Notify failed:', e);
+      }
+    }
+
+    // Helper: เปลี่ยนคลาสสีตามสถานะ
     function statusClass(s) {
       if (s==='พร้อมใช้งาน') return 'bg-green-200 text-green-800';
       if (s==='กำลังใช้งาน') return 'bg-blue-200 text-blue-800';
@@ -208,41 +234,41 @@
       return 'bg-gray-200 text-gray-800';
     }
 
+    // กรองข้อมูลตามฟิลเตอร์
     function applyFilters(data) {
       return data.filter(d => {
-        if (filters.id.value && !d.deviceId.includes(filters.id.value)) return false;
-        if (filters.name.value && !d.deviceName.includes(filters.name.value)) return false;
-        if (filters.category.value && d.category !== filters.category.value) return false;
-        if (filters.status.value && d.status   !== filters.status.value)   return false;
+        if (filters.id.value       && !d.deviceId.includes(filters.id.value))       return false;
+        if (filters.name.value     && !d.deviceName.includes(filters.name.value))   return false;
+        if (filters.category.value && d.category   !== filters.category.value)       return false;
+        if (filters.status.value   && d.status     !== filters.status.value)         return false;
         return true;
       });
     }
 
+    // อัปเดตกล่องสรุปยอดตามสถานะ
     function updateSummary() {
       const counts = { ready:0, inUse:0, waiting:0, repair:0, lost:0 };
       devicesData.forEach(d=>{
-        switch(d.status){
-          case 'พร้อมใช้งาน': counts.ready++; break;
-          case 'กำลังใช้งาน': counts.inUse++; break;
-          case 'รอซ่อม':      counts.waiting++; break;
-          case 'ส่งซ่อม':    counts.repair++; break;
-          case 'เสียหาย':    counts.lost++; break;
-        }
+        if (d.status==='พร้อมใช้งาน') counts.ready++;
+        if (d.status==='กำลังใช้งาน') counts.inUse++;
+        if (d.status==='รอซ่อม')      counts.waiting++;
+        if (d.status==='ส่งซ่อม')    counts.repair++;
+        if (d.status==='เสียหาย')    counts.lost++;
       });
       summaryBoxes.innerHTML = `
-        <div class="summary-box cursor-pointer bg-white border rounded p-4 text-center" data-status="">
+        <div class="summary-box bg-white border rounded p-4 text-center" data-status="">
           <div class="text-2xl font-bold">${counts.ready}</div><div class="text-sm">พร้อมใช้งาน</div>
         </div>
-        <div class="summary-box cursor-pointer bg-white border rounded p-4 text-center" data-status="กำลังใช้งาน">
+        <div class="summary-box bg-white border rounded p-4 text-center" data-status="กำลังใช้งาน">
           <div class="text-2xl font-bold">${counts.inUse}</div><div class="text-sm">กำลังใช้งาน</div>
         </div>
-        <div class="summary-box cursor-pointer bg-white border rounded p-4 text-center" data-status="รอซ่อม">
+        <div class="summary-box bg-white border rounded p-4 text-center" data-status="รอซ่อม">
           <div class="text-2xl font-bold">${counts.waiting}</div><div class="text-sm">รอซ่อม</div>
         </div>
-        <div class="summary-box cursor-pointer bg-white border rounded p-4 text-center" data-status="ส่งซ่อม">
+        <div class="summary-box bg-white border rounded p-4 text-center" data-status="ส่งซ่อม">
           <div class="text-2xl font-bold">${counts.repair}</div><div class="text-sm">ส่งซ่อม</div>
         </div>
-        <div class="summary-box cursor-pointer bg-white border rounded p-4 text-center" data-status="เสียหาย">
+        <div class="summary-box bg-white border rounded p-4 text-center" data-status="เสียหาย">
           <div class="text-2xl font-bold">${counts.lost}</div><div class="text-sm">เสียหาย</div>
         </div>`;
       summaryBoxes.querySelectorAll('.summary-box').forEach(box=>{
@@ -254,12 +280,13 @@
       });
     }
 
+    // แสดงตาราง พร้อม QR code และ pagination
     function renderTable() {
       const filtered = applyFilters(devicesData);
-      const total    = Math.ceil(filtered.length / rowsPerPage) || 1;
-      if (currentPage > total) currentPage = 1;
-      const start = (currentPage-1)*rowsPerPage;
-      const pageData = filtered.slice(start, start+rowsPerPage);
+      const totalPages = Math.max(1, Math.ceil(filtered.length/rowsPerPage));
+      if (currentPage>totalPages) currentPage=1;
+      const startIdx = (currentPage-1)*rowsPerPage;
+      const pageData = filtered.slice(startIdx, startIdx+rowsPerPage);
 
       deviceListEl.innerHTML = '';
       pageData.forEach(d=>{
@@ -270,9 +297,11 @@
           <td class="py-3 px-4">${d.category||'-'}</td>
           <td class="py-3 px-4"><canvas id="qr-${d.deviceId}"></canvas></td>
           <td class="py-3 px-4"><span class="px-3 py-1 rounded-full ${statusClass(d.status)}">${d.status}</span></td>
-          <td class="py-3 px-4">${ d.imageUrl
-            ? `<img src="${d.imageUrl}" class="w-10 h-10 object-cover rounded cursor-pointer"/>`
-            : `<span class="text-gray-500 italic">ไม่มีรูป</span>` }</td>
+          <td class="py-3 px-4">${
+            d.imageUrl
+              ? `<img src="${d.imageUrl}" class="w-10 h-10 object-cover rounded cursor-pointer"/>`
+              : `<span class="text-gray-500 italic">ไม่มีรูป</span>`
+          }</td>
           <td class="py-3 px-4 space-x-2">
             <button onclick="openEditModal('${d.deviceId}')" class="px-3 py-1 bg-[#174D27] text-white rounded">แก้ไข</button>
             <button onclick="deleteDevice('${d.deviceId}')" class="px-3 py-1 bg-red-400 text-white rounded">ลบ</button>
@@ -282,7 +311,7 @@
       });
 
       paginationEl.innerHTML = '';
-      for (let i=1; i<=total; i++){
+      for (let i=1; i<=totalPages; i++){
         const btn = document.createElement('button');
         btn.textContent = i;
         btn.className = `px-3 py-1 rounded ${i===currentPage?'bg-[#174D27] text-white':'bg-gray-300'}`;
@@ -293,7 +322,7 @@
       updateSummary();
     }
 
-    // Firebase fetch + category filter populate
+    // โหลดข้อมูลจาก Firebase แล้ว render
     db.ref('devices').on('value', snap=>{
       devicesData = [];
       snap.forEach(ch=>{
@@ -301,30 +330,34 @@
         if (d.deviceId) devicesData.push(d);
         else Object.values(d).forEach(sub=>devicesData.push(sub));
       });
+      // เติมตัวเลือกหมวดหมู่
       const cats = Array.from(new Set(devicesData.map(d=>d.category).filter(c=>c)));
-      const catSel = filters.category;
-      catSel.innerHTML = `<option value="">ทั้งหมด</option>` +
+      filters.category.innerHTML =
+        `<option value="">ทั้งหมด</option>` +
         cats.map(c=>`<option value="${c}">${c}</option>`).join('');
       currentPage = 1;
       renderTable();
     });
 
-    // Event listeners
+    // Event listeners: pagination, filters
     rowsPerPageSel.onchange = e=>{
       rowsPerPage = +e.target.value;
       currentPage = 1;
       renderTable();
     };
-    ['id','name','category'].forEach(k=>{
-      filters[k].addEventListener(k==='category'?'change':'input', ()=>{
-        currentPage = 1; renderTable();
+    ['id','name'].forEach(k=>{
+      filters[k].addEventListener('input', ()=>{
+        currentPage=1; renderTable();
       });
     });
+    filters.category.addEventListener('change', ()=>{
+      currentPage=1; renderTable();
+    });
     filters.status.addEventListener('change', ()=>{
-      currentPage = 1; renderTable();
+      currentPage=1; renderTable();
     });
 
-    // Modal controls
+    // Modal controls: เพิ่ม / แก้ไข
     const openModalBtn   = document.getElementById('openModal');
     const deviceModal    = document.getElementById('deviceModal');
     const closeModalBtn  = document.getElementById('closeModal');
@@ -345,33 +378,43 @@
 
     deviceForm.onsubmit = async e=>{
       e.preventDefault();
-      const orig = saveBtn.innerHTML;
-      saveBtn.innerHTML = '<span class="animate-spin border-2 border-white border-t-transparent rounded-full w-4 h-4 inline-block mr-2"></span>กำลังบันทึก';
-      saveBtn.disabled = true;
-
-      const id       = document.getElementById('deviceId').value.trim();
+      const id = document.getElementById('deviceId').value.trim();
+      const prevStatus = devicesData.find(x=>x.deviceId===id)?.status||'';
       const name     = document.getElementById('deviceName').value.trim();
       const category = document.getElementById('category').value.trim();
       const status   = document.getElementById('status').value;
       const file     = document.getElementById('image').files[0];
       let updateData = { deviceName:name, category, status };
 
+      // เปลี่ยนปุ่มเป็น loading
+      const orig = saveBtn.innerHTML;
+      saveBtn.innerHTML = '<span class="animate-spin border-2 border-white border-t-transparent rounded-full w-4 h-4 inline-block mr-2"></span>กำลังบันทึก';
+      saveBtn.disabled = true;
+
+      // อัพโหลดรูปถ้ามี
       if (file) {
         const ref = storage.ref('device_images/'+id);
         await ref.put(file);
         updateData.imageUrl = await ref.getDownloadURL();
       }
 
+      // บันทึกลง Firebase
       if (editDeviceIdIn.value) {
         await db.ref('devices/'+id).update(updateData);
       } else {
         await db.ref('devices/'+id).set({
-          deviceId:id,
+          deviceId: id,
           ...updateData,
-          imageUrl:updateData.imageUrl||''
+          imageUrl: updateData.imageUrl||''
         });
       }
 
+      // ถ้ามาจาก "ส่งซ่อม" → "พร้อมใช้งาน" ให้แจ้งเตือนซ่อมเสร็จ
+      if (prevStatus==='ส่งซ่อม' && updateData.status==='พร้อมใช้งาน') {
+        await notifyRepairComplete(id, name);
+      }
+
+      // คืนค่า UI
       saveBtn.innerHTML = orig;
       saveBtn.disabled = false;
       deviceModal.classList.add('hidden');
@@ -389,6 +432,7 @@
       document.getElementById('status').value      = d.status;
       deviceModal.classList.remove('hidden');
     }
+
     function deleteDevice(id) {
       if (confirm('ต้องการลบอุปกรณ์ '+id+' หรือไม่?')) {
         db.ref('devices/'+id).remove();
@@ -399,7 +443,6 @@
     const imgModal      = document.getElementById('imgModal');
     const closeImgModal = document.getElementById('closeImgModal');
     closeImgModal.onclick = ()=> imgModal.classList.add('hidden');
-    window.onclick = e=>{ if(e.target===imgModal) imgModal.classList.add('hidden'); };
     document.body.addEventListener('click', e=>{
       if (e.target.tagName==='IMG' && e.target.closest('#deviceList')) {
         document.getElementById('imgModalContent').src = e.target.src;
@@ -426,23 +469,25 @@
     // Import CSV
     document.getElementById('csvInput').addEventListener('change', e=>{
       const file = e.target.files[0]; if (!file) return;
-      Papa.parse(file,{ header:true, skipEmptyLines:true, encoding:"UTF-8",
+      Papa.parse(file,{
+        header:true, skipEmptyLines:true, encoding:"UTF-8",
         complete: async results=>{
           const data = results.data;
           const updates = {};
           data.forEach(row=>{
-            const id=row.deviceId?.trim(); if(!id) return;
-            updates[id]={ deviceId:id,
-              deviceName:row.deviceName||'',
-              category:row.category||'',
-              status:row.status||'พร้อมใช้งาน',
-              imageUrl:row.imageUrl||''
+            const id = row.deviceId?.trim(); if(!id) return;
+            updates[id] = {
+              deviceId:   id,
+              deviceName: row.deviceName||'',
+              category:   row.category||'',
+              status:     row.status||'พร้อมใช้งาน',
+              imageUrl:   row.imageUrl||''
             };
           });
-          try{
+          try {
             await db.ref('devices').update(updates);
             alert('นำเข้า CSV สำเร็จ');
-          }catch{
+          } catch {
             alert('เกิดข้อผิดพลาดในการนำเข้า');
           }
         }
@@ -450,4 +495,5 @@
     });
   </script>
 </body>
+
 </html>
