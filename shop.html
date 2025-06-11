@@ -27,13 +27,19 @@
             // Define your new primary color based on #174D27
             primary: {
               light: '#3F884B', // A lighter shade for focus rings, subtle accents
-              DEFAULT: '#174D27', // The main primary color as requested
+              DEFAULT: '#174D27', // The main primary color as requested (also for 'เบิก' active tab)
               dark: '#0E3B1C', // A darker shade for hover states or strong accents
             },
-            // You can optionally define secondary or other action colors here if you want full control
-            // Example for action colors if you wanted to define them explicitly:
-            // action_issue: '#EF4444', // Red-500 for issue (keeping standard Tailwind red for clarity)
-            // action_receive: '#22C55E', // Green-500 for receive (keeping standard Tailwind green for clarity)
+            // Specific colors for active tabs
+            tabActive: {
+              receive: '#CADEC3', // Color for 'รับเข้า' active tab
+              history: '#000000', // Color for 'ประวัติ' active tab
+            },
+            // Standard alert colors (kept for consistency of alerts)
+            alert: {
+              success: '#10B981', // Green-500
+              error: '#EF4444',   // Red-500
+            }
           },
           fontFamily: {
             sans: ['Sukhumvit Set', 'Kanit', 'sans-serif'], // Add Thai fonts
@@ -44,7 +50,7 @@
   </script>
 
   <style>
-    /* Custom Alert Styles */
+    /* Custom Alert Styles - using new alert colors */
     #customAlert {
       transition: all 0.3s ease-in-out;
       transform: translateX(100%);
@@ -59,13 +65,11 @@
     }
 
     #customAlert.success {
-      background-color: #10B981;
-      /* Green-500 */
+      background-color: var(--tw-colors-alert-success);
     }
 
     #customAlert.error {
-      background-color: #EF4444;
-      /* Red-500 */
+      background-color: var(--tw-colors-alert-error);
     }
 
     /* Spinner animation for loading states */
@@ -87,17 +91,11 @@
         transform: rotate(360deg);
       }
     }
-
-    /* Specific styles for active tab border */
-    .tab-button.active {
-      border-color: var(--tw-colors-primary-DEFAULT);
-      /* Use the new primary color defined in Tailwind config */
-      color: var(--tw-colors-primary-DEFAULT);
-    }
+    /* Removed the generic .tab-button.active CSS rule as we'll handle active colors dynamically */
   </style>
 </head>
 
-<body class="bg-gray-50 flex items-center justify-center p-4"> <!-- Changed bg-gray-100 to bg-gray-50 for a brighter feel -->
+<body class="bg-gray-50 flex items-center justify-center p-4">
 
   <!-- Custom Alert Notification -->
   <div id="customAlert"
@@ -108,23 +106,23 @@
     <span id="alertMessage"></span>
   </div>
 
-  <div class="w-full max-w-md mx-auto overflow-hidden bg-white rounded-lg shadow-lg"> <!-- Added bg-white, rounded-lg, shadow-lg for the main card -->
+  <div class="w-full max-w-md mx-auto overflow-hidden bg-white rounded-lg shadow-lg">
     <!-- Tabs -->
     <div class="flex border-b border-gray-200 bg-gray-50">
       <button id="tabIssueBtn"
-        class="tab-button flex-1 py-3 text-center border-b-2 border-primary-DEFAULT active font-semibold text-primary-DEFAULT transition-colors duration-200">เบิก</button> <!-- Uses primary-DEFAULT -->
+        class="tab-button flex-1 py-3 text-center border-b-2 border-primary-DEFAULT active font-semibold text-primary-DEFAULT transition-colors duration-200">เบิก</button>
       <button id="tabReceiveBtn"
-        class="tab-button flex-1 py-3 text-center border-b-2 border-transparent text-gray-600 hover:text-primary-DEFAULT hover:border-primary-DEFAULT transition-colors duration-200">รับเข้า</button> <!-- Uses primary-DEFAULT -->
+        class="tab-button flex-1 py-3 text-center border-b-2 border-transparent text-gray-600 hover:text-primary-DEFAULT hover:border-primary-DEFAULT transition-colors duration-200">รับเข้า</button>
       <button id="tabHistoryBtn"
-        class="tab-button flex-1 py-3 text-center border-b-2 border-transparent text-gray-600 hover:text-primary-DEFAULT hover:border-primary-DEFAULT transition-colors duration-200">ประวัติ</button> <!-- Uses primary-DEFAULT -->
+        class="tab-button flex-1 py-3 text-center border-b-2 border-transparent text-gray-600 hover:text-primary-DEFAULT hover:border-primary-DEFAULT transition-colors duration-200">ประวัติ</button>
     </div>
 
-    <div class="p-6"> <!-- Adjusted padding from py-6 to p-6 for consistency -->
+    <div class="p-6">
       <!-- เบิก (หลายรายการ) -->
       <div id="tabIssue">
         <div class="text-center mb-6">
           <h2 class="text-2xl font-extrabold text-gray-800">เบิกสินค้าหลายรายการ</h2>
-          <p class="text-gray-600 mt-2">ผู้เบิก: <span id="actorIssue" class="font-semibold text-primary-DEFAULT">–</span></p> <!-- Uses primary-DEFAULT -->
+          <p class="text-gray-600 mt-2">ผู้เบิก: <span id="actorIssue" class="font-semibold text-primary-DEFAULT">–</span></p>
         </div>
 
         <button id="scanIssueBtn"
@@ -149,14 +147,14 @@
         <!-- Manual input for Issue tab -->
         <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-2 mb-2 items-center">
           <input list="inventoryList" id="manualCodeIssue" placeholder="รหัสหรือชื่อสินค้า"
-            class="flex-1 w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-primary-light focus:border-primary-light transition-all duration-200" /> <!-- Uses primary-light -->
+            class="flex-1 w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-primary-light focus:border-primary-light transition-all duration-200" />
           <div class="flex items-center space-x-2 w-full sm:w-auto">
             <input type="number" id="manualQtyIssue" min="1" value="1"
-              class="w-24 border border-gray-300 rounded-lg p-3 text-center focus:ring-2 focus:ring-primary-light focus:border-primary-light transition-all duration-200" /> <!-- Uses primary-light -->
+              class="w-24 border border-gray-300 rounded-lg p-3 text-center focus:ring-2 focus:ring-primary-light focus:border-primary-light transition-all duration-200" />
             <span id="issueCurrentStockDisplay" class="text-sm text-gray-600 whitespace-nowrap"></span>
           </div>
           <button id="addIssueBtn"
-            class="bg-primary-DEFAULT hover:bg-primary-dark text-white px-6 py-3 rounded-lg shadow-md transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary-light focus:ring-opacity-75 w-full sm:w-auto"> <!-- Uses primary-DEFAULT, primary-dark, primary-light -->
+            class="bg-primary-DEFAULT hover:bg-primary-dark text-white px-6 py-3 rounded-lg shadow-md transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary-light focus:ring-opacity-75 w-full sm:w-auto">
             เพิ่ม
           </button>
         </div>
@@ -175,7 +173,7 @@
         <div class="text-center mb-6">
           <h2 class="text-2xl font-extrabold text-gray-800">รับเข้าสินค้าหลายรายการ</h2>
           <p class="text-gray-600 mt-2">ผู้รับเข้า: <span id="actorReceive" class="font-semibold text-primary-DEFAULT">–</span>
-          </p> <!-- Uses primary-DEFAULT -->
+          </p>
         </div>
 
         <button id="scanReceiveBtn"
@@ -200,14 +198,14 @@
         <!-- Manual input for Receive tab -->
         <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-2 mb-6 items-center">
           <input list="inventoryList2" id="manualCodeReceive" placeholder="รหัสหรือชื่อสินค้า"
-            class="flex-1 w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-primary-light focus:border-primary-light transition-all duration-200" /> <!-- Uses primary-light -->
+            class="flex-1 w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-primary-light focus:border-primary-light transition-all duration-200" />
           <div class="flex items-center space-x-2 w-full sm:w-auto">
             <input type="number" id="manualQtyReceive" min="1" value="1"
-              class="w-24 border border-gray-300 rounded-lg p-3 text-center focus:ring-2 focus:ring-primary-light focus:border-primary-light transition-all duration-200" /> <!-- Uses primary-light -->
+              class="w-24 border border-gray-300 rounded-lg p-3 text-center focus:ring-2 focus:ring-primary-light focus:border-primary-light transition-all duration-200" />
             <span id="receiveCurrentStockDisplay" class="text-sm text-gray-600 whitespace-nowrap"></span>
           </div>
           <button id="addReceiveBtn"
-            class="bg-primary-DEFAULT hover:bg-primary-dark text-white px-6 py-3 rounded-lg shadow-md transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary-light focus:ring-opacity-75 w-full sm:w-auto"> <!-- Uses primary-DEFAULT, primary-dark, primary-light -->
+            class="bg-primary-DEFAULT hover:bg-primary-dark text-white px-6 py-3 rounded-lg shadow-md transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary-light focus:ring-opacity-75 w-full sm:w-auto">
             เพิ่ม
           </button>
         </div>
@@ -302,7 +300,7 @@
     function showAlert(msg, type = 'error') {
       alertMessage.textContent = msg;
       customAlert.classList.remove('success', 'error');
-      customAlert.classList.add(type);
+      customAlert.classList.add(type); // Uses the new alert type classes
 
       // Set icon based on type
       if (type === 'success') {
@@ -323,21 +321,15 @@
      */
     function setButtonLoading(buttonId, isLoading, originalText) {
       const button = document.getElementById(buttonId);
-
-      // CORRECTED LOGIC FOR btnText AND btnSpinner IDs
-      // Example: 'submitIssueBtn' -> 'issueBtn' (first letter lowercase)
-      const baseId = buttonId.replace('submit', ''); // e.g., "IssueBtn" or "ReceiveBtn"
-      // Ensure the first letter of baseId is lowercase for element IDs
-      const idPrefix = baseId.charAt(0).toLowerCase() + baseId.slice(1); // "issueBtn" or "receiveBtn"
-
+      const baseId = buttonId.replace('submit', '');
+      const idPrefix = baseId.charAt(0).toLowerCase() + baseId.slice(1);
       const btnText = document.getElementById(`${idPrefix}Text`);
       const btnSpinner = document.getElementById(`${idPrefix}Spinner`);
 
-      // Safety check: Ensure elements exist before trying to modify them
       if (!btnText || !btnSpinner) {
         console.error(`Error: Could not find text or spinner element for buttonId: ${buttonId}. Check generated IDs: ${idPrefix}Text, ${idPrefix}Spinner`);
-        if (button) button.disabled = isLoading; // At least disable the main button
-        return; // Exit function to prevent further errors
+        if (button) button.disabled = isLoading;
+        return;
       }
 
       if (isLoading) {
@@ -703,25 +695,23 @@
      * @returns {Object} The Flex Message bubble JSON object.
      */
     function createFlexMessageContent(action, actorName, items) {
-      // Replicate date formatting to match GAS (Utilities.formatDate(new Date(), TIMEZONE, 'd MMM yyyy HH:mm'))
       const now = new Date();
-      const dateOptions = { day: 'numeric', month: 'short', year: 'numeric' }; // e.g., 20 ก.ค. 2566
-      const timeOptions = { hour: '2-digit', minute: '2-digit', hour12: false }; // e.g., 14:30
+      const dateOptions = { day: 'numeric', month: 'short', year: 'numeric' };
+      const timeOptions = { hour: '2-digit', minute: '2-digit', hour12: false };
       const datePart = now.toLocaleDateString('th-TH', dateOptions);
       const timePart = now.toLocaleTimeString('th-TH', timeOptions);
       const dateStr = `${datePart} ${timePart}`;
 
       const isIssue = action === 'issue';
-      const headerBgColor = isIssue ? "#FDECEA" : "#E8F5E9"; // Light Red/Green for header background
-      const headerTextColor = isIssue ? "#D32F2F" : "#388E3C"; // Dark Red/Green for header text
+      const headerBgColor = isIssue ? "#FDECEA" : "#E8F5E9";
+      const headerTextColor = isIssue ? "#D32F2F" : "#388E3C";
       const actionText = isIssue ? "แจ้งเบิกสินค้า" : "แจ้งรับเข้าสินค้า";
       const actorLabel = isIssue ? "ผู้เบิก:" : "ผู้รับเข้า:";
       const itemSectionTitle = isIssue ? "รายการสินค้าที่เบิก:" : "รายการสินค้าที่รับเข้า:";
       // const buttonColor = isIssue ? "#D32F2F" : "#388E3C"; // Original button colors (can be customized)
 
-      // Create content for each item in the list
       const itemContents = items.map(item => {
-        const qtyColor = isIssue ? "#D32F2F" : "#388E3C"; // Quantity color changes based on action
+        const qtyColor = isIssue ? "#D32F2F" : "#388E3C";
         return {
           type: "box",
           layout: "vertical",
@@ -733,7 +723,6 @@
         };
       });
 
-      // Add separators between each item, except the last one
       const contentsWithSeparators = [];
       itemContents.forEach((itemBox, index) => {
         contentsWithSeparators.push(itemBox);
@@ -742,10 +731,9 @@
         }
       });
 
-      // Construct the full Flex Message bubble
       return {
         type: "bubble",
-        size: "mega", // Using mega for more space for multiple items
+        size: "mega",
         header: {
           type: "box", layout: "vertical", backgroundColor: headerBgColor, paddingAll: "md",
           contents: [{ type: "text", text: actionText, weight: "bold", size: "md", color: headerTextColor, align: "center" }]
@@ -772,8 +760,8 @@
             {
               type: "box",
               layout: "vertical",
-              contents: contentsWithSeparators, // The list of items
-              spacing: "md" // Spacing between individual item boxes
+              contents: contentsWithSeparators,
+              spacing: "md"
             }
           ]
         }
@@ -786,31 +774,28 @@
      */
     document.getElementById('submitIssueBtn').onclick = async () => {
       if (!basketIssue.length) return;
-      setButtonLoading('submitIssueBtn', true, 'ยืนยันเบิก (หลายรายการ)'); // Show loading state
+      setButtonLoading('submitIssueBtn', true, 'ยืนยันเบิก (หลายรายการ)');
       try {
         const now = new Date().toISOString();
-        const itemsToProcess = [...basketIssue]; // Create a copy to iterate
+        const itemsToProcess = [...basketIssue];
 
-        // --- Pre-check stock availability for all items before starting any Firebase writes ---
         const stockCheckPromises = itemsToProcess.map(async item => {
           const currentStock = allInventoryItems[item.code] ? allInventoryItems[item.code].quantity : 0;
           if (item.qty > currentStock) {
             return { error: true, item, currentStock };
           }
-          return { error: false }; // No error for this item
+          return { error: false };
         });
 
         const checkResults = await Promise.all(stockCheckPromises);
-        const firstError = checkResults.find(result => result.error); // Find the first item with insufficient stock
+        const firstError = checkResults.find(result => result.error);
 
         if (firstError) {
           showAlert(`สินค้า "${firstError.item.name}" (รหัส: ${firstError.item.code}) มีไม่พอ เบิกได้สูงสุด ${firstError.currentStock} ชิ้น`, 'error');
           setButtonLoading('submitIssueBtn', false, 'ยืนยันเบิก (หลายรายการ)');
-          return; // Abort submission
+          return;
         }
-        // --- End pre-check ---
 
-        // Perform Firebase database updates
         for (const it of itemsToProcess) {
           const key = issueRef.push().key;
           await issueRef.child(key).set({
@@ -823,31 +808,24 @@
             itemName: it.name,
             quantity: it.qty
           });
-          // Decrement stock using transaction, we've already pre-checked for sufficiency
           await stockRef.child(it.code).child('quantity').transaction(c => (c || 0) - it.qty);
-          // Also update the cached quantity for future checks in this session
           if(allInventoryItems[it.code]) {
             allInventoryItems[it.code].quantity = (allInventoryItems[it.code].quantity || 0) - it.qty;
           }
         }
 
-        // --- Create Flex Message for LIFF (for user themselves) ---
         const flexMessageBubble = createFlexMessageContent('issue', actorIssue, itemsToProcess);
-
-        // Send Flex Message via LIFF to the user themselves
         await liff.sendMessages([{ type: 'flex', altText: '📤 แจ้งเบิกสินค้า', contents: flexMessageBubble }]);
-
-        // Notify admins via GAS (GAS will also generate and send a Flex Message to admins)
         await notifyAdmins('issue', actorIssue, userIdLine, itemsToProcess);
 
         showAlert('เบิกสินค้าเรียบร้อยแล้ว', 'success');
-        basketIssue = []; // Clear basket
-        updateBasket('basketIssue', [], 'submitIssueBtn'); // Update UI
+        basketIssue = [];
+        updateBasket('basketIssue', [], 'submitIssueBtn');
       } catch (error) {
         console.error("Error submitting issue: ", error);
         showAlert('เกิดข้อผิดพลาดในการเบิกสินค้า: ' + error.message);
       } finally {
-        setButtonLoading('submitIssueBtn', false, 'ยืนยันเบิก (หลายรายการ)'); // Hide loading state
+        setButtonLoading('submitIssueBtn', false, 'ยืนยันเบิก (หลายรายการ)');
       }
     };
 
@@ -856,12 +834,11 @@
      */
     document.getElementById('submitReceiveBtn').onclick = async () => {
       if (!basketReceive.length) return;
-      setButtonLoading('submitReceiveBtn', true, 'ยืนยันรับเข้า (หลายรายการ)'); // Show loading state
+      setButtonLoading('submitReceiveBtn', true, 'ยืนยันรับเข้า (หลายรายการ)');
       try {
         const now = new Date().toISOString();
-        const itemsToProcess = [...basketReceive]; // Create a copy to iterate
+        const itemsToProcess = [...basketReceive];
 
-        // Perform Firebase database updates
         for (const it of itemsToProcess) {
           const key = receiveRef.push().key;
           await receiveRef.child(key).set({
@@ -874,30 +851,24 @@
             itemName: it.name,
             quantity: it.qty
           });
-          await stockRef.child(it.code).child('quantity').transaction(c => (c || 0) + it.qty); // Ensure c is not null/undefined for increment
-          // Also update the cached quantity
+          await stockRef.child(it.code).child('quantity').transaction(c => (c || 0) + it.qty);
           if(allInventoryItems[it.code]) {
             allInventoryItems[it.code].quantity = (allInventoryItems[it.code].quantity || 0) + it.qty;
           }
         }
 
-        // --- Create Flex Message for LIFF (for user themselves) ---
         const flexMessageBubble = createFlexMessageContent('receive', actorReceive, itemsToProcess);
-
-        // Send Flex Message via LIFF to the user themselves
         await liff.sendMessages([{ type: 'flex', altText: '📥 แจ้งรับเข้าสินค้า', contents: flexMessageBubble }]);
-
-        // Notify admins via GAS (GAS will also generate and send a Flex Message to admins)
         await notifyAdmins('receive', actorReceive, userIdLine, itemsToProcess);
 
         showAlert('รับเข้าสินค้าเรียบร้อยแล้ว', 'success');
-        basketReceive = []; // Clear basket
-        updateBasket('basketReceive', [], 'submitReceiveBtn'); // Update UI
+        basketReceive = [];
+        updateBasket('basketReceive', [], 'submitReceiveBtn');
       } catch (error) {
         console.error("Error submitting receive: ", error);
         showAlert('เกิดข้อผิดพลาดในการรับเข้าสินค้า: ' + error.message);
       } finally {
-        setButtonLoading('submitReceiveBtn', false, 'ยืนยันรับเข้า (หลายรายการ)'); // Hide loading state
+        setButtonLoading('submitReceiveBtn', false, 'ยืนยันรับเข้า (หลายรายการ)');
       }
     };
 
@@ -910,7 +881,6 @@
         const recs = [];
         rSnap.forEach(ch => { const d = ch.val(); if (d.userId === userIdLine) recs.push({ ...d, type: 'receive' }); });
         iSnap.forEach(ch => { const d = ch.val(); if (d.userId === userIdLine) recs.push({ ...d, type: 'issue' }); });
-        // Sort by timestamp (if available) or date in descending order
         recs.sort((a, b) => (new Date(b.timestamp || b.date)).getTime() - (new Date(a.timestamp || a.date)).getTime());
         historyRecords = recs; historyPage = 1; renderHistory();
       } catch (error) {
@@ -926,7 +896,7 @@
       const start = (historyPage - 1) * pageSize;
       const page = historyRecords.slice(start, start + pageSize);
       const tbody = document.getElementById('historyTable');
-      tbody.innerHTML = ''; // Clear existing rows
+      tbody.innerHTML = '';
 
       if (page.length === 0) {
         tbody.innerHTML = `<tr><td colspan="4" class="px-4 py-3 text-center text-gray-500">ไม่พบประวัติการทำรายการ</td></tr>`;
@@ -944,14 +914,12 @@
         });
       }
 
-      // Update pagination info and button states
       const total = Math.max(1, Math.ceil(historyRecords.length / pageSize));
       document.getElementById('historyPageInfo').textContent = `หน้าที่ ${historyPage} จาก ${total}`;
       document.getElementById('historyPrev').disabled = historyPage === 1;
       document.getElementById('historyNext').disabled = historyPage === total;
     }
 
-    // Pagination button event listeners
     document.getElementById('historyPrev').onclick = () => { if (historyPage > 1) { historyPage--; renderHistory(); } };
     document.getElementById('historyNext').onclick = () => { const t = Math.ceil(historyRecords.length / pageSize); if (historyPage < t) { historyPage++; renderHistory(); } };
 
@@ -965,26 +933,49 @@
      */
     function activateTab(tabName) {
       tabButtons.forEach(btn => {
-        btn.classList.remove('active', 'border-primary-DEFAULT', 'text-primary-DEFAULT', 'font-semibold'); // Updated primary color class
-        btn.classList.add('border-transparent', 'text-gray-600');
+        // Remove all active-related classes and reset to inactive default
+        btn.classList.remove(
+          'active', 'font-semibold',
+          'border-primary-DEFAULT', 'text-primary-DEFAULT', // for Issue tab active
+          'border-tabActive-receive', 'text-tabActive-receive', // for Receive tab active
+          'border-tabActive-history', 'text-tabActive-history'  // for History tab active
+        );
+        // Add inactive state classes (transparent border, gray text, and primary color hover)
+        btn.classList.add('border-transparent', 'text-gray-600', 'hover:text-primary-DEFAULT', 'hover:border-primary-DEFAULT');
       });
       tabContents.forEach(content => content.classList.add('hidden'));
 
+      let activeTabBtn;
+      let activeTabContent;
+      let activeBorderColorClass;
+      let activeTextColorClass;
+
       if (tabName === 'issue') {
-        document.getElementById('tabIssue').classList.remove('hidden');
-        document.getElementById('tabIssueBtn').classList.add('active', 'border-primary-DEFAULT', 'text-primary-DEFAULT', 'font-semibold'); // Updated primary color class
-        document.getElementById('tabIssueBtn').classList.remove('border-transparent', 'text-gray-600');
+        activeTabBtn = document.getElementById('tabIssueBtn');
+        activeTabContent = document.getElementById('tabIssue');
+        activeBorderColorClass = 'border-primary-DEFAULT';
+        activeTextColorClass = 'text-primary-DEFAULT';
       } else if (tabName === 'receive') {
-        document.getElementById('tabReceive').classList.remove('hidden');
-        document.getElementById('tabReceiveBtn').classList.add('active', 'border-primary-DEFAULT', 'text-primary-DEFAULT', 'font-semibold'); // Updated primary color class
-        document.getElementById('tabReceiveBtn').classList.remove('border-transparent', 'text-gray-600');
+        activeTabBtn = document.getElementById('tabReceiveBtn');
+        activeTabContent = document.getElementById('tabReceive');
+        activeBorderColorClass = 'border-tabActive-receive';
+        activeTextColorClass = 'text-tabActive-receive';
       } else if (tabName === 'history') {
-        document.getElementById('tabHistory').classList.remove('hidden');
-        document.getElementById('tabHistoryBtn').classList.add('active', 'border-primary-DEFAULT', 'text-primary-DEFAULT', 'font-semibold'); // Updated primary color class
-        document.getElementById('tabHistoryBtn').classList.remove('border-transparent', 'text-gray-600');
+        activeTabBtn = document.getElementById('tabHistoryBtn');
+        activeTabContent = document.getElementById('tabHistory');
+        activeBorderColorClass = 'border-tabActive-history';
+        activeTextColorClass = 'text-tabActive-history';
         loadHistory(); // Load history when history tab is activated
       }
-      // Always reset manual input state when switching tabs
+
+      // Apply common active classes for the selected tab
+      if (activeTabBtn && activeTabContent) {
+        activeTabContent.classList.remove('hidden');
+        activeTabBtn.classList.add('active', 'font-semibold', activeBorderColorClass, activeTextColorClass);
+        // Remove the hover classes from the *active* button so it doesn't try to hover over its own active color
+        activeTabBtn.classList.remove('hover:text-primary-DEFAULT', 'hover:border-primary-DEFAULT');
+      }
+
       resetManualInput('issue');
       resetManualInput('receive');
     }
