@@ -319,17 +319,18 @@
       document.body.classList.remove('overflow-hidden');
     };
 
-    // โมดัลอัปเดตงานซ่อม
-    const updateModal = document.getElementById('updateModal');
+        // โมดัลอัปเดต
     document.getElementById('closeUpdateModal').onclick = () => {
-      updateModal.classList.add('hidden');
+      document.getElementById('updateModal').classList.add('hidden');
       document.body.classList.remove('overflow-hidden');
     };
 
     async function editRepair(id) {
       const snap = await db.ref('repairReports/' + id).once('value');
       const r = snap.val();
-      document.getElementById('updateContent').InnerHTML = `
+
+      // เปลี่ยนจาก InnerHTML เป็น innerHTML
+      document.getElementById('updateContent').innerHTML = `
         <h2 class="text-xl font-bold mb-4">อัปเดตงานซ่อม</h2>
         <form id="updateForm" class="space-y-3">
           <input type="hidden" id="updId" value="${id}">
@@ -351,9 +352,11 @@
           ${r.imageAfter ? `<img id="afterPreview" src="${r.imageAfter}" class="mt-2 h-24 rounded cursor-pointer" onclick="openImageModal('${r.imageAfter}')">` : ''}
           <button type="submit" class="bg-primary text-white px-4 py-2 rounded">บันทึก</button>
         </form>`;
-      updateModal.classList.remove('hidden');
+
+      document.getElementById('updateModal').classList.remove('hidden');
       document.body.classList.add('overflow-hidden');
 
+      // ผูก onchange หลังจาก element ถูกแทรกลง DOM แล้ว
       document.getElementById('updImageFile').onchange = e => {
         const file = e.target.files[0];
         if (!file) return;
@@ -370,6 +373,18 @@
         };
         reader.readAsDataURL(file);
       };
+
+      // ผูก submit
+      document.getElementById('updateForm').onsubmit = async ev => {
+        ev.preventDefault();
+        const id2 = document.getElementById('updId').value;
+        const newStatus = document.getElementById('updStatus').value;
+        const payload = {
+          status: newStatus,
+          responsible: document.getElementById('updResponsible').value,
+          solution: document.getElementById('updSolution').value,
+          cost: document.getElementById('updCost').value
+        };
 
       document.getElementById('updateForm').onsubmit = async ev => {
         ev.preventDefault();
