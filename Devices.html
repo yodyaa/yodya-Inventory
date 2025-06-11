@@ -185,25 +185,34 @@
       status: document.getElementById('filterStatus'),
     };
 
-    async function notifyRepairComplete(deviceId, deviceName, reporterId) {
-      const payload = {
-        action: 'repairComplete',
-        user: 'ระบบซ่อม',
-        items: [{ code: deviceId, name: deviceName, title: 'ซ่อมเรียบร้อย', details: '' }],
-        toList: [reporterId],
-        liffUrl: LIFF_WEB_URL
-      };
-      console.log('► notify payload:', payload);
-      try {
-        const resp = await fetch(GAS_URL, {
-          method: 'POST',
-          body: JSON.stringify(payload)
-        });
-        console.log('► GAS response status:', resp.status);
-      } catch (e) {
-        console.error('► Notify failed:', e);
-      }
-    }
+ async function notifyRepairComplete(deviceId, deviceName, reporterId) {
+  const payload = {
+    action: 'repairComplete',
+    user: 'ระบบซ่อม',
+    items: [{ code: deviceId, name: deviceName, title: 'ซ่อมเรียบร้อย', details: '' }],
+    toList: [reporterId],
+    liffUrl: LIFF_WEB_URL
+  };
+
+  // ดู URL และ payload ที่จะส่ง
+  console.log('→ Sending to GAS URL:', GAS_URL);
+  console.log('→ Payload:', JSON.stringify(payload));
+
+  try {
+    const resp = await fetch(GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const text = await resp.text();
+    // ดู HTTP status และ body ที่ GAS ตอบกลับ
+    console.log(`← GAS response status: ${resp.status}`);
+    console.log(`← GAS response body: ${text}`);
+  } catch (e) {
+    console.error('► Notify failed:', e);
+  }
+}
+
 
     function statusClass(s) {
       if (s==='พร้อมใช้งาน') return 'bg-green-200 text-green-800';
