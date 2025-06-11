@@ -200,7 +200,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
-        console.log('► GAS status:', resp.status);
+        console.log('► GAS response status:', resp.status);
       } catch (e) {
         console.error('► Notify failed:', e);
       }
@@ -276,7 +276,7 @@
           <td class="py-3 px-4"><span class="px-3 py-1 rounded-full ${statusClass(d.status)}">${d.status}</span></td>
           <td class="py-3 px-4">${
             d.imageUrl
-              ? `<img src="${d.imageUrl}" class="w-10 h-10 object-cover rounded cursor-pointer"/>`
+              ? `<img src="${d.imageUrl}" class="w-10 h-10 object-cover rounded cursor-pointer">`
               : `<span class="text-gray-500 italic">ไม่มีรูป</span>`
           }</td>
           <td class="py-3 px-4 space-x-2">
@@ -311,7 +311,7 @@
     });
 
     rowsPerPageSel.onchange = e=>{ rowsPerPage = +e.target.value; currentPage=1; renderTable(); };
-    ['id','name'].forEach(k=>{ filters[k].addEventListener('input', ()=>{ currentPage=1; renderTable(); }); });
+    ['id','name'].forEach(k=>filters[k].addEventListener('input', ()=>{ currentPage=1; renderTable(); }));
     filters.category.addEventListener('change', ()=>{ currentPage=1; renderTable(); });
     filters.status.addEventListener('change', ()=>{ currentPage=1; renderTable(); });
 
@@ -342,27 +342,45 @@
       const status = document.getElementById('status').value;
       const file = document.getElementById('image').files[0];
       let updateData = { deviceName: name, category, status };
+      console.log('► Submitting form: id=', id, 'prevStatus=', prevStatus, 'newStatus=', status);
+
       const orig = saveBtn.innerHTML;
       saveBtn.innerHTML = '<span class="animate-spin border-2 border-white border-t-transparent rounded-full w-4 h-4 inline-block mr-2"></span>กำลังบันทึก';
       saveBtn.disabled = true;
-      if (file) {
-        const ref = storage.ref('device_images/'+id);
-        await ref.put(file);
-        updateData.imageUrl = await ref.getDownloadURL();
+
+      try {
+        if (file) {
+          const ref = storage.ref('device_images/'+id);
+          await ref.put(file);
+          updateData.imageUrl = await ref.getDownloadURL();
+          console.log('► Image uploaded, URL=', updateData.imageUrl);
+        }
+
+        if (editDeviceIdIn.value) {
+          await db.ref('devices/'+id).update(updateData);
+          console.log('► Firebase update successful for', id);
+        } else {
+          await db.ref('devices/'+id).set({ deviceId: id, ...updateData, imageUrl: updateData.imageUrl||'' });
+          console.log('► Firebase create successful for', id);
+        }
+
+        const reporterId = devicesData.find(x=>x.deviceId===id)?.lastUserId;
+        console.log('► reporterId=', reporterId);
+
+        if (prevStatus==='ส่งซ่อม' && status==='พร้อมใช้งาน' && reporterId) {
+          console.log('► Condition met for notifyRepairComplete');
+          await notifyRepairComplete(id, name, reporterId);
+        } else {
+          console.log('► No notify: condition not met');
+        }
+
+      } catch (err) {
+        console.error('► Error in form submit:', err);
+      } finally {
+        saveBtn.innerHTML = orig;
+        saveBtn.disabled = false;
+        deviceModal.classList.add('hidden');
       }
-      if (editDeviceIdIn.value) {
-        await db.ref('devices/'+id).update(updateData);
-      } else {
-        await db.ref('devices/'+id).set({ deviceId: id, ...updateData, imageUrl: updateData.imageUrl||'' });
-      }
-      const reporterId = devicesData.find(x=>x.deviceId===id)?.lastUserId;
-      console.log('► prevStatus:', prevStatus, 'newStatus:', status, 'reporterId:', reporterId);
-      if (prevStatus==='ส่งซ่อม' && status==='พร้อมใช้งาน' && reporterId) {
-        await notifyRepairComplete(id, name, reporterId);
-      }
-      saveBtn.innerHTML = orig;
-      saveBtn.disabled = false;
-      deviceModal.classList.add('hidden');
     };
 
     function openEditModal(id) {
@@ -381,6 +399,7 @@
     function deleteDevice(id) {
       if (confirm('ต้องการลบอุปกรณ์ '+id+' หรือไม่?')) {
         db.ref('devices/'+id).remove();
+        console.log('► Deleted device', id);
       }
     }
 
@@ -407,6 +426,7 @@
       const a = document.createElement('a'); a.href=url;
       a.download=`devices_${new Date().toISOString().slice(0,10)}.csv`;
       a.click(); URL.revokeObjectURL(url);
+      console.log('► CSV exported');
     };
 
     document.getElementById('csvInput').addEventListener('change', e=>{
@@ -423,8 +443,14 @@
             imageUrl: row.imageUrl||''
           };
         });
-        try { await db.ref('devices').update(updates); alert('นำเข้า CSV สำเร็จ'); }
-        catch { alert('เกิดข้อผิดพลาดในการนำเข้า'); }
+        try {
+          await db.ref('devices').update(updates);
+          alert('นำเข้า CSV สำเร็จ');
+          console.log('► CSV imported', updates);
+        } catch (err) {
+          alert('เกิดข้อผิดพลาดในการนำเข้า');
+          console.error('► CSV import error:', err);
+        }
       }});
     });
   </script>
