@@ -148,7 +148,7 @@
             type: "text",
             text: "⚙️ แจ้งซ่อมอุปกรณ์",
             weight: "bold",
-            size: "xl",
+            size: "md",
             color: "#FFFFFF",
             align: "center"
           }]
@@ -163,15 +163,6 @@
             { type: "text", text: `หัวข้อ: ${title}`, size: "sm", wrap: true },
             { type: "text", text: `รายละเอียด: ${details}`, size: "sm", wrap: true }
           ]
-        },
-        footer: {
-          type: "box", layout: "vertical", spacing: "sm",
-          contents: [{
-            type: "button",
-            action: { type: "uri", label: "ดูรายละเอียด", uri: LIFF_WEB_URL },
-            style: "primary",
-            color: "#1976D2"
-          }]
         }
       };
     }
