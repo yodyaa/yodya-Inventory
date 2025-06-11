@@ -157,7 +157,8 @@
   </div>
 
   <script>
-
+    const db = firebase.database();
+    const storage = firebase.storage();
     let reportsData = [], devicesMap = {}, currentPage = 1, rowsPerPage = 15;
 
     function getStatusClass(s) {
@@ -202,6 +203,7 @@
       renderTablePage();
     });
 
+    // ตัวกรอง & pagination listeners
     ["filterDate","filterId","filterName","filterStatus"].forEach(id => {
       const el = document.getElementById(id);
       el.addEventListener("input", () => { currentPage = 1; renderTablePage(); });
@@ -220,7 +222,7 @@
       const fS = document.getElementById("filterStatus").value;
 
       const filtered = reportsData.filter(r => {
-        const recDate = (r.sendDate||r.date||"").split("T")[0];
+        const recDate = (r.sendDate || r.date || "").split("T")[0];
         if (fD && recDate !== fD) return false;
         if (fI && !r.deviceId.includes(fI)) return false;
         if (fN && !r.deviceName.includes(fN)) return false;
@@ -242,7 +244,7 @@
             ? `<img src="${r.imageUrl}" class="h-16 rounded cursor-pointer" onclick="openImageModal('${r.imageUrl}')">`
             : "-"}</td>
           <td class="py-2 px-4"><span class="px-2 py-1 rounded-full ${getStatusClass(r.status)}">${r.status}</span></td>
-          <td class="py-2 px-4">${r.cost||"-"}</td>
+          <td class="py-2 px-4">${r.cost || "-"}</td>
           <td class="py-2 px-4 space-x-2">
             <button onclick="editRepair('${r.id}')" class="px-3 py-1 bg-primary text-secondary rounded">อัปเดต</button>
             <button onclick="deleteRepair('${r.id}')" class="px-3 py-1 bg-red-500 text-white rounded">ลบ</button>
@@ -256,8 +258,8 @@
       for (let i = 1; i <= totalPages; i++) {
         const btn = document.createElement("button");
         btn.textContent = i;
-        btn.className = `px-3 py-1 rounded ${i===currentPage?'bg-primary text-secondary':'bg-gray-300 text-black'}`;
-        btn.onclick = () => { currentPage=i; renderTablePage(); };
+        btn.className = `px-3 py-1 rounded ${i === currentPage ? 'bg-primary text-secondary' : 'bg-gray-300 text-black'}`;
+        btn.onclick = () => { currentPage = i; renderTablePage(); };
         pg.appendChild(btn);
       }
     }
@@ -275,7 +277,7 @@
       db.ref('repairReports/' + id).remove().catch(() => alert('❌ เกิดข้อผิดพลาด'));
     }
 
-    // add form
+    // โมดัลเพิ่มแจ้งซ่อม
     const addModal = document.getElementById('addModal');
     document.getElementById('openAddModal').onclick = () => {
       addModal.classList.remove('hidden');
@@ -290,13 +292,22 @@
       e.preventDefault();
       const reporter = document.getElementById('newReporterName').value.trim();
       const id = document.getElementById('newDeviceId').value;
-      const name = devicesMap[id]||'';
+      const name = devicesMap[id] || '';
       const title = document.getElementById('newTitle').value.trim();
       const details = document.getElementById('newDetails').value.trim();
       const file = document.getElementById('newImageFile').files[0];
       const nowISO = new Date().toISOString();
 
-      const payload = { reporterName: reporter, deviceId: id, deviceName: name, title, details, date: nowISO, sendDate: nowISO, status: 'แจ้งซ่อม' };
+      const payload = {
+        reporterName: reporter,
+        deviceId: id,
+        deviceName: name,
+        title,
+        details,
+        date: nowISO,
+        sendDate: nowISO,
+        status: 'แจ้งซ่อม'
+      };
       if (file) {
         const ref = storage.ref(`repair_before/${id}_${Date.now()}`);
         const snap = await ref.put(file);
@@ -309,7 +320,7 @@
       document.body.classList.remove('overflow-hidden');
     };
 
-    // update form
+    // โมดัลอัปเดตงานซ่อม
     const updateModal = document.getElementById('updateModal');
     document.getElementById('closeUpdateModal').onclick = () => {
       updateModal.classList.add('hidden');
@@ -319,7 +330,7 @@
     async function editRepair(id) {
       const snap = await db.ref('repairReports/' + id).once('value');
       const r = snap.val();
-      document.getElementById('updateContent').innerHTML = `
+      document.getElementById('updateContent').InnerHTML = `
         <h2 class="text-xl font-bold mb-4">อัปเดตงานซ่อม</h2>
         <form id="updateForm" class="space-y-3">
           <input type="hidden" id="updId" value="${id}">
@@ -338,9 +349,7 @@
           <input id="updCost" value="${r.cost||''}" class="w-full p-2 border rounded">
           <label>รูปหลังซ่อม</label>
           <input id="updImageFile" type="file" accept="image/*" class="w-full">
-          ${r.imageAfter
-            ? `<img id="afterPreview" src="${r.imageAfter}" class="mt-2 h-24 rounded cursor-pointer" onclick="openImageModal('${r.imageAfter}')">`
-            : ''}
+          ${r.imageAfter ? `<img id="afterPreview" src="${r.imageAfter}" class="mt-2 h-24 rounded cursor-pointer" onclick="openImageModal('${r.imageAfter}')">` : ''}
           <button type="submit" class="bg-primary text-white px-4 py-2 rounded">บันทึก</button>
         </form>`;
       updateModal.classList.remove('hidden');
@@ -382,18 +391,26 @@
         await db.ref('repairReports/' + id2).update(payload);
 
         if (newStatus === 'ซ่อมสำเร็จ') {
+          // อ่านข้อมูลล่าสุด
           const r2snap = await db.ref('repairReports/' + id2).once('value');
           const r2 = r2snap.val();
+          // อัปเดตสถานะ device
           await db.ref('devices/' + r2.deviceId).update({ status: 'พร้อมใช้งาน' });
 
-          // เรียก GAS Web App (ใช้ mode: 'no-cors')
+          // เรียก GAS ด้วย action 'repairComplete'
           const notifyPayload = {
-            action: 'repair',
+            action: 'repairComplete',
             user: r2.reporterName,
-            items: [{ code: r2.deviceId, name: r2.deviceName, title: r2.title, details: payload.solution||'' }]
-            // toList: [ r2.reporterLineId ]
+            items: [{
+              code: r2.deviceId,
+              name: r2.deviceName,
+              title: r2.title,
+              details: payload.solution || ''
+            }],
+            toList: [ r2.reporterLineId ],    // ถ้ามี field reporterLineId
+            liffUrl: window.location.href
           };
-          fetch('https://script.google.com/macros/s/AKfycbz7Fk6eljD73EVSG9fjWqd1-Fd_W66qBoSvjEo5AkaL2-kOrohZSZSy-KxFjIEWhUI/exec', {
+          fetch('https://script.google.com/macros/s/YOUR_WEB_APP_ID/exec', {
             method: 'POST',
             mode: 'no-cors',
             headers: { 'Content-Type': 'application/json' },
