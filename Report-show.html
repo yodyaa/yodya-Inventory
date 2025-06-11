@@ -169,7 +169,7 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-      ['filterDate', 'filterId', 'filterName', 'filterStatus'].forEach(id => {
+      ['filterDate','filterId','filterName','filterStatus'].forEach(id => {
         document.getElementById(id).value = '';
       });
     });
@@ -192,204 +192,196 @@
       document.getElementById("newDeviceName").value = devicesMap[e.target.value] || "";
     });
 
-    // โหลดข้อมูลซ่อม
+    // โหลดและเรียงข้อมูลซ่อม
     db.ref("repairReports").on("value", snap => {
       reportsData = [];
       snap.forEach(ch => {
         reportsData.push({ id: ch.key, ...ch.val() });
       });
-      reportsData.sort((a, b) => new Date(b.sendDate || b.date) - new Date(a.sendDate || a.date));
+      reportsData.sort((a,b)=>new Date(b.sendDate||b.date)-new Date(a.sendDate||a.date));
       renderTablePage();
     });
 
-    // ฟังก์ชัน filter & pagination listeners
-    ["filterDate", "filterId", "filterName", "filterStatus"].forEach(id => {
-      const el = document.getElementById(id);
-      el.addEventListener("input", () => { currentPage = 1; renderTablePage(); });
-      el.addEventListener("change", () => { currentPage = 1; renderTablePage(); });
+    // ตัวกรอง & pagination listeners
+    ["filterDate","filterId","filterName","filterStatus"].forEach(id=>{
+      const el=document.getElementById(id);
+      el.addEventListener("input",()=>{currentPage=1;renderTablePage()});
+      el.addEventListener("change",()=>{currentPage=1;renderTablePage()});
     });
-    document.getElementById("rowsPerPage").addEventListener("change", e => {
-      rowsPerPage = +e.target.value;
-      currentPage = 1;
+    document.getElementById("rowsPerPage").addEventListener("change",e=>{
+      rowsPerPage=+e.target.value;
+      currentPage=1;
       renderTablePage();
     });
 
-    function renderTablePage() {
-      const fD = document.getElementById("filterDate").value;
-      const fI = document.getElementById("filterId").value.trim();
-      const fN = document.getElementById("filterName").value.trim();
-      const fS = document.getElementById("filterStatus").value;
-
-      const filtered = reportsData.filter(r => {
-        const recDate = (r.sendDate || r.date || "").split("T")[0];
-        if (fD && recDate !== fD) return false;
-        if (fI && !r.deviceId.includes(fI)) return false;
-        if (fN && !r.deviceName.includes(fN)) return false;
-        if (fS && r.status !== fS) return false;
+    function renderTablePage(){
+      const fD=document.getElementById("filterDate").value;
+      const fI=document.getElementById("filterId").value.trim();
+      const fN=document.getElementById("filterName").value.trim();
+      const fS=document.getElementById("filterStatus").value;
+      const filtered=reportsData.filter(r=>{
+        const recDate=(r.sendDate||r.date||"").split("T")[0];
+        if(fD&&recDate!==fD)return false;
+        if(fI&&!r.deviceId.includes(fI))return false;
+        if(fN&&!r.deviceName.includes(fN))return false;
+        if(fS&&r.status!==fS)return false;
         return true;
       });
-
-      const tbody = document.getElementById("repairList");
-      tbody.innerHTML = "";
-      const start = (currentPage - 1) * rowsPerPage;
-      filtered.slice(start, start + rowsPerPage).forEach(r => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
+      const tbody=document.getElementById("repairList");
+      tbody.innerHTML="";
+      const start=(currentPage-1)*rowsPerPage;
+      filtered.slice(start,start+rowsPerPage).forEach(r=>{
+        const tr=document.createElement("tr");
+        tr.innerHTML=`
           <td class="py-2 px-4">${r.deviceId}</td>
           <td class="py-2 px-4">${r.deviceName}</td>
           <td class="py-2 px-4">${r.title}</td>
           <td class="py-2 px-4">${r.details}</td>
-          <td class="py-2 px-4">${r.imageUrl ? `<img src="${r.imageUrl}" class="h-16 rounded cursor-pointer" onclick="openImageModal('${r.imageUrl}')">` : "-"}</td>
+          <td class="py-2 px-4">${r.imageUrl?`<img src="${r.imageUrl}" class="h-16 rounded cursor-pointer" onclick="openImageModal('${r.imageUrl}')">`:"-"}</td>
           <td class="py-2 px-4"><span class="px-2 py-1 rounded-full ${getStatusClass(r.status)}">${r.status}</span></td>
-          <td class="py-2 px-4">${r.cost || "-"}</td>
+          <td class="py-2 px-4">${r.cost||"-"}</td>
           <td class="py-2 px-4 space-x-2">
             <button onclick="editRepair('${r.id}')" class="px-3 py-1 bg-primary text-secondary rounded">อัปเดต</button>
             <button onclick="deleteRepair('${r.id}')" class="px-3 py-1 bg-red-500 text-white rounded">ลบ</button>
           </td>`;
         tbody.appendChild(tr);
       });
-
-      const totalPages = Math.ceil(filtered.length / rowsPerPage);
-      const pg = document.getElementById("pagination");
-      pg.innerHTML = "";
-      for (let i = 1; i <= totalPages; i++) {
-        const btn = document.createElement("button");
-        btn.textContent = i;
-        btn.className = `px-3 py-1 rounded ${i === currentPage ? 'bg-primary text-secondary' : 'bg-gray-300 text-black'}`;
-        btn.onclick = () => { currentPage = i; renderTablePage(); };
+      const totalPages=Math.ceil(filtered.length/rowsPerPage);
+      const pg=document.getElementById("pagination");
+      pg.innerHTML="";
+      for(let i=1;i<=totalPages;i++){
+        const btn=document.createElement("button");
+        btn.textContent=i;
+        btn.className=`px-3 py-1 rounded ${i===currentPage?'bg-primary text-secondary':'bg-gray-300 text-black'}`;
+        btn.onclick=()=>{currentPage=i;renderTablePage()};
         pg.appendChild(btn);
       }
     }
 
-    function openImageModal(src) {
-      document.getElementById("modalImage").src = src;
+    function openImageModal(src){
+      document.getElementById("modalImage").src=src;
       document.getElementById("imageModal").classList.remove("hidden");
     }
-    document.getElementById("imageModal").onclick = () => {
+    document.getElementById("imageModal").onclick=()=>{
       document.getElementById("imageModal").classList.add("hidden");
     };
 
-    function deleteRepair(id) {
-      if (!confirm('❗ คุณแน่ใจหรือไม่ว่าจะลบรายการนี้?')) return;
-      db.ref('repairReports/' + id).remove().catch(() => alert('❌ เกิดข้อผิดพลาด'));
+    function deleteRepair(id){
+      if(!confirm('❗ คุณแน่ใจหรือไม่ว่าจะลบรายการนี้?'))return;
+      db.ref('repairReports/'+id).remove().catch(()=>alert('❌ เกิดข้อผิดพลาด'));
     }
 
     // add-repair logic
-    const addModal = document.getElementById('addModal');
-    document.getElementById('openAddModal').onclick = () => {
+    const addModal=document.getElementById('addModal');
+    document.getElementById('openAddModal').onclick=()=>{
       addModal.classList.remove('hidden');
       document.body.classList.add('overflow-hidden');
     };
-    document.getElementById('closeAddModal').onclick = () => {
+    document.getElementById('closeAddModal').onclick=()=>{
       addModal.classList.add('hidden');
       document.body.classList.remove('overflow-hidden');
     };
-    document.getElementById('addForm').onsubmit = async e => {
+    document.getElementById('addForm').onsubmit=async e=>{
       e.preventDefault();
-      const reporter = document.getElementById('newReporterName').value.trim();
-      const id = document.getElementById('newDeviceId').value;
-      const name = devicesMap[id] || '';
-      const title = document.getElementById('newTitle').value.trim();
-      const details = document.getElementById('newDetails').value.trim();
-      const file = document.getElementById('newImageFile').files[0];
-      const nowISO = new Date().toISOString();
-      const payload = { reporterName: reporter, deviceId: id, deviceName: name, title, details, date: nowISO, sendDate: nowISO, status: 'แจ้งซ่อม' };
-      if (file) {
-        const ref = storage.ref(`repair_before/${id}_${Date.now()}`);
-        const snap = await ref.put(file);
-        payload.imageUrl = await snap.ref.getDownloadURL();
+      const reporter=document.getElementById('newReporterName').value.trim();
+      const id=document.getElementById('newDeviceId').value;
+      const name=devicesMap[id]||'';
+      const title=document.getElementById('newTitle').value.trim();
+      const details=document.getElementById('newDetails').value.trim();
+      const file=document.getElementById('newImageFile').files[0];
+      const nowISO=new Date().toISOString();
+      const payload={reporterName:reporter,deviceId:id,deviceName:name,title,details,date:nowISO,sendDate:nowISO,status:'แจ้งซ่อม'};
+      if(file){
+        const ref=storage.ref(`repair_before/${id}_${Date.now()}`);
+        const snap=await ref.put(file);
+        payload.imageUrl=await snap.ref.getDownloadURL();
       }
       await db.ref('repairReports').push(payload);
-      await db.ref('devices/' + id).update({ status: 'รอซ่อม' });
+      await db.ref('devices/'+id).update({status:'รอซ่อม'});
       alert('✅ ส่งแจ้งซ่อมเรียบร้อย');
       addModal.classList.add('hidden');
       document.body.classList.remove('overflow-hidden');
     };
 
     // update-repair logic
-    document.getElementById('closeUpdateModal').onclick = () => {
+    document.getElementById('closeUpdateModal').onclick=()=>{
       document.getElementById('updateModal').classList.add('hidden');
       document.body.classList.remove('overflow-hidden');
     };
-    async function editRepair(id) {
-      const snap = await db.ref('repairReports/' + id).once('value');
-      const r = snap.val();
-      document.getElementById('updateContent').innerHTML = `
+    async function editRepair(id){
+      const snap=await db.ref('repairReports/'+id).once('value');
+      const r=snap.val();
+      document.getElementById('updateContent').innerHTML=`
         <h2 class="text-xl font-bold mb-4">อัปเดตงานซ่อม</h2>
         <form id="updateForm" class="space-y-3">
           <input type="hidden" id="updId" value="${id}">
           <label>สถานะ</label>
           <select id="updStatus" class="w-full p-2 border rounded">
-            <option ${r.status === 'แจ้งซ่อม' ? 'selected' : ''}>แจ้งซ่อม</option>
-            <option ${r.status === 'รอซ่อม' ? 'selected' : ''}>รอซ่อม</option>
-            <option ${r.status === 'ส่งซ่อม' ? 'selected' : ''}>ส่งซ่อม</option>
-            <option ${r.status === 'ซ่อมสำเร็จ' ? 'selected' : ''}>ซ่อมสำเร็จ</option>
+            <option ${r.status==='แจ้งซ่อม'?'selected':''}>แจ้งซ่อม</option>
+            <option ${r.status==='รอซ่อม'?'selected':''}>รอซ่อม</option>
+            <option ${r.status==='ส่งซ่อม'?'selected':''}>ส่งซ่อม</option>
+            <option ${r.status==='ซ่อมสำเร็จ'?'selected':''}>ซ่อมสำเร็จ</option>
           </select>
           <label>ผู้รับผิดชอบ</label>
-          <input id="updResponsible" value="${r.responsible || ''}" class="w-full p-2 border rounded">
+          <input id="updResponsible" value="${r.responsible||''}" class="w-full p-2 border rounded">
           <label>รายละเอียดการแก้ไข</label>
-          <textarea id="updSolution" class="w-full p-2 border rounded">${r.solution || ''}</textarea>
+          <textarea id="updSolution" class="w-full p-2 border rounded">${r.solution||''}</textarea>
           <label>ค่าใช้จ่าย</label>
-          <input id="updCost" value="${r.cost || ''}" class="w-full p-2 border rounded">
+          <input id="updCost" value="${r.cost||''}" class="w-full p-2 border rounded">
           <label>รูปหลังซ่อม</label>
           <input id="updImageFile" type="file" accept="image/*" class="w-full">
-          ${r.imageAfter ? `<img id="afterPreview" src="${r.imageAfter}" class="mt-2 h-24 rounded cursor-pointer" onclick="openImageModal('${r.imageAfter}')">` : ''}
+          ${r.imageAfter?`<img id="afterPreview" src="${r.imageAfter}" class="mt-2 h-24 rounded cursor-pointer" onclick="openImageModal('${r.imageAfter}')">`:''}
           <button type="submit" class="bg-primary text-white px-4 py-2 rounded">บันทึก</button>
         </form>`;
       document.getElementById('updateModal').classList.remove('hidden');
       document.body.classList.add('overflow-hidden');
 
-      document.getElementById('updImageFile').onchange = e => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = ev => {
-          let img = document.getElementById('afterPreview');
-          if (!img) {
-            img = document.createElement('img');
-            img.id = 'afterPreview';
-            img.className = 'mt-2 h-24 rounded';
-            document.getElementById('updateForm').insertBefore(img, e.target.nextSibling);
+      document.getElementById('updImageFile').onchange=e=>{
+        const file=e.target.files[0];
+        if(!file)return;
+        const reader=new FileReader();
+        reader.onload=ev=>{
+          let img=document.getElementById('afterPreview');
+          if(!img){
+            img=document.createElement('img');
+            img.id='afterPreview';
+            img.className='mt-2 h-24 rounded';
+            document.getElementById('updateForm').insertBefore(img,e.target.nextSibling);
           }
-          img.src = ev.target.result;
+          img.src=ev.target.result;
         };
         reader.readAsDataURL(file);
       };
 
-      document.getElementById('updateForm').onsubmit = async ev => {
+      document.getElementById('updateForm').onsubmit=async ev=>{
         ev.preventDefault();
-        const id2 = document.getElementById('updId').value;
-        const newStatus = document.getElementById('updStatus').value;
-        const payload = {
-          status: newStatus,
-          responsible: document.getElementById('updResponsible').value,
-          solution: document.getElementById('updSolution').value,
-          cost: document.getElementById('updCost').value
-        };
-        const file2 = document.getElementById('updImageFile').files[0];
-        if (file2) {
-          const ref2 = storage.ref(`repair_after/${id2}_${Date.now()}`);
-          const snap2 = await ref2.put(file2);
-          payload.imageAfter = await snap2.ref.getDownloadURL();
+        const id2=document.getElementById('updId').value;
+        const newStatus=document.getElementById('updStatus').value;
+        const payload={status:newStatus,responsible:document.getElementById('updResponsible').value,solution:document.getElementById('updSolution').value,cost:document.getElementById('updCost').value};
+        const file2=document.getElementById('updImageFile').files[0];
+        if(file2){
+          const ref2=storage.ref(`repair_after/${id2}_${Date.now()}`);
+          const snap2=await ref2.put(file2);
+          payload.imageAfter=await snap2.ref.getDownloadURL();
         }
-        await db.ref('repairReports/' + id2).update(payload);
-        if (newStatus === 'ซ่อมสำเร็จ') {
-          const r2snap = await db.ref('repairReports/' + id2).once('value');
-          const r2 = r2snap.val();
-          await db.ref('devices/' + r2.deviceId).update({ status: 'พร้อมใช้งาน' });
-          const notifyPayload = {
-            action: 'repairComplete',
-            user: r2.reporterName,
-            items: [{ code: r2.deviceId, name: r2.deviceName, title: r2.title, details: payload.solution || '' }],
-            toList: r2.reporterLineId ? [r2.reporterLineId] : [],
-            liffUrl: window.location.href
+        await db.ref('repairReports/'+id2).update(payload);
+        if(newStatus==='ซ่อมสำเร็จ'){
+          const r2snap=await db.ref('repairReports/'+id2).once('value');
+          const r2=r2snap.val();
+          await db.ref('devices/'+r2.deviceId).update({status:'พร้อมใช้งาน'});
+          const notifyPayload={
+            action:'repairComplete',
+            user:r2.reporterName,
+            userIdLine:r2.userIdLine,
+            items:[{code:r2.deviceId,name:r2.deviceName,title:r2.title,details:payload.solution||''}],
+            liffUrl:window.location.href
           };
-          fetch('https://script.google.com/macros/s/AKfycbz7Fk6eljD73EVSG9fjWqd1-Fd_W66qBoSvjEo5AkaL2-kOrohZSZSy-KxFjIEWhUI/exec', {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(notifyPayload)
-          }).catch(err => console.error('Notify GAS error:', err));
+          fetch('https://script.google.com/macros/s/AKfycbz7Fk6eljD73EVSG9fjWqd1-Fd_W66qBoSvjEo5AkaL2-kOrohZSZSy-KxFjIEWhUI/exec',{
+            method:'POST',
+            mode:'no-cors',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify(notifyPayload)
+          }).catch(err=>console.error('Notify GAS error:',err));
         }
         alert('✅ อัปเดตเรียบร้อย');
         document.getElementById('updateModal').classList.add('hidden');
