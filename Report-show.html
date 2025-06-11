@@ -27,16 +27,16 @@
   </script>
 </head>
 
-<body class="bg-gray-100 min-h-screen flex">
+<body class="bg-gray-100 min-h-screen flex font-sans">
 
   <!-- Sidebar -->
-  <aside class="w-64 bg-primary p-6">
-    <h1 class="text-white text-md font-bold mb-6">จัดการการยืมคืน & แจ้งซ่อม</h1>
-    <nav class="space-y-4">
+  <aside class="w-64 bg-primary p-6 text-white">
+    <h1 class="text-lg font-bold mb-6">จัดการ ยืม-คืน & แจ้งซ่อม</h1>
+    <nav class="space-y-3">
       <a href="./Dashboard.html" class="block bg-secondary text-primary py-2 px-4 rounded">หน้าหลัก</a>
       <a href="./Report-show.html" class="block bg-primary border border-secondary text-secondary py-2 px-4 rounded">แจ้งซ่อม</a>
       <a href="./Team.html" class="block bg-secondary text-primary py-2 px-4 rounded">จัดการทีม</a>
-      <div class="p-2 border flex flex-col space-y-2">
+      <div class="p-2 border border-secondary rounded flex flex-col space-y-2">
         <a href="./products.html" class="block bg-secondary text-primary py-2 px-4 rounded">วัสดุ</a>
         <a href="./transactions.html" class="block bg-secondary text-primary py-2 px-4 rounded">รับเข้า/เบิก</a>
       </div>
@@ -46,33 +46,33 @@
     </nav>
   </aside>
 
-  <!-- Main Content -->
+  <!-- Main -->
   <main class="flex-1 p-6">
-    <div class="bg-white p-6 rounded-lg shadow-sm">
+    <div class="bg-white rounded-lg shadow p-6 space-y-6">
 
-      <!-- ปุ่มเปิดฟอร์มแจ้งซ่อม -->
-      <div class="flex justify-between items-center mb-4">
-        <h2 class="text-xl font-bold">รายการงานซ่อม</h2>
-        <button id="openAddModal" class="bg-primary text-white px-4 py-2 rounded">แจ้งซ่อม</button>
+      <!-- Header + Add Button -->
+      <div class="flex justify-between items-center">
+        <h2 class="text-2xl font-bold">รายการงานซ่อม</h2>
+        <button id="openAddModal" class="bg-primary text-white px-4 py-2 rounded hover:bg-green-700">แจ้งซ่อม</button>
       </div>
 
-      <!-- ตัวกรอง -->
-      <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4">
+      <!-- Filters -->
+      <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <div>
-          <label class="block text-sm">วันที่ส่งซ่อม</label>
-          <input id="filterDate" type="date" class="border p-1 rounded w-full">
+          <label class="block text-sm font-medium">วันที่ส่งซ่อม</label>
+          <input id="filterDate" type="date" class="mt-1 block w-full border rounded p-2">
         </div>
         <div>
-          <label class="block text-sm">รหัส</label>
-          <input id="filterId" type="text" placeholder="รหัส" class="border p-1 rounded w-full">
+          <label class="block text-sm font-medium">รหัสอุปกรณ์</label>
+          <input id="filterId" type="text" placeholder="รหัส" class="mt-1 block w-full border rounded p-2">
         </div>
         <div>
-          <label class="block text-sm">ชื่อ</label>
-          <input id="filterName" type="text" placeholder="ชื่อ" class="border p-1 rounded w-full">
+          <label class="block text-sm font-medium">ชื่ออุปกรณ์</label>
+          <input id="filterName" type="text" placeholder="ชื่อ" class="mt-1 block w-full border rounded p-2">
         </div>
         <div>
-          <label class="block text-sm">สถานะ</label>
-          <select id="filterStatus" class="border p-1 rounded w-full">
+          <label class="block text-sm font-medium">สถานะ</label>
+          <select id="filterStatus" class="mt-1 block w-full border rounded p-2">
             <option value="">ทั้งหมด</option>
             <option value="แจ้งซ่อม">แจ้งซ่อม</option>
             <option value="รอซ่อม">รอซ่อม</option>
@@ -82,30 +82,30 @@
         </div>
       </div>
 
-      <!-- ตารางรายการงานซ่อม -->
+      <!-- Table -->
       <div class="overflow-x-auto">
-        <table class="min-w-full table-fixed rounded-lg overflow-hidden">
+        <table class="min-w-full bg-white">
           <thead class="bg-primary text-white">
             <tr>
-              <th class="w-24 py-2 px-4 text-left text-sm">รหัส</th>
-              <th class="w-36 py-2 px-4 text-left text-sm">ชื่อ</th>
-              <th class="w-48 py-2 px-4 text-left text-sm">หัวข้อ</th>
-              <th class="w-64 py-2 px-4 text-left text-sm">รายละเอียด</th>
-              <th class="w-32 py-2 px-4 text-left text-sm">รูปก่อนซ่อม</th>
-              <th class="w-32 py-2 px-4 text-left text-sm">สถานะ</th>
-              <th class="w-32 py-2 px-4 text-left text-sm">ค่าใช้จ่าย</th>
-              <th class="w-48 py-2 px-4 text-left text-sm">จัดการ</th>
+              <th class="py-2 px-4 text-left">รหัส</th>
+              <th class="py-2 px-4 text-left">ชื่อ</th>
+              <th class="py-2 px-4 text-left">หัวข้อ</th>
+              <th class="py-2 px-4 text-left">รายละเอียด</th>
+              <th class="py-2 px-4 text-left">รูปก่อนซ่อม</th>
+              <th class="py-2 px-4 text-left">สถานะ</th>
+              <th class="py-2 px-4 text-left">ค่าใช้จ่าย</th>
+              <th class="py-2 px-4 text-left">จัดการ</th>
             </tr>
           </thead>
-          <tbody id="repairList" class="bg-white divide-y divide-gray-200 text-sm"></tbody>
+          <tbody id="repairList" class="divide-y"></tbody>
         </table>
       </div>
 
-      <!-- แถวต่อหน้า & Pagination -->
-      <div class="flex justify-between items-center mt-4">
-        <div class="flex items-center">
-          <label for="rowsPerPage" class="mr-2">แสดง</label>
-          <select id="rowsPerPage" class="border px-2 py-1 rounded mr-2">
+      <!-- Pagination -->
+      <div class="flex justify-between items-center">
+        <div class="flex items-center space-x-2">
+          <label>แสดง</label>
+          <select id="rowsPerPage" class="border rounded p-1">
             <option value="15">15</option>
             <option value="50">50</option>
             <option value="100">100</option>
@@ -118,40 +118,48 @@
     </div>
   </main>
 
-  <!-- โมดัลเพิ่มแจ้งซ่อม -->
+  <!-- Add Modal -->
   <div id="addModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
     <div class="bg-white rounded-lg w-11/12 md:w-1/2 p-6 relative">
-      <button id="closeAddModal" class="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
-      <h2 class="text-xl font-bold mb-4">ฟอร์มแจ้งซ่อม</h2>
-      <form id="addForm" class="space-y-3">
-        <label>ชื่อผู้แจ้ง</label>
-        <input id="newReporterName" type="text" required class="w-full p-2 border rounded" placeholder="ชื่อผู้แจ้ง">
-        <label>รหัสอุปกรณ์</label>
-        <select id="newDeviceId" required class="w-full p-2 border rounded">
-          <option value="">-- เลือกอุปกรณ์ --</option>
-        </select>
-        <label>ชื่ออุปกรณ์</label>
-        <input id="newDeviceName" type="text" readonly class="w-full p-2 border rounded bg-gray-100" placeholder="(เลือกจากรหัส)">
-        <label>หัวข้อ</label>
-        <input id="newTitle" type="text" required class="w-full p-2 border rounded">
-        <label>รายละเอียด</label>
-        <textarea id="newDetails" required class="w-full p-2 border rounded"></textarea>
-        <label>รูปก่อนซ่อม</label>
-        <input id="newImageFile" type="file" accept="image/*" class="w-full">
-        <button type="submit" class="bg-primary text-secondary px-4 py-2 rounded">ส่งแจ้งซ่อม</button>
+      <button id="closeAddModal" class="absolute top-2 right-2 text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+      <h3 class="text-xl font-semibold mb-4">ฟอร์มแจ้งซ่อม</h3>
+      <form id="addForm" class="space-y-4">
+        <div>
+          <label class="block">ชื่อผู้แจ้ง</label>
+          <input id="newReporterName" type="text" required class="w-full border rounded p-2" placeholder="ชื่อผู้แจ้ง">
+        </div>
+        <div>
+          <label class="block">รหัสอุปกรณ์</label>
+          <select id="newDeviceId" required class="w-full border rounded p-2">
+            <option value="">-- เลือกอุปกรณ์ --</option>
+          </select>
+        </div>
+        <div>
+          <label class="block">หัวข้อ</label>
+          <input id="newTitle" type="text" required class="w-full border rounded p-2">
+        </div>
+        <div>
+          <label class="block">รายละเอียด</label>
+          <textarea id="newDetails" required class="w-full border rounded p-2"></textarea>
+        </div>
+        <div>
+          <label class="block">รูปก่อนซ่อม</label>
+          <input id="newImageFile" type="file" accept="image/*" class="w-full">
+        </div>
+        <button type="submit" class="bg-primary text-white px-4 py-2 rounded hover:bg-green-700">ส่งแจ้งซ่อม</button>
       </form>
     </div>
   </div>
 
-  <!-- โมดัลอัปเดตงานซ่อม -->
+  <!-- Update Modal -->
   <div id="updateModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
     <div class="bg-white rounded-lg w-11/12 md:w-1/2 p-6 relative">
-      <button id="closeUpdateModal" class="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+      <button id="closeUpdateModal" class="absolute top-2 right-2 text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
       <div id="updateContent"></div>
     </div>
   </div>
 
-  <!-- โมดัลดูรูป -->
+  <!-- Image Modal -->
   <div id="imageModal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center hidden z-50">
     <img id="modalImage" src="" class="max-w-full max-h-full rounded-lg shadow-lg">
   </div>
@@ -165,16 +173,17 @@
       if (s === "รอซ่อม") return "bg-yellow-300 text-black";
       if (s === "ส่งซ่อม") return "bg-indigo-500 text-white";
       if (s === "ซ่อมสำเร็จ") return "bg-green-500 text-white";
-      return "bg-gray-300 text-black";
+      return "bg-gray-200 text-black";
     }
 
+    // Initialize filters
     document.addEventListener('DOMContentLoaded', () => {
       ['filterDate','filterId','filterName','filterStatus'].forEach(id => {
         document.getElementById(id).value = '';
       });
     });
 
-    // โหลดอุปกรณ์
+    // Load devices
     db.ref("devices").on("value", snap => {
       devicesMap = {};
       const sel = document.getElementById("newDeviceId");
@@ -188,51 +197,47 @@
         sel.appendChild(opt);
       });
     });
-    document.getElementById("newDeviceId").addEventListener("change", e => {
-      document.getElementById("newDeviceName").value = devicesMap[e.target.value] || "";
-    });
 
-    // โหลดและเรียงข้อมูลซ่อม
+    // Load repairReports
     db.ref("repairReports").on("value", snap => {
       reportsData = [];
       snap.forEach(ch => {
         reportsData.push({ id: ch.key, ...ch.val() });
       });
-      reportsData.sort((a, b) => new Date(b.sendDate || b.date) - new Date(a.sendDate || a.date));
+      reportsData.sort((a,b)=>new Date(b.sendDate||b.date)-new Date(a.sendDate||a.date));
       renderTablePage();
     });
 
-    // ตัวกรอง & pagination listeners
-    ["filterDate","filterId","filterName","filterStatus"].forEach(id => {
-      const el = document.getElementById(id);
-      el.addEventListener("input", () => { currentPage = 1; renderTablePage(); });
-      el.addEventListener("change", () => { currentPage = 1; renderTablePage(); });
+    // Filter & pagination listeners
+    ["filterDate","filterId","filterName","filterStatus"].forEach(id=>{
+      document.getElementById(id).addEventListener("input",()=>{ currentPage=1; renderTablePage() });
+      document.getElementById(id).addEventListener("change",()=>{ currentPage=1; renderTablePage() });
     });
-    document.getElementById("rowsPerPage").addEventListener("change", e => {
+    document.getElementById("rowsPerPage").addEventListener("change",e=>{
       rowsPerPage = +e.target.value;
       currentPage = 1;
       renderTablePage();
     });
 
-    function renderTablePage() {
-      const fD = document.getElementById("filterDate").value;
-      const fI = document.getElementById("filterId").value.trim();
-      const fN = document.getElementById("filterName").value.trim();
-      const fS = document.getElementById("filterStatus").value;
+    function renderTablePage(){
+      const fD=document.getElementById("filterDate").value;
+      const fI=document.getElementById("filterId").value.trim();
+      const fN=document.getElementById("filterName").value.trim();
+      const fS=document.getElementById("filterStatus").value;
 
-      const filtered = reportsData.filter(r => {
-        const recDate = (r.sendDate || r.date || "").split("T")[0];
-        if (fD && recDate !== fD) return false;
-        if (fI && !r.deviceId.includes(fI)) return false;
-        if (fN && !r.deviceName.includes(fN)) return false;
-        if (fS && r.status !== fS) return false;
+      const filtered = reportsData.filter(r=>{
+        const recDate = (r.sendDate||r.date||"").split("T")[0];
+        if(fD && recDate!==fD) return false;
+        if(fI && !r.deviceId.includes(fI)) return false;
+        if(fN && !r.deviceName.includes(fN)) return false;
+        if(fS && r.status!==fS) return false;
         return true;
       });
 
       const tbody = document.getElementById("repairList");
       tbody.innerHTML = "";
-      const start = (currentPage - 1) * rowsPerPage;
-      filtered.slice(start, start + rowsPerPage).forEach(r => {
+      const start = (currentPage-1)*rowsPerPage;
+      filtered.slice(start, start+rowsPerPage).forEach(r=>{
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td class="py-2 px-4">${r.deviceId}</td>
@@ -241,7 +246,7 @@
           <td class="py-2 px-4">${r.details}</td>
           <td class="py-2 px-4">${r.imageUrl ? `<img src="${r.imageUrl}" class="h-16 rounded cursor-pointer" onclick="openImageModal('${r.imageUrl}')">` : "-"}</td>
           <td class="py-2 px-4"><span class="px-2 py-1 rounded-full ${getStatusClass(r.status)}">${r.status}</span></td>
-          <td class="py-2 px-4">${r.cost || "-"}</td>
+          <td class="py-2 px-4">${r.cost||"-"}</td>
           <td class="py-2 px-4 space-x-2">
             <button onclick="editRepair('${r.id}')" class="px-3 py-1 bg-primary text-secondary rounded">อัปเดต</button>
             <button onclick="deleteRepair('${r.id}')" class="px-3 py-1 bg-red-500 text-white rounded">ลบ</button>
@@ -249,170 +254,152 @@
         tbody.appendChild(tr);
       });
 
-      const totalPages = Math.ceil(filtered.length / rowsPerPage);
+      const totalPages = Math.ceil(filtered.length/rowsPerPage);
       const pg = document.getElementById("pagination");
       pg.innerHTML = "";
-      for (let i = 1; i <= totalPages; i++) {
-        const btn = document.createElement("button");
-        btn.textContent = i;
-        btn.className = `px-3 py-1 rounded ${i === currentPage ? 'bg-primary text-secondary' : 'bg-gray-300 text-black'}`;
-        btn.onclick = () => { currentPage = i; renderTablePage(); };
+      for(let i=1;i<=totalPages;i++){
+        const btn=document.createElement("button");
+        btn.textContent=i;
+        btn.className=`px-3 py-1 rounded ${i===currentPage?'bg-primary text-secondary':'bg-gray-200 text-black'}`;
+        btn.onclick=()=>{ currentPage=i; renderTablePage(); };
         pg.appendChild(btn);
       }
     }
 
-    function openImageModal(src) {
+    function openImageModal(src){
       document.getElementById("modalImage").src = src;
       document.getElementById("imageModal").classList.remove("hidden");
     }
-    document.getElementById("imageModal").onclick = () => {
+    document.getElementById("imageModal").onclick = ()=>{
       document.getElementById("imageModal").classList.add("hidden");
     };
 
-    function deleteRepair(id) {
-      if (!confirm('❗ คุณแน่ใจหรือไม่ว่าจะลบรายการนี้?')) return;
-      db.ref('repairReports/' + id).remove().catch(() => alert('❌ เกิดข้อผิดพลาด'));
+    function deleteRepair(id){
+      if(!confirm('❗ คุณแน่ใจหรือไม่ว่าจะลบรายการนี้?')) return;
+      db.ref('repairReports/'+id).remove();
     }
 
-    // add-repair logic
+    // Add logic
     const addModal = document.getElementById('addModal');
-    document.getElementById('openAddModal').onclick = () => {
+    document.getElementById('openAddModal').onclick = ()=>{
       addModal.classList.remove('hidden');
-      document.body.classList.add('overflow-hidden');
     };
-    document.getElementById('closeAddModal').onclick = () => {
+    document.getElementById('closeAddModal').onclick = ()=>{
       addModal.classList.add('hidden');
-      document.body.classList.remove('overflow-hidden');
     };
-    document.getElementById('addForm').onsubmit = async e => {
+    document.getElementById('addForm').onsubmit = async e=>{
       e.preventDefault();
       const reporterName = document.getElementById('newReporterName').value.trim();
-      const reporterLineId = /* ดึงจาก LIFF หรือ session ของคุณ */;
+      // ดึง userIdLine จากฐานข้อมูล device owner หรือผ่าน field เพิ่มเติม
+      const reporterLineId = ''; 
       const id = document.getElementById('newDeviceId').value;
-      const name = devicesMap[id] || '';
+      const name = devicesMap[id]||'';
       const title = document.getElementById('newTitle').value.trim();
       const details = document.getElementById('newDetails').value.trim();
       const file = document.getElementById('newImageFile').files[0];
       const nowISO = new Date().toISOString();
-
       const payload = {
-        reporterName,
-        userIdLine: reporterLineId,
-        deviceId: id,
-        deviceName: name,
-        title,
-        details,
-        date: nowISO,
-        sendDate: nowISO,
-        status: 'แจ้งซ่อม'
+        reporterName, userIdLine: reporterLineId,
+        deviceId: id, deviceName: name,
+        title, details, date: nowISO,
+        sendDate: nowISO, status:'แจ้งซ่อม'
       };
-      if (file) {
-        const ref = storage.ref(`repair_images/${id}_${Date.now()}`);
+      if(file){
+        const ref = storage.ref(`repair_images/before_${id}_${Date.now()}`);
         const snap = await ref.put(file);
         payload.imageUrl = await snap.ref.getDownloadURL();
       }
       await db.ref('repairReports').push(payload);
-      await db.ref('devices/' + id).update({ status: 'รอซ่อม' });
-
-      // แจ้งแอดมินด้วย action repair
-      fetch('https://script.google.com/macros/s/YOUR_WEB_APP_ID/exec', {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'repair',
-          user: reporterName,
-          userIdLine: reporterLineId,
-          items: [{ code: id, name, title, details }],
-          liffUrl: window.location.href
-        })
-      }).catch(console.error);
-
-      alert('✅ ส่งแจ้งซ่อมเรียบร้อย');
+      await db.ref('devices/'+id).update({status:'รอซ่อม'});
       addModal.classList.add('hidden');
-      document.body.classList.remove('overflow-hidden');
     };
 
-    // update-repair logic
-    document.getElementById('closeUpdateModal').onclick = () => {
+    // Update logic
+    document.getElementById('closeUpdateModal').onclick = ()=>{
       document.getElementById('updateModal').classList.add('hidden');
-      document.body.classList.remove('overflow-hidden');
     };
-    async function editRepair(id) {
-      const snap = await db.ref('repairReports/' + id).once('value');
-      const r = snap.val();
-      document.getElementById('updateContent').innerHTML = `
-        <h2 class="text-xl font-bold mb-4">อัปเดตงานซ่อม</h2>
-        <form id="updateForm" class="space-y-3">
+    async function editRepair(id){
+      const snap=await db.ref('repairReports/'+id).once('value');
+      const r=snap.val();
+      document.getElementById('updateContent').innerHTML=`
+        <h3 class="text-xl font-semibold mb-4">อัปเดตงานซ่อม</h3>
+        <form id="updateForm" class="space-y-4">
           <input type="hidden" id="updId" value="${id}">
-          <label>สถานะ</label>
-          <select id="updStatus" class="w-full p-2 border rounded">
-            <option ${r.status==='แจ้งซ่อม'?'selected':''}>แจ้งซ่อม</option>
-            <option ${r.status==='รอซ่อม'?'selected':''}>รอซ่อม</option>
-            <option ${r.status==='ส่งซ่อม'?'selected':''}>ส่งซ่อม</option>
-            <option ${r.status==='ซ่อมสำเร็จ'?'selected':''}>ซ่อมสำเร็จ</option>
-          </select>
-          <label>ผู้รับผิดชอบ</label>
-          <input id="updResponsible" value="${r.responsible||''}" class="w-full p-2 border rounded">
-          <label>รายละเอียดการแก้ไข</label>
-          <textarea id="updSolution" class="w-full p-2 border rounded">${r.solution||''}</textarea>
-          <label>ค่าใช้จ่าย</label>
-          <input id="updCost" value="${r.cost||''}" class="w-full p-2 border rounded">
-          <label>รูปหลังซ่อม</label>
-          <input id="updImageFile" type="file" accept="image/*" class="w-full">
-          ${r.imageAfter?`<img id="afterPreview" src="${r.imageAfter}" class="mt-2 h-24 rounded cursor-pointer" onclick="openImageModal('${r.imageAfter}')">`:''}
+          <div>
+            <label>สถานะ</label>
+            <select id="updStatus" class="w-full border rounded p-2">
+              <option ${r.status==='แจ้งซ่อม'?'selected':''}>แจ้งซ่อม</option>
+              <option ${r.status==='รอซ่อม'?'selected':''}>รอซ่อม</option>
+              <option ${r.status==='ส่งซ่อม'?'selected':''}>ส่งซ่อม</option>
+              <option ${r.status==='ซ่อมสำเร็จ'?'selected':''}>ซ่อมสำเร็จ</option>
+            </select>
+          </div>
+          <div>
+            <label>ผู้รับผิดชอบ</label>
+            <input id="updResponsible" value="${r.responsible||''}" class="w-full border rounded p-2">
+          </div>
+          <div>
+            <label>รายละเอียดการแก้ไข</label>
+            <textarea id="updSolution" class="w-full border rounded p-2">${r.solution||''}</textarea>
+          </div>
+          <div>
+            <label>ค่าใช้จ่าย</label>
+            <input id="updCost" value="${r.cost||''}" class="w-full border rounded p-2">
+          </div>
+          <div>
+            <label>รูปหลังซ่อม</label>
+            <input id="updImageFile" type="file" accept="image/*" class="w-full">
+            ${r.imageAfter?`<img id="afterPreview" src="${r.imageAfter}" class="mt-2 h-24 rounded cursor-pointer" onclick="openImageModal('${r.imageAfter}')">`:''}
+          </div>
           <button type="submit" class="bg-primary text-white px-4 py-2 rounded">บันทึก</button>
         </form>`;
       document.getElementById('updateModal').classList.remove('hidden');
-      document.body.classList.add('overflow-hidden');
 
-      document.getElementById('updImageFile').onchange = e => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = ev => {
-          let img = document.getElementById('afterPreview');
-          if (!img) {
-            img = document.createElement('img');
-            img.id = 'afterPreview';
-            img.className = 'mt-2 h-24 rounded';
-            document.getElementById('updateForm').insertBefore(img, e.target.nextSibling);
+      document.getElementById('updImageFile').onchange = e=>{
+        const file=e.target.files[0]; if(!file) return;
+        const reader=new FileReader();
+        reader.onload=ev=>{
+          let img=document.getElementById('afterPreview');
+          if(!img){
+            img=document.createElement('img');
+            img.id='afterPreview'; img.className='mt-2 h-24 rounded';
+            document.getElementById('updateForm').append(img);
           }
-          img.src = ev.target.result;
+          img.src=ev.target.result;
         };
         reader.readAsDataURL(file);
       };
 
-      document.getElementById('updateForm').onsubmit = async ev => {
+      document.getElementById('updateForm').onsubmit=async ev=>{
         ev.preventDefault();
-        const id2 = document.getElementById('updId').value;
-        const newStatus = document.getElementById('updStatus').value;
-        const solution = document.getElementById('updSolution').value;
-        const cost = document.getElementById('updCost').value;
-        const payload = { status: newStatus, solution, cost, responsible: document.getElementById('updResponsible').value };
-        const file2 = document.getElementById('updImageFile').files[0];
-        if (file2) {
-          const ref2 = storage.ref(`repair_images/after_${id2}_${Date.now()}`);
-          const snap2 = await ref2.put(file2);
-          payload.imageAfter = await snap2.ref.getDownloadURL();
+        const id2=document.getElementById('updId').value;
+        const newStatus=document.getElementById('updStatus').value;
+        const solution=document.getElementById('updSolution').value;
+        const cost=document.getElementById('updCost').value;
+        const responsible=document.getElementById('updResponsible').value;
+        const payload={ status:newStatus, solution, cost, responsible };
+        const file2=document.getElementById('updImageFile').files[0];
+        if(file2){
+          const ref2=storage.ref(`repair_images/after_${id2}_${Date.now()}`);
+          const snap2=await ref2.put(file2);
+          payload.imageAfter=await snap2.ref.getDownloadURL();
         }
-        await db.ref('repairReports/' + id2).update(payload);
+        await db.ref('repairReports/'+id2).update(payload);
 
-        if (newStatus === 'ซ่อมสำเร็จ') {
-          const r2snap = await db.ref('repairReports/' + id2).once('value');
-          const r2 = r2snap.val();
-          await db.ref('devices/' + r2.deviceId).update({ status: 'พร้อมใช้งาน' });
-
-          // แจ้งทั้งแอดมินและผู้แจ้ง
-          fetch('https://script.google.com/macros/s/AKfycbz7Fk6eljD73EVSG9fjWqd1-Fd_W66qBoSvjEo5AkaL2-kOrohZSZSy-KxFjIEWhUI/exec', {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              action: 'repairComplete',
-              user: r2.responsible || r2.reporterName,
+        if(newStatus==='ซ่อมสำเร็จ'){
+          const r2snap=await db.ref('repairReports/'+id2).once('value');
+          const r2=r2snap.val();
+          await db.ref('devices/'+r2.deviceId).update({status:'พร้อมใช้งาน'});
+          // ส่งไป admin + ผู้แจ้งจากฐานข้อมูล
+          fetch('https://script.google.com/macros/s/AKfycbz7Fk6eljD73EVSG9fjWqd1-Fd_W66qBoSvjEo5AkaL2-kOrohZSZSy-KxFjIEWhUI/exec',{
+            method:'POST',
+            mode:'no-cors',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({
+              action:'repairComplete',
+              user: responsible||r2.reporterName,
               userIdLine: r2.userIdLine,
-              items: [{ code: r2.deviceId, name: r2.deviceName, title: r2.title, details: solution }],
+              items:[{ code:r2.deviceId, name:r2.deviceName, title:r2.title, details:solution }],
               liffUrl: window.location.href
             })
           }).catch(console.error);
@@ -420,7 +407,6 @@
 
         alert('✅ อัปเดตเรียบร้อย');
         document.getElementById('updateModal').classList.add('hidden');
-        document.body.classList.remove('overflow-hidden');
       };
     }
   </script>
