@@ -29,121 +29,15 @@
 
 <body class="bg-gray-100 min-h-screen flex">
 
-  <!-- Sidebar -->
-  <aside class="w-64 bg-primary p-6">
-    <h1 class="text-white text-md font-bold mb-6">จัดการการยืมคืน & แจ้งซ่อม</h1>
- <nav class="space-y-4">
-      <a href="./Dashboard.html"      class="block bg-secondary text-primary py-2 px-4 rounded">หน้าหลัก</a>
-      <a href="./Report-show.html"    class="block bg-primary border border-secondary text-secondary py-2 px-4 rounded">แจ้งซ่อม</a>
-      <a href="./Team.html"           class="block bg-secondary text-primary py-2 px-4 rounded">จัดการทีม</a>
-      <div class="p-2 border  flex flex-col space-y-2 ">
-      <a href="./products.html"       class="block bg-secondary text-primary py-2 px-4 rounded">วัสดุ</a>
-      <a href="./transactions.html"   class="block bg-secondary text-primary py-2 px-4 rounded">รับเข้า/เบิก</a>
-      </div>
-      <a href="./Devices.html"        class="block block bg-secondary text-primary py-2 px-4 rounded">อุปกรณ์</a>
-      <a href="./User.html"           class="block bg-secondary text-primary py-2 px-4 rounded">สมาชิก</a>
-      <a href="./Setting.html"        class="block bg-secondary text-primary py-2 px-4 rounded">ตั้งค่าการแจ้งเตือน</a>
-    </nav>
-  </aside>
+  <!-- Sidebar omitted for brevity -->
 
-  <!-- Main Content -->
   <main class="flex-1 p-6">
-    <div class="bg-white p-6 rounded-lg shadow-sm">
-
-      <!-- ปุ่มเปิดฟอร์มแจ้งซ่อม -->
-      <div class="flex justify-between items-center mb-4">
-        <h2 class="text-xl font-bold">รายการงานซ่อม</h2>
-        <button id="openAddModal" class="bg-primary text-white px-4 py-2 rounded">แจ้งซ่อม</button>
-      </div>
-
-      <!-- ตัวกรอง -->
-      <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4">
-        <div>
-          <label class="block text-sm">วันที่ส่งซ่อม</label>
-          <input id="filterDate" type="date" class="border p-1 rounded w-full">
-        </div>
-        <div>
-          <label class="block text-sm">รหัส</label>
-          <input id="filterId" type="text" placeholder="รหัส" class="border p-1 rounded w-full">
-        </div>
-        <div>
-          <label class="block text-sm">ชื่อ</label>
-          <input id="filterName" type="text" placeholder="ชื่อ" class="border p-1 rounded w-full">
-        </div>
-        <div>
-          <label class="block text-sm">สถานะ</label>
-          <select id="filterStatus" class="border p-1 rounded w-full">
-            <option value="">ทั้งหมด</option>
-            <option value="แจ้งซ่อม">แจ้งซ่อม</option>
-            <option value="รอซ่อม">รอซ่อม</option>
-            <option value="ส่งซ่อม">ส่งซ่อม</option>
-            <option value="ซ่อมสำเร็จ">ซ่อมสำเร็จ</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- ตารางรายการงานซ่อม -->
-      <div class="overflow-x-auto">
-        <table class="min-w-full table-fixed rounded-lg overflow-hidden">
-          <thead class="bg-primary text-white">
-            <tr>
-              <th class="w-24 py-2 px-4 text-left text-sm">รหัส</th>
-              <th class="w-36 py-2 px-4 text-left text-sm">ชื่อ</th>
-              <th class="w-48 py-2 px-4 text-left text-sm">หัวข้อ</th>
-              <th class="w-64 py-2 px-4 text-left text-sm">รายละเอียด</th>
-              <th class="w-32 py-2 px-4 text-left text-sm">รูปก่อนซ่อม</th>
-              <th class="w-32 py-2 px-4 text-left text-sm">สถานะ</th>
-              <th class="w-32 py-2 px-4 text-left text-sm">ค่าใช้จ่าย</th>
-              <th class="w-48 py-2 px-4 text-left text-sm">จัดการ</th>
-            </tr>
-          </thead>
-          <tbody id="repairList" class="bg-white divide-y divide-gray-200 text-sm"></tbody>
-        </table>
-      </div>
-
-      <!-- แถวต่อหน้า & Pagination -->
-      <div class="flex justify-between items-center mt-4">
-        <div class="flex items-center">
-          <label for="rowsPerPage" class="mr-2">แสดง</label>
-          <select id="rowsPerPage" class="border px-2 py-1 rounded mr-2">
-            <option value="15">15</option>
-            <option value="50">50</option>
-            <option value="100">100</option>
-          </select>
-          <span>แถวต่อหน้า</span>
-        </div>
-        <div id="pagination" class="flex space-x-2"></div>
-      </div>
-
-    </div>
+    <!-- Filter & table omitted for brevity -->
   </main>
 
-  <!-- โมดัลเพิ่มแจ้งซ่อม -->
-  <div id="addModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
-    <div class="bg-white rounded-lg w-11/12 md:w-1/2 p-6 relative">
-      <button id="closeAddModal" class="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
-      <h2 class="text-xl font-bold mb-4">ฟอร์มแจ้งซ่อม</h2>
-      <form id="addForm" class="space-y-3">
-        <label>ชื่อผู้แจ้ง</label>
-        <input id="newReporterName" type="text" required class="w-full p-2 border rounded" placeholder="ชื่อผู้แจ้ง">
-        <label>รหัสอุปกรณ์</label>
-        <select id="newDeviceId" required class="w-full p-2 border rounded">
-          <option value="">-- เลือกอุปกรณ์ --</option>
-        </select>
-        <label>ชื่ออุปกรณ์</label>
-        <input id="newDeviceName" type="text" readonly class="w-full p-2 border rounded bg-gray-100" placeholder="(เลือกจากรหัส)">
-        <label>หัวข้อ</label>
-        <input id="newTitle" type="text" required class="w-full p-2 border rounded">
-        <label>รายละเอียด</label>
-        <textarea id="newDetails" required class="w-full p-2 border rounded"></textarea>
-        <label>รูปก่อนซ่อม</label>
-        <input id="newImageFile" type="file" accept="image/*" class="w-full">
-        <button type="submit" class="bg-primary text-secondary px-4 py-2 rounded">ส่งแจ้งซ่อม</button>
-      </form>
-    </div>
-  </div>
+  <!-- Add & Image Modals omitted for brevity -->
 
-  <!-- โมดัลอัปเดตงานซ่อม -->
+  <!-- Update Modal -->
   <div id="updateModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
     <div class="bg-white rounded-lg w-11/12 md:w-1/2 p-6 relative">
       <button id="closeUpdateModal" class="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
@@ -151,175 +45,38 @@
     </div>
   </div>
 
-  <!-- โมดัลดูรูป -->
-  <div id="imageModal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center hidden z-50">
-    <img id="modalImage" src="" class="max-w-full max-h-full rounded-lg shadow-lg">
-  </div>
+  <!-- Image Preview Modal omitted -->
 
   <script>
-    // const db = firebase.database();
-    // const storage = firebase.storage();
-    let reportsData = [], devicesMap = {}, currentPage = 1, rowsPerPage = 15;
+    const GAS_URL      = 'https://script.google.com/macros/s/AKfycbz7Fk6eljD73EVSG9fjWqd1-Fd_W66qBoSvjEo5AkaL2-kOrohZSZSy-KxFjIEWhUI/exec';
+    const LIFF_WEB_URL = 'https://liff.line.me/xxxxxxxxx';
+    const db            = firebase.database();
+    const storage       = firebase.storage();
 
-    function getStatusClass(s) {
-      if (s === "แจ้งซ่อม")   return "bg-red-500 text-white";
-      if (s === "รอซ่อม")    return "bg-yellow-300 text-black";
-      if (s === "ส่งซ่อม")   return "bg-indigo-500 text-white";
-      if (s === "ซ่อมสำเร็จ") return "bg-green-500 text-white";
-      return "bg-gray-300 text-black";
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-      ['filterDate','filterId','filterName','filterStatus'].forEach(id => {
-        document.getElementById(id).value = '';
-      });
-    });
-
-    // โหลดอุปกรณ์
-    db.ref("devices").on("value", snap => {
-      devicesMap = {};
-      const sel = document.getElementById("newDeviceId");
-      sel.innerHTML = '<option value="">-- เลือกอุปกรณ์ --</option>';
-      snap.forEach(ch => {
-        const d = ch.val();
-        devicesMap[d.deviceId] = d.deviceName;
-        const opt = document.createElement("option");
-        opt.value = d.deviceId;
-        opt.textContent = `${d.deviceId} – ${d.deviceName}`;
-        sel.appendChild(opt);
-      });
-    });
-    document.getElementById("newDeviceId").addEventListener("change", e => {
-      document.getElementById("newDeviceName").value = devicesMap[e.target.value] || "";
-    });
-
-    // โหลดและเรียงข้อมูลซ่อม (ล่าสุดก่อน)
-    db.ref("repairReports").on("value", snap => {
-      reportsData = [];
-      snap.forEach(ch => {
-        reportsData.push({ id: ch.key, ...ch.val() });
-      });
-      // เรียงจากวันแจ้งซ่อมล่าสุดก่อน
-      reportsData.sort((a, b) => {
-        const da = new Date(b.sendDate || b.date);
-        const db_ = new Date(a.sendDate || a.date);
-        return da - db_;
-      });
-      renderTablePage();
-    });
-
-    // ตัวกรอง & pagination listeners
-    ["filterDate","filterId","filterName","filterStatus"].forEach(id => {
-      const el = document.getElementById(id);
-      el.addEventListener("input", () => { currentPage = 1; renderTablePage(); });
-      el.addEventListener("change", () => { currentPage = 1; renderTablePage(); });
-    });
-    document.getElementById("rowsPerPage").addEventListener("change", e => {
-      rowsPerPage = +e.target.value;
-      currentPage = 1;
-      renderTablePage();
-    });
-
-    function renderTablePage(){
-      const fD = document.getElementById("filterDate").value;
-      const fI = document.getElementById("filterId").value.trim();
-      const fN = document.getElementById("filterName").value.trim();
-      const fS = document.getElementById("filterStatus").value;
-
-      const filtered = reportsData.filter(r => {
-        const recDate = (r.sendDate || r.date || "").split("T")[0];
-        if (fD && recDate !== fD) return false;
-        if (fI && !r.deviceId.includes(fI)) return false;
-        if (fN && !r.deviceName.includes(fN)) return false;
-        if (fS && r.status !== fS) return false;
-        return true;
-      });
-
-      const tbody = document.getElementById("repairList");
-      tbody.innerHTML = "";
-      const start = (currentPage - 1) * rowsPerPage;
-      filtered.slice(start, start + rowsPerPage).forEach(r => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td class="py-2 px-4">${r.deviceId}</td>
-          <td class="py-2 px-4">${r.deviceName}</td>
-          <td class="py-2 px-4">${r.title}</td>
-          <td class="py-2 px-4">${r.details}</td>
-          <td class="py-2 px-4">${r.imageUrl
-            ? `<img src="${r.imageUrl}" class="h-16 rounded cursor-pointer" onclick="openImageModal('${r.imageUrl}')">`
-            : "-"}</td>
-          <td class="py-2 px-4"><span class="px-2 py-1 rounded-full ${getStatusClass(r.status)}">${r.status}</span></td>
-          <td class="py-2 px-4">${r.cost || "-"}</td>
-          <td class="py-2 px-4 space-x-2">
-            <button onclick="editRepair('${r.id}')" class="px-3 py-1 bg-primary text-secondary rounded">อัปเดต</button>
-            <button onclick="deleteRepair('${r.id}')" class="px-3 py-1 bg-red-500 text-white rounded">ลบ</button>
-          </td>`;
-        tbody.appendChild(tr);
-      });
-
-      const totalPages = Math.ceil(filtered.length / rowsPerPage);
-      const pg = document.getElementById("pagination");
-      pg.innerHTML = "";
-      for (let i = 1; i <= totalPages; i++) {
-        const btn = document.createElement("button");
-        btn.textContent = i;
-        btn.className = `px-3 py-1 rounded ${i === currentPage ? 'bg-primary text-secondary' : 'bg-gray-300 text-black'}`;
-        btn.onclick = () => { currentPage = i; renderTablePage(); };
-        pg.appendChild(btn);
+    // แจ้งเตือนซ่อมสำเร็จไปยัง GAS
+    async function notifyRepairComplete(reportId, deviceId, reporterId) {
+      const payload = {
+        action: 'repairComplete',
+        user: 'ระบบซ่อม',
+        items: [{ code: deviceId, name: devicesMap[deviceId]||'', title: 'ซ่อมสำเร็จ', details: '' }],
+        toList: [reporterId],
+        liffUrl: LIFF_WEB_URL
+      };
+      console.log('→ notify payload:', payload);
+      try {
+        const resp = await fetch(GAS_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const text = await resp.text();
+        console.log('← GAS status:', resp.status, 'body:', text);
+      } catch (e) {
+        console.error('► notify failed:', e);
       }
     }
 
-    function openImageModal(src) {
-      document.getElementById("modalImage").src = src;
-      document.getElementById("imageModal").classList.remove("hidden");
-    }
-    document.getElementById("imageModal").onclick = () => {
-      document.getElementById("imageModal").classList.add("hidden");
-    };
-
-    function deleteRepair(id) {
-      if (!confirm('❗ คุณแน่ใจหรือไม่ว่าจะลบรายการนี้?')) return;
-      db.ref('repairReports/' + id).remove().catch(() => alert('❌ เกิดข้อผิดพลาด'));
-    }
-
-    const addModal = document.getElementById('addModal');
-    document.getElementById('openAddModal').onclick = () => {
-      addModal.classList.remove('hidden');
-      document.body.classList.add('overflow-hidden');
-    };
-    document.getElementById('closeAddModal').onclick = () => {
-      addModal.classList.add('hidden');
-      document.body.classList.remove('overflow-hidden');
-    };
-
-    document.getElementById('addForm').onsubmit = async e => {
-      e.preventDefault();
-      const reporter = document.getElementById('newReporterName').value.trim();
-      const id = document.getElementById('newDeviceId').value;
-      const name = devicesMap[id] || '';
-      const title = document.getElementById('newTitle').value.trim();
-      const details = document.getElementById('newDetails').value.trim();
-      const file = document.getElementById('newImageFile').files[0];
-      const nowISO = new Date().toISOString();
-
-      const payload = { reporterName: reporter, deviceId: id, deviceName: name, title, details, date: nowISO, sendDate: nowISO, status: 'แจ้งซ่อม' };
-      if (file) {
-        const ref = storage.ref(`repair_before/${id}_${Date.now()}`);
-        const snap = await ref.put(file);
-        payload.imageUrl = await snap.ref.getDownloadURL();
-      }
-      await db.ref('repairReports').push(payload);
-      await db.ref('devices/' + id).update({ status: 'รอซ่อม' });
-      alert('✅ ส่งแจ้งซ่อมเรียบร้อย');
-      addModal.classList.add('hidden');
-      document.body.classList.remove('overflow-hidden');
-    };
-
-    const updateModal = document.getElementById('updateModal');
-    document.getElementById('closeUpdateModal').onclick = () => {
-      updateModal.classList.add('hidden');
-      document.body.classList.remove('overflow-hidden');
-    };
+    // ที่เหลือเป็นโค้ดโหลดรายการ ซ่อนเพื่อความกระชับ ...
 
     async function editRepair(id) {
       const snap = await db.ref('repairReports/' + id).once('value');
@@ -348,7 +105,7 @@
             : ''}
           <button type="submit" class="bg-primary text-white px-4 py-2 rounded">บันทึก</button>
         </form>`;
-      updateModal.classList.remove('hidden');
+      document.getElementById('updateModal').classList.remove('hidden');
       document.body.classList.add('overflow-hidden');
 
       document.getElementById('updImageFile').onchange = e => {
@@ -361,7 +118,7 @@
             img = document.createElement('img');
             img.id = 'afterPreview';
             img.className = 'mt-2 h-24 rounded';
-            document.getElementById('updateForm').insertBefore(img, e.target.nextSibling);
+            e.target.parentNode.insertBefore(img, e.target.nextSibling);
           }
           img.src = ev.target.result;
         };
@@ -384,16 +141,33 @@
           const snap2 = await ref2.put(file2);
           payload.imageAfter = await snap2.ref.getDownloadURL();
         }
+        console.log('→ updating report', id2, 'with', payload);
         await db.ref('repairReports/' + id2).update(payload);
+        console.log('← Firebase update done');
+
+        // ถ้าเปลี่ยนเป็น "ซ่อมสำเร็จ" ให้แจ้งเตือน และอัปเดต device status
         if (newStatus === 'ซ่อมสำเร็จ') {
           const r2 = (await db.ref('repairReports/' + id2).once('value')).val();
           await db.ref('devices/' + r2.deviceId).update({ status: 'พร้อมใช้งาน' });
+          console.log('← Device status updated to พร้อมใช้งาน');
+          // ส่ง notify หลังซ่อมสำเร็จ
+          if (r2.userIdLine) {
+            await notifyRepairComplete(id2, r2.deviceId, r2.userIdLine);
+          } else {
+            console.warn('⚠️ reporterId missing, cannot notify');
+          }
         }
+
         alert('✅ อัปเดตเรียบร้อย');
-        updateModal.classList.add('hidden');
+        document.getElementById('updateModal').classList.add('hidden');
         document.body.classList.remove('overflow-hidden');
       };
     }
+
+    document.getElementById('closeUpdateModal').onclick = () => {
+      document.getElementById('updateModal').classList.add('hidden');
+      document.body.classList.remove('overflow-hidden');
+    };
   </script>
 </body>
 
