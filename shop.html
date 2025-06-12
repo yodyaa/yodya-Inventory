@@ -495,7 +495,6 @@
       const payload = { action, user: userFullName, userId, items };
       const res = await fetch(GAS_URL, {
         method:'POST',
-        headers:{ 'Content-Type':'application/json' },
         body: JSON.stringify(payload)
       });
       const j = await res.json();
