@@ -4,15 +4,18 @@
   <meta charset="UTF-8" />
   <title>ประวัติรับเข้า / เบิกสินค้า (UserID → ชื่อพนักงาน)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- Tailwind -->
+  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
+    // Tailwind CSS Configuration
     tailwind.config = { theme: { extend: { colors: {primary: '#174D27',secondary: '#CADEC3', } } } };
   </script>
-  <!-- Firebase -->
+  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+  
+  <!-- IMPORTANT: Make sure your firebase-config.js is in the same directory and configured correctly -->
   <script src="firebase-config.js"></script>
   <style>
     .modal-content-scroll {
@@ -38,20 +41,20 @@
       <a href="./Setting.html"        class="block bg-secondary text-primary py-2 px-4 rounded">ตั้งค่าการแจ้งเตือน</a>
     </nav>
   </aside>
-   <!-- Main -->
+   <!-- Main content area -->
   <main class="flex-1 p-6 space-y-6">
-    <!-- Datalists -->
+    <!-- Datalists for product and member suggestions -->
     <datalist id="productList"></datalist>
     <datalist id="memberList"></datalist>
 
-    <!-- Summary Card -->
+    <!-- Summary Cards and Action Buttons -->
     <div class="grid grid-cols-4 gap-4">
-
-   <!-- Buttons -->
+   <!-- Buttons to open modals -->
       <div class="flex space-x-4">
         <button id="openIssueBtn"   class="bg-red-600  w-full text-white px-4 py-2 rounded hover:bg-red-700">เบิก</button>
         <button id="openReceiveBtn" class="bg-green-600 w-full text-white px-4 py-2 rounded hover:bg-green-700">รับเข้า</button>
       </div>
+      <!-- Total count display -->
       <div class="bg-white p-4 rounded-lg shadow">
         <h3 class="text-sm text-gray-500">รายการทั้งหมด</h3>
         <p id="totalCount" class="text-3xl font-bold">0</p>
@@ -77,7 +80,7 @@
       </table>
     </div>
 
-    <!-- Pagination -->
+    <!-- Pagination controls -->
     <div class="flex justify-between items-center mt-4">
       <button id="prevPage" class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50" disabled>ก่อนหน้า</button>
       <span id="pageInfo" class="text-sm text-gray-600">หน้าที่ 1 จาก 1</span>
@@ -128,23 +131,29 @@
   </main>
 
   <script>
-    // Firebase refs
+    // Firebase references
     const stockRef     = db.ref('stock');
     const receiveRef   = db.ref('receiveRecords');
     const issueRef     = db.ref('issueRecords');
     const employeesRef = db.ref('employees');
 
-    // Maps for products & employees
+    // Maps for caching product and employee data
     const productsMap = {};
-    const employeesMapById   = {};
-    const employeesMapByName = {};
+    const employeesMapById   = {};   // userIdLine -> fullName
+    const employeesMapByName = {}; // fullName -> userIdLine
 
-    // UI elements
+    // UI elements and pagination state
     const productListEl = document.getElementById('productList');
     const memberListEl  = document.getElementById('memberList');
     let allRecords = [], pageSize = 10, currentPage = 1;
 
-    // Load products
+    // --- Configuration for GAS & LIFF (Update these values) ---
+    const GAS_URL      = 'https://script.google.com/macros/s/AKfycbxetqC2xndc0vB_-FqFOEqGQUgn8Q9TkOw8bMOR7sewqEPlEw55jUHa1t2CtB5igg/exec'; // <<<--- YOUR GAS DEPLOYED WEB APP URL
+    const LIFF_WEB_URL = 'https://liff.line.me/'; // <<<--- YOUR LIFF APP URL (used for the button in Flex Message)
+
+    // --- Data Loading Functions ---
+
+    // Load products from Firebase into productsMap and datalist
     stockRef.once('value').then(snap => {
       snap.forEach(ch => {
         const d = ch.val();
@@ -154,7 +163,7 @@
       });
     });
 
-    // Load employees into maps & datalist
+    // Load employees from Firebase into maps and datalist
     employeesRef.once('value').then(snap => {
       snap.forEach(ch => {
         const e = ch.val();
@@ -164,13 +173,17 @@
       });
     });
 
-    // Helper: show alert
+    // --- UI Helper Functions ---
+
+    // Simple alert function (can be replaced with a more custom UI if needed)
     function showCustomAlert(msg) {
       console.log("Alert:", msg);
       alert(msg);
     }
 
-    // --- Dynamic Item Row Management ---
+    // --- Dynamic Item Row Management for Modals ---
+
+    // Creates a new item row for the receive/issue modal
     function createItemRow(type) {
       const row = document.createElement('div');
       row.className = 'flex space-x-2 items-end';
@@ -189,6 +202,7 @@
           </svg>
         </button>
       `;
+      // Event listener to show current stock when product code is entered
       const codeInput = row.querySelector('.item-code-input');
       const stockInfo = row.querySelector('.item-stock-info');
       const removeBtn = row.querySelector('.remove-item-btn');
@@ -197,35 +211,36 @@
         const info = productsMap[code];
         stockInfo.textContent = info ? `คงเหลือ: ${info.quantity} ${info.unit}` : 'คงเหลือ: –';
       });
+      // Event listener to remove item row
       removeBtn.addEventListener('click', () => {
         const containerId = type === 'receive' ? 'receiveItemsContainer' : 'issueItemsContainer';
         const container = document.getElementById(containerId);
-        if (container.children.length > 1) row.remove();
+        if (container.children.length > 1) row.remove(); // Don't remove if only one row left
         else showCustomAlert('ต้องมีรายการสินค้าอย่างน้อย 1 รายการ');
       });
       return row;
     }
 
+    // Initializes a modal by clearing previous items and adding a new empty row
     function initializeModal(modalId, containerId, addBtnId, type) {
       const modal = document.getElementById(modalId);
       const container = document.getElementById(containerId);
       const addBtn = document.getElementById(addBtnId);
-      container.innerHTML = '';
-      container.appendChild(createItemRow(type));
-      addBtn.onclick = () => container.appendChild(createItemRow(type));
-      modal.classList.remove('hidden');
+      container.innerHTML = ''; // Clear existing rows
+      container.appendChild(createItemRow(type)); // Add one initial row
+      addBtn.onclick = () => container.appendChild(createItemRow(type)); // Add more rows on button click
+      modal.classList.remove('hidden'); // Show the modal
     }
 
+    // Attach event listeners for opening and closing modals
     document.getElementById('openReceiveBtn').onclick = () => initializeModal('receiveModal','receiveItemsContainer','addReceiveItemBtn','receive');
     document.getElementById('openIssueBtn').onclick   = () => initializeModal('issueModal','issueItemsContainer','addIssueItemBtn','issue');
     document.getElementById('cancelReceiveBtn').onclick = () => document.getElementById('receiveModal').classList.add('hidden');
     document.getElementById('cancelIssueBtn').onclick   = () => document.getElementById('issueModal').classList.add('hidden');
 
-    // GAS & LIFF URLs
-    const GAS_URL      = 'https://script.google.com/macros/s/AKfycbxetqC2xndc0vB_-FqFOEqGQUgn8Q9TkOw8bMOR7sewqEPlEw55jUHa1t2CtB5igg/exec';
-    const LIFF_WEB_URL = 'https://liff.line.me/XXX';
+    // --- Notification Logic (Sending data to GAS) ---
 
-    // Fetch admin IDs from Firebase
+    // Fetches admin user IDs from Firebase
     async function getAdminIds() {
       const snap = await employeesRef.orderByChild('role').equalTo('admin').get();
       const ids = [];
@@ -236,93 +251,140 @@
       return ids;
     }
 
-    // Notify admins via GAS Flex Message
+    /**
+     * Sends a notification to GAS, which then pushes a Flex Message to specified recipients.
+     * This function is modified to send to both the chosen user AND all admins.
+     * @param {'issue' | 'receive'} action - The type of action (issue or receive).
+     * @param {string} userFullName - Full name of the user performing the action (as selected in modal).
+     * @param {string} userId - LINE User ID of the user performing the action.
+     * @param {Array<Object>} items - The list of items involved in the transaction.
+     */
     async function notifyAdmins(action, userFullName, userId, items) {
-      const toList = await getAdminIds();
+      const adminIds = await getAdminIds(); // Fetch Admin IDs
+      const allRecipients = new Set(adminIds); // Use a Set to ensure unique IDs
+
+      // Add the userId of the selected user (from the modal dropdown) to the recipient list
+      if (userId) { // Ensure userId is valid
+        allRecipients.add(userId);
+      }
+      
+      const toList = Array.from(allRecipients); // Convert Set back to Array
+
       if (!toList.length) {
-        console.warn('No admin IDs found for notification.');
+        console.warn('No recipients found for notification (neither user nor admins).');
         return;
       }
+
+      // Prepare simplified items for GAS (only necessary data)
       const simplifiedItems = items.map(item => ({
         code: item.code,
         name: item.name,
         qty:  item.qty
       }));
+
       try {
         await fetch(GAS_URL, {
           method: 'POST',
-          mode:   'no-cors',
+          mode:   'no-cors', // Use 'no-cors' if your GAS is public and doesn't handle CORS.
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             action,
-            user:    userFullName,
-            userId:  userId,
+            user:    userFullName, // Name of the person who made the transaction
+            userId:  userId,      // User ID of the person who made the transaction
             items:   simplifiedItems,
-            toList,
-            liffUrl: LIFF_WEB_URL
+            toList,               // This array now contains both Admin IDs and the selected user's ID
+            liffUrl: LIFF_WEB_URL // URL for the button in Flex Message
           })
         });
-        console.log('Admin notification sent via GAS.');
+        console.log('Notification sent to selected user and admins via GAS.');
       } catch (error) {
-        console.error('Error sending admin notification via GAS:', error);
+        console.error('Error sending notification via GAS:', error);
       }
     }
 
-    // Receive form submission
-    document.getElementById('receiveForm').onsubmit = async ev => {
-      ev.preventDefault();
-      const userName = document.getElementById('recvUserInput').value.trim();
-      const userId   = employeesMapByName[userName] || userIdLine;
-      const rows     = document.querySelectorAll('#receiveItemsContainer .flex');
+    // --- Form Submission Handlers ---
 
+    // Handle Receive form submission
+    document.getElementById('receiveForm').onsubmit = async ev => {
+      ev.preventDefault(); // Prevent default form submission
+      
+      const userName = document.getElementById('recvUserInput').value.trim();
+      const userId   = employeesMapByName[userName]; // Get userIdLine of the selected employee
+      
+      if (!userId) { // Validate if a valid user was selected
+          showCustomAlert(`ไม่พบรหัสผู้ใช้ LINE สำหรับพนักงาน "${userName}" กรุณาเลือกพนักงานที่ถูกต้อง`);
+          return;
+      }
+
+      const rows = document.querySelectorAll('#receiveItemsContainer .flex');
       const items = Array.from(rows).map(row => {
         const code = row.querySelector('.item-code-input').value.split(' ‒ ')[0];
         const qty  = +row.querySelector('.item-qty-input').value;
-        const name = productsMap[code]?.name || '';
+        const name = productsMap[code]?.name || ''; // Get product name from map
         return { code, name, qty };
       });
 
       const transactions = [];
       const errors = [];
+      
+      // Validate each item and prepare Firebase transactions
       rows.forEach(row => {
         const code = row.querySelector('.item-code-input').value.split(' ‒ ')[0];
         const qty  = +row.querySelector('.item-qty-input').value;
         const info = productsMap[code];
+
         if (!info) { errors.push(`ไม่พบสินค้า: "${code}"`); return; }
         if (qty <= 0) { errors.push(`จำนวนสินค้า "${info.name}" ต้องมากกว่า 0`); return; }
-        const recordId = receiveRef.push().key;
+
+        const recordId = receiveRef.push().key; // Generate a unique ID for the record
         transactions.push(
+          // Increment stock quantity
           stockRef.child(code).child('quantity').transaction(q => (q||0) + qty)
             .then(() => receiveRef.child(recordId).set({
               id: recordId,
-              date: new Date().toISOString(),
-              timestamp: firebase.database.ServerValue.TIMESTAMP,
-              userId, itemCode: code, itemName: info.name, quantity: qty
+              date: new Date().toISOString(), // Record current date
+              timestamp: firebase.database.ServerValue.TIMESTAMP, // Firebase server timestamp
+              userId, // User ID of the person who made the transaction
+              itemCode: code,
+              itemName: info.name,
+              quantity: qty
             }))
         );
       });
-      if (errors.length) return showCustomAlert('ข้อผิดพลาด:\n' + errors.join('\n'));
+      
+      if (errors.length) { // If any validation errors, show alert and stop
+          return showCustomAlert('ข้อผิดพลาด:\n' + errors.join('\n'));
+      }
 
       try {
-        await Promise.all(transactions);
+        await Promise.all(transactions); // Execute all Firebase transactions concurrently
+        
+        // Notify both the selected user and admins via GAS
         await notifyAdmins('receive', userName, userId, items);
+        
         showCustomAlert('รับเข้าสินค้าและแจ้งเตือนสำเร็จ!');
-        ev.target.reset();
-        document.getElementById('receiveModal').classList.add('hidden');
-        initializeModal('receiveModal','receiveItemsContainer','addReceiveItemBtn','receive');
+        ev.target.reset(); // Clear form
+        document.getElementById('receiveModal').classList.add('hidden'); // Hide modal
+        initializeModal('receiveModal','receiveItemsContainer','addReceiveItemBtn','receive'); // Re-initialize modal for next use
       } catch (e) {
         console.error(e);
-        showCustomAlert('เกิดข้อผิดพลาด: ' + e.message);
+        showCustomAlert('เกิดข้อผิดพลาดในการทำรายการ: ' + e.message);
       }
     };
 
-    // Issue form submission
+    // Handle Issue form submission
     document.getElementById('issueForm').onsubmit = async ev => {
-      ev.preventDefault();
+      ev.preventDefault(); // Prevent default form submission
+      
       const userName = document.getElementById('issUserInput').value.trim();
-      const userId   = employeesMapByName[userName] || userIdLine;
-      const rows     = document.querySelectorAll('#issueItemsContainer .flex');
+      const userId   = employeesMapByName[userName]; // Get userIdLine of the selected employee
+      
+      if (!userId) { // Validate if a valid user was selected
+          showCustomAlert(`ไม่พบรหัสผู้ใช้ LINE สำหรับพนักงาน "${userName}" กรุณาเลือกพนักงานที่ถูกต้อง`);
+          return;
+      }
 
+      const rows = document.querySelectorAll('#issueItemsContainer .flex');
       const items = Array.from(rows).map(row => {
         const code = row.querySelector('.item-code-input').value.split(' ‒ ')[0];
         const qty  = +row.querySelector('.item-qty-input').value;
@@ -332,72 +394,98 @@
 
       const transactions = [];
       const errors = [];
+      
+      // Validate each item and prepare Firebase transactions
       rows.forEach(row => {
         const code = row.querySelector('.item-code-input').value.split(' ‒ ')[0];
         const qty  = +row.querySelector('.item-qty-input').value;
         const info = productsMap[code];
+
         if (!info)      { errors.push(`ไม่พบสินค้า: "${code}"`); return; }
         if (qty <= 0)   { errors.push(`จำนวนสินค้า "${info.name}" ต้องมากกว่า 0`); return; }
         if (qty > info.quantity) { errors.push(`สินค้า "${info.name}" คงเหลือไม่พอ (${info.quantity} ${info.unit})`); return; }
-        const recordId = issueRef.push().key;
+
+        const recordId = issueRef.push().key; // Generate a unique ID for the record
         transactions.push(
+          // Decrement stock quantity
           stockRef.child(code).child('quantity').transaction(q => (q||0) - qty)
             .then(() => issueRef.child(recordId).set({
               id: recordId,
               date: new Date().toISOString(),
               timestamp: firebase.database.ServerValue.TIMESTAMP,
-              userId, itemCode: code, itemName: info.name, quantity: qty
+              userId, // User ID of the person who made the transaction
+              itemCode: code,
+              itemName: info.name,
+              quantity: qty
             }))
         );
       });
-      if (errors.length) return showCustomAlert('ข้อผิดพลาด:\n' + errors.join('\n'));
+      
+      if (errors.length) { // If any validation errors, show alert and stop
+          return showCustomAlert('ข้อผิดพลาด:\n' + errors.join('\n'));
+      }
 
       try {
-        await Promise.all(transactions);
+        await Promise.all(transactions); // Execute all Firebase transactions concurrently
+        
+        // Notify both the selected user and admins via GAS
         await notifyAdmins('issue', userName, userId, items);
+        
         showCustomAlert('เบิกสินค้าและแจ้งเตือนสำเร็จ!');
-        ev.target.reset();
-        document.getElementById('issueModal').classList.add('hidden');
-        initializeModal('issueModal','issueItemsContainer','addIssueItemBtn','issue');
+        ev.target.reset(); // Clear form
+        document.getElementById('issueModal').classList.add('hidden'); // Hide modal
+        initializeModal('issueModal','issueItemsContainer','addIssueItemBtn','issue'); // Re-initialize modal for next use
       } catch (e) {
         console.error(e);
-        showCustomAlert('เกิดข้อผิดพลาด: ' + e.message);
+        showCustomAlert('เกิดข้อผิดพลาดในการทำรายการ: ' + e.message);
       }
     };
 
-    // History Table Logic
+    // --- History Table Logic ---
+
+    // Loads all history records (issue and receive) from Firebase
     function loadHistory() {
       Promise.all([ receiveRef.once('value'), issueRef.once('value') ])
         .then(([rSnap, iSnap])=>{
           const recs = [];
+          // Add receive records
           rSnap.forEach(ch=>{ const d=ch.val(); recs.push({
             id:d.id, date:d.date, timestamp:d.timestamp, type:'receive',
             code:d.itemCode, name:d.itemName, qty:d.quantity,
             unit:productsMap[d.itemCode]?.unit||'', userId:d.userId
           }); });
+          // Add issue records
           iSnap.forEach(ch=>{ const d=ch.val(); recs.push({
             id:d.id, date:d.date, timestamp:d.timestamp, type:'issue',
             code:d.itemCode, name:d.itemName, qty:d.quantity,
             unit:productsMap[d.itemCode]?.unit||'', userId:d.userId
           }); });
-          recs.sort((a,b)=>new Date(b.date)-new Date(a.date));
+          recs.sort((a,b)=>new Date(b.date)-new Date(a.date)); // Sort by date (descending)
           allRecords=recs;
-          document.getElementById('totalCount').textContent=recs.length;
-          currentPage=1; renderPage();
+          document.getElementById('totalCount').textContent=recs.length; // Update total count display
+          currentPage=1; // Reset to first page
+          renderPage(); // Render current page
         });
     }
+    // Listen for changes in receive and issue records to reload history
     receiveRef.on('value', loadHistory);
     issueRef.on('value', loadHistory);
 
+    // Renders the current page of history records into the table
     function renderPage() {
       const start=(currentPage-1)*pageSize;
       const pageRecs=allRecords.slice(start,start+pageSize);
       const tbody=document.getElementById('historyList');
-      tbody.innerHTML='';
+      tbody.innerHTML=''; // Clear existing rows
+
+      if (pageRecs.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="8" class="px-4 py-2 text-center text-gray-500">ไม่พบรายการในหน้านี้</td></tr>`;
+      }
+
       pageRecs.forEach(r=>{
-        const bg=r.type==='receive'? 'bg-green-50 hover:bg-green-100':'bg-red-50 hover:bg-red-100';
-        const label=r.type==='receive'? 'รับเข้า':'เบิก';
-        const userName=employeesMapById[r.userId]||r.userId;
+        const bg=r.type==='receive'? 'bg-green-50 hover:bg-green-100':'bg-red-50 hover:bg-red-100'; // Row background color based on type
+        const label=r.type==='receive'? 'รับเข้า':'เบิก'; // Display label for type
+        const userName=employeesMapById[r.userId]||r.userId; // Get full name, fallback to userIdLine if not found
         const tr=document.createElement('tr'); tr.className=bg;
         tr.innerHTML=`
           <td class="px-4 py-2">${r.code}</td>
@@ -415,21 +503,24 @@
         `;
         tbody.appendChild(tr);
       });
-      const totalPages=Math.ceil(allRecords.length/pageSize)||1;
+      const totalPages=Math.ceil(allRecords.length/pageSize)||1; // Calculate total pages
       document.getElementById('pageInfo').textContent=`หน้าที่ ${currentPage} จาก ${totalPages}`;
-      document.getElementById('prevPage').disabled=currentPage===1;
-      document.getElementById('nextPage').disabled=currentPage===totalPages;
+      document.getElementById('prevPage').disabled=currentPage===1; // Disable prev button on first page
+      document.getElementById('nextPage').disabled=currentPage===totalPages; // Disable next button on last page
 
+      // Attach event listeners for delete buttons
       document.querySelectorAll('.deleteBtn').forEach(btn=>{
         btn.onclick=async()=>{
           if(!confirm('คุณแน่ใจว่าต้องการลบรายการนี้? การลบจะคืนค่า/ลดปริมาณสินค้าในคลังด้วย')) return;
           const {id,type,code,qty}=btn.dataset;
           try{
             if(type==='receive'){
+              // When deleting a receive record, decrease stock
               await stockRef.child(code).child('quantity').transaction(q=> (q||0)-parseInt(qty));
               await receiveRef.child(id).remove();
               showCustomAlert(`ลบรายการรับเข้า ${code} สำเร็จ และปรับสต็อกแล้ว`);
             } else {
+              // When deleting an issue record, increase stock
               await stockRef.child(code).child('quantity').transaction(q=> (q||0)+parseInt(qty));
               await issueRef.child(id).remove();
               showCustomAlert(`ลบรายการเบิก ${code} สำเร็จ และปรับสต็อกแล้ว`);
@@ -442,6 +533,7 @@
       });
     }
 
+    // Pagination button event listeners
     document.getElementById('prevPage').onclick = ()=>{ if(currentPage>1){ currentPage--; renderPage(); } };
     document.getElementById('nextPage').onclick = ()=>{ const tp=Math.ceil(allRecords.length/pageSize); if(currentPage<tp){ currentPage++; renderPage(); } };
   </script>
