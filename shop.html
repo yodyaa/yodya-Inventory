@@ -69,6 +69,21 @@
       /* Use the [#174D27] color defined in Tailwind config */
       color: #c2dac9;
     }
+
+    /* Style for quantity buttons to group with input */
+    .qty-btn {
+        @apply bg-gray-200 text-gray-700 px-3 py-3 hover:bg-gray-300 transition-colors duration-200 flex-shrink-0;
+        width: 48px; /* Fixed width for consistent button size */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .qty-btn-left {
+        @apply rounded-l-lg;
+    }
+    .qty-btn-right {
+        @apply rounded-r-lg;
+    }
   </style>
 </head>
 
@@ -125,11 +140,13 @@
         <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-2 mb-2 items-center">
           <input list="inventoryList" id="manualCodeIssue" placeholder="รหัสหรือชื่อสินค้า"
             class="flex-1 w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-[#174D27]-light focus:border-[#174D27]-light transition-all duration-200" />
-          <div class="flex items-center space-x-2 w-full sm:w-auto">
+          <div class="flex items-center space-x-0 w-full sm:w-auto border border-gray-300 rounded-lg overflow-hidden">
+            <button type="button" id="decreaseQtyIssue" class="qty-btn qty-btn-left">-</button>
             <input type="number" id="manualQtyIssue" min="1" value="1"
-              class="w-24 border border-gray-300 rounded-lg p-3 text-center focus:ring-2 focus:ring-[#174D27]-light focus:border-[#174D27]-light transition-all duration-200" />
-            <span id="issueCurrentStockDisplay" class="text-sm text-gray-600 whitespace-nowrap"></span>
+              class="flex-grow w-20 p-3 text-center focus:ring-0 focus:outline-none border-t-0 border-b-0 border-l border-r border-gray-300 transition-all duration-200" />
+            <button type="button" id="increaseQtyIssue" class="qty-btn qty-btn-right">+</button>
           </div>
+          <span id="issueCurrentStockDisplay" class="text-sm text-gray-600 whitespace-nowrap px-2"></span>
           <button id="addIssueBtn"
             class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg shadow-md transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75 w-full sm:w-auto">
             เพิ่ม
@@ -176,11 +193,13 @@
         <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-2 mb-6 items-center">
           <input list="inventoryList2" id="manualCodeReceive" placeholder="รหัสหรือชื่อสินค้า"
             class="flex-1 w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-[#174D27]-light focus:border-[#174D27]-light transition-all duration-200" />
-          <div class="flex items-center space-x-2 w-full sm:w-auto">
+          <div class="flex items-center space-x-0 w-full sm:w-auto border border-gray-300 rounded-lg overflow-hidden">
+            <button type="button" id="decreaseQtyReceive" class="qty-btn qty-btn-left">-</button>
             <input type="number" id="manualQtyReceive" min="1" value="1"
-              class="w-24 border border-gray-300 rounded-lg p-3 text-center focus:ring-2 focus:ring-[#174D27]-light focus:border-[#174D27]-light transition-all duration-200" />
-            <span id="receiveCurrentStockDisplay" class="text-sm text-gray-600 whitespace-nowrap"></span>
+              class="flex-grow w-20 p-3 text-center focus:ring-0 focus:outline-none border-t-0 border-b-0 border-l border-r border-gray-300 transition-all duration-200" />
+            <button type="button" id="increaseQtyReceive" class="qty-btn qty-btn-right">+</button>
           </div>
+          <span id="receiveCurrentStockDisplay" class="text-sm text-gray-600 whitespace-nowrap px-2"></span>
           <button id="addReceiveBtn"
             class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg shadow-md transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75 w-full sm:w-auto">
             เพิ่ม
@@ -272,7 +291,7 @@
     /**
      * Displays a custom alert message.
      * @param {string} msg - The message to display.
-     * @param {'success' | 'error'} type - The type of alert (changes color and icon).
+     * @param {'success' | 'error' | 'info'} type - The type of alert (changes color and icon).
      */
     function showAlert(msg, type = 'error') {
       alertMessage.textContent = msg;
@@ -282,6 +301,9 @@
       // Set icon based on type
       if (type === 'success') {
         alertIcon.innerHTML = `<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>`;
+      } else if (type === 'info') {
+         alertIcon.innerHTML = `<path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.894.553L7.382 10H7a1 1 0 100 2h.382l-.276.553A1 1 0 008 13v.5a1 1 0 102 0V13a1 1 0 00-1-1h-.382l.276-.553A1 1 0 0012 10a1 1 0 00-1-1h-.5z" clip-rule="evenodd"></path>`;
+         customAlert.style.backgroundColor = '#2196F3'; /* Blue-500 for info */
       } else { // error
         alertIcon.innerHTML = `<path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>`;
       }
@@ -414,6 +436,7 @@
       manualCodeInput.readOnly = false; // Make it editable again
       manualQtyInput.value = '1';
       stockDisplay.textContent = '';
+      stockDisplay.classList.remove('text-red-500'); // Ensure color is reset
       addBtn.textContent = 'เพิ่ม'; // Reset button text
 
       tempScannedCode = null; // Clear the temporary scanned code
@@ -556,7 +579,13 @@
         return;
       }
 
-      let itemCode = enteredValue.split(' ‒ ')[0]; // Extract code if format is "CODE ‒ NAME"
+      // Try to match by exact code first (if tempScannedCode exists and matches input)
+      let itemCode = tempScannedCode && enteredValue.startsWith(tempScannedCode) ? tempScannedCode : null;
+      // If not from scan, or scan didn't fully match, try to extract from datalist format
+      if (!itemCode) {
+        itemCode = enteredValue.split(' ‒ ')[0];
+      }
+      
       const itemData = allInventoryItems[itemCode];
 
       if (itemData) {
@@ -570,10 +599,36 @@
       }
     }
 
-    // Attach event listeners for updating stock display
+    // Attach event listeners for updating stock display when manual code input changes
     document.getElementById('manualCodeIssue').addEventListener('input', () => updateStockDisplay('manualCodeIssue', 'issueCurrentStockDisplay'));
     document.getElementById('manualCodeReceive').addEventListener('input', () => updateStockDisplay('manualCodeReceive', 'receiveCurrentStockDisplay'));
 
+    // --- Quantity increment/decrement buttons ---
+    function setupQtyButtons(key) {
+        const decreaseBtn = document.getElementById(`decreaseQty${key === 'issue' ? 'Issue' : 'Receive'}`);
+        const increaseBtn = document.getElementById(`increaseQty${key === 'issue' ? 'Issue' : 'Receive'}`);
+        const qtyInput = document.getElementById(`manualQty${key === 'issue' ? 'Issue' : 'Receive'}`);
+
+        decreaseBtn.addEventListener('click', () => {
+            let currentVal = parseInt(qtyInput.value);
+            if (isNaN(currentVal) || currentVal <= 1) { // Ensure minimum is 1
+                qtyInput.value = 1;
+            } else {
+                qtyInput.value = currentVal - 1;
+            }
+        });
+
+        increaseBtn.addEventListener('click', () => {
+            let currentVal = parseInt(qtyInput.value);
+            if (isNaN(currentVal)) { // If not a number, start from 1
+                qtyInput.value = 1;
+            } else {
+                qtyInput.value = currentVal + 1;
+            }
+        });
+    }
+    setupQtyButtons('issue');
+    setupQtyButtons('receive');
 
     /**
      * Handles adding items to the issue basket via manual input or after scan.
@@ -835,6 +890,7 @@
         showAlert('เบิกสินค้าเรียบร้อยแล้ว', 'success');
         basketIssue = []; // Clear basket
         updateBasket('basketIssue', [], 'submitIssueBtn'); // Update UI
+        resetManualInput('issue'); // Clear manual input after successful submission
       } catch (error) {
         console.error("Error submitting issue: ", error);
         showAlert('เกิดข้อผิดพลาดในการเบิกสินค้า: ' + error.message);
@@ -885,6 +941,7 @@
         showAlert('รับเข้าสินค้าเรียบร้อยแล้ว', 'success');
         basketReceive = []; // Clear basket
         updateBasket('basketReceive', [], 'submitReceiveBtn'); // Update UI
+        resetManualInput('receive'); // Clear manual input after successful submission
       } catch (error) {
         console.error("Error submitting receive: ", error);
         showAlert('เกิดข้อผิดพลาดในการรับเข้าสินค้า: ' + error.message);
@@ -957,23 +1014,20 @@
      */
     function activateTab(tabName) {
       tabButtons.forEach(btn => {
-        btn.classList.remove('active', 'border-primary', 'text-primary', 'font-semibold');
-        btn.classList.add('border-transparent', 'text-gray-600');
+        btn.classList.remove('active', 'border-[#174D27]', 'text-[#174D27]', 'font-semibold'); // Remove active styles
+        btn.classList.add('border-transparent', 'text-gray-600'); // Add default styles
       });
       tabContents.forEach(content => content.classList.add('hidden'));
 
       if (tabName === 'issue') {
         document.getElementById('tabIssue').classList.remove('hidden');
-        document.getElementById('tabIssueBtn').classList.add('active', 'border-primary', 'text-primary', 'font-semibold');
-        document.getElementById('tabIssueBtn').classList.remove('border-transparent', 'text-gray-600');
+        document.getElementById('tabIssueBtn').classList.add('active', 'border-[#174D27]', 'text-[#174D27]', 'font-semibold');
       } else if (tabName === 'receive') {
         document.getElementById('tabReceive').classList.remove('hidden');
-        document.getElementById('tabReceiveBtn').classList.add('active', 'border-primary', 'text-primary', 'font-semibold');
-        document.getElementById('tabReceiveBtn').classList.remove('border-transparent', 'text-gray-600');
+        document.getElementById('tabReceiveBtn').classList.add('active', 'border-[#174D27]', 'text-[#174D27]', 'font-semibold');
       } else if (tabName === 'history') {
         document.getElementById('tabHistory').classList.remove('hidden');
-        document.getElementById('tabHistoryBtn').classList.add('active', 'border-primary', 'text-primary', 'font-semibold');
-        document.getElementById('tabHistoryBtn').classList.remove('border-transparent', 'text-gray-600');
+        document.getElementById('tabHistoryBtn').classList.add('active', 'border-[#174D27]', 'text-[#174D27]', 'font-semibold');
         loadHistory(); // Load history when history tab is activated
       }
       // Always reset manual input state when switching tabs
