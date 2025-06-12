@@ -689,7 +689,7 @@
       const isIssue = action === 'issue';
       const headerBgColor = isIssue ? "#FDECEA" : "#E8F5E9";
       const headerTextColor = isIssue ? "#D32F2F" : "#388E3C";
-      const actionText = isIssue ? "📤 แจ้งเบิกสินค้า" : "📥 แจ้งรับเข้าสินค้า";
+      const actionText = isIssue ? "แจ้งเบิกสินค้า" : "แจ้งรับเข้าสินค้า";
       const actorLabel = isIssue ? "ผู้เบิก:" : "ผู้รับเข้า:";
       const itemSectionTitle = isIssue ? "รายการสินค้าที่เบิก:" : "รายการสินค้าที่รับเข้า:";
       const buttonColor = isIssue ? "#D32F2F" : "#388E3C";
@@ -723,7 +723,7 @@
         size: "mega", // Using mega for more space for multiple items
         header: {
           type: "box", layout: "vertical", backgroundColor: headerBgColor, paddingAll: "md",
-          contents: [{ type: "text", text: actionText, weight: "bold", size: "xl", color: headerTextColor, align: "center" }]
+          contents: [{ type: "text", text: actionText, weight: "bold", size: "md", color: headerTextColor, align: "center" }]
         },
         body: {
           type: "box", layout: "vertical", spacing: "md", paddingAll: "xl",
