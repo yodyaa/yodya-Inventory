@@ -181,22 +181,23 @@
 
     // Initialize filters and data loading
     document.addEventListener('DOMContentLoaded', () => {
-      // Load users for reporter dropdown
-      db.ref("employees").on("value", snap => {
-        usersMap = {};
-        const sel = document.getElementById("newReporterSelect");
-        sel.innerHTML = '<option value="">-- เลือกผู้แจ้งซ่อม --</option>';
-        snap.forEach(ch => {
-          const user = ch.val();
-          if (user.userIdLine && user.name) {
-            usersMap[user.userIdLine] = user.name;
-            const opt = document.createElement("option");
-            opt.value = user.userIdLine;
-            opt.textContent = user.name;
-            sel.appendChild(opt);
-          }
-        });
+     // Load users for reporter dropdown
+    db.ref("employees").on("value", snap => {
+      usersMap = {};
+      const sel = document.getElementById("newReporterSelect");
+      sel.innerHTML = '<option value="">-- เลือกผู้แจ้งซ่อม --</option>';
+      snap.forEach(ch => {
+        const user = ch.val();
+        // แก้ไขจาก .name เป็น .fullName
+        if (user.userIdLine && user.fullName) { // <-- แก้ไขตรงนี้
+          usersMap[user.userIdLine] = user.fullName; // <-- แก้ไขตรงนี้
+          const opt = document.createElement("option");
+          opt.value = user.userIdLine;
+          opt.textContent = user.fullName; // <-- แก้ไขตรงนี้
+          sel.appendChild(opt);
+        }
       });
+    });
       
       // Load devices for device dropdown
       db.ref("devices").on("value", snap => {
