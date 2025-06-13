@@ -32,7 +32,7 @@
       <a href="./Dashboard.html"      class="block bg-secondary text-primary py-2 px-4 rounded">หน้าหลัก</a>
       <a href="./Report-show.html"    class="block bg-secondary text-primary py-2 px-4 rounded">แจ้งซ่อม</a>
       <a href="./Team.html"           class="block bg-secondary text-primary py-2 px-4 rounded">จัดการทีม</a>
-      <div class="p-2 border  flex flex-col space-y-2 ">
+      <div class="p-4 border  flex flex-col space-y-4 ">
       <a href="./products.html"       class="block bg-secondary text-primary py-2 px-4 rounded">วัสดุ</a>
       <a href="./transactions.html"   class="block bg-primary border border-secondary text-secondary py-2 px-4 rounded">รับเข้า/เบิก</a>
       </div>
@@ -252,30 +252,30 @@
     }
 
     /**
-     * Sends a notification to GAS, which then pushes a Flex Message to specified recipients.
-     * This function is modified to send to both the chosen user AND all admins.
+     * [MODIFIED] Sends a notification to GAS, which then pushes a Flex Message.
+     * This function now sends to both the chosen user AND all admins.
      * @param {'issue' | 'receive'} action - The type of action (issue or receive).
-     * @param {string} userFullName - Full name of the user performing the action (as selected in modal).
+     * @param {string} userFullName - Full name of the user performing the action.
      * @param {string} userId - LINE User ID of the user performing the action.
      * @param {Array<Object>} items - The list of items involved in the transaction.
      */
     async function notifyAdmins(action, userFullName, userId, items) {
-      const adminIds = await getAdminIds(); // Fetch Admin IDs
-      const allRecipients = new Set(adminIds); // Use a Set to ensure unique IDs
+      const adminIds = await getAdminIds(); // ดึง ID ของ Admin
+      const allRecipients = new Set(adminIds); // ใช้ Set เพื่อป้องกัน ID ซ้ำ
 
-      // Add the userId of the selected user (from the modal dropdown) to the recipient list
-      if (userId) { // Ensure userId is valid
+      // เพิ่ม ID ของผู้ทำรายการ (ที่เลือกใน modal) เข้าไปในรายชื่อผู้รับ
+      if (userId) { // ตรวจสอบว่ามี userId
         allRecipients.add(userId);
       }
       
-      const toList = Array.from(allRecipients); // Convert Set back to Array
+      const toList = Array.from(allRecipients); // แปลง Set กลับเป็น Array
 
       if (!toList.length) {
-        console.warn('No recipients found for notification (neither user nor admins).');
+        console.warn('ไม่พบผู้รับการแจ้งเตือน (ทั้งผู้ใช้และแอดมิน)');
         return;
       }
 
-      // Prepare simplified items for GAS (only necessary data)
+      // เตรียมข้อมูล items แบบย่อสำหรับส่งไปที่ GAS
       const simplifiedItems = items.map(item => ({
         code: item.code,
         name: item.name,
@@ -285,20 +285,20 @@
       try {
         await fetch(GAS_URL, {
           method: 'POST',
-          mode:   'no-cors', // Use 'no-cors' if your GAS is public and doesn't handle CORS.
+          mode:   'no-cors', 
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             action,
-            user:    userFullName, // Name of the person who made the transaction
-            userId:  userId,      // User ID of the person who made the transaction
+            user:    userFullName,
+            userId:  userId,
             items:   simplifiedItems,
-            toList,               // This array now contains both Admin IDs and the selected user's ID
-            liffUrl: LIFF_WEB_URL // URL for the button in Flex Message
+            toList,               // <<<--- ใช้ toList ที่มีทั้ง ID ของแอดมินและผู้ทำรายการ
+            liffUrl: LIFF_WEB_URL
           })
         });
-        console.log('Notification sent to selected user and admins via GAS.');
+        console.log('ส่งการแจ้งเตือนไปยังผู้ใช้และแอดมินผ่าน GAS สำเร็จ');
       } catch (error) {
-        console.error('Error sending notification via GAS:', error);
+        console.error('เกิดข้อผิดพลาดในการส่งการแจ้งเตือนผ่าน GAS:', error);
       }
     }
 
@@ -306,12 +306,12 @@
 
     // Handle Receive form submission
     document.getElementById('receiveForm').onsubmit = async ev => {
-      ev.preventDefault(); // Prevent default form submission
+      ev.preventDefault();
       
       const userName = document.getElementById('recvUserInput').value.trim();
-      const userId   = employeesMapByName[userName]; // Get userIdLine of the selected employee
+      const userId   = employeesMapByName[userName];
       
-      if (!userId) { // Validate if a valid user was selected
+      if (!userId) {
           showCustomAlert(`ไม่พบรหัสผู้ใช้ LINE สำหรับพนักงาน "${userName}" กรุณาเลือกพนักงานที่ถูกต้อง`);
           return;
       }
@@ -320,14 +320,13 @@
       const items = Array.from(rows).map(row => {
         const code = row.querySelector('.item-code-input').value.split(' ‒ ')[0];
         const qty  = +row.querySelector('.item-qty-input').value;
-        const name = productsMap[code]?.name || ''; // Get product name from map
+        const name = productsMap[code]?.name || '';
         return { code, name, qty };
       });
 
       const transactions = [];
       const errors = [];
       
-      // Validate each item and prepare Firebase transactions
       rows.forEach(row => {
         const code = row.querySelector('.item-code-input').value.split(' ‒ ')[0];
         const qty  = +row.querySelector('.item-qty-input').value;
@@ -336,15 +335,14 @@
         if (!info) { errors.push(`ไม่พบสินค้า: "${code}"`); return; }
         if (qty <= 0) { errors.push(`จำนวนสินค้า "${info.name}" ต้องมากกว่า 0`); return; }
 
-        const recordId = receiveRef.push().key; // Generate a unique ID for the record
+        const recordId = receiveRef.push().key;
         transactions.push(
-          // Increment stock quantity
           stockRef.child(code).child('quantity').transaction(q => (q||0) + qty)
             .then(() => receiveRef.child(recordId).set({
               id: recordId,
-              date: new Date().toISOString(), // Record current date
-              timestamp: firebase.database.ServerValue.TIMESTAMP, // Firebase server timestamp
-              userId, // User ID of the person who made the transaction
+              date: new Date().toISOString(),
+              timestamp: firebase.database.ServerValue.TIMESTAMP,
+              userId,
               itemCode: code,
               itemName: info.name,
               quantity: qty
@@ -352,20 +350,18 @@
         );
       });
       
-      if (errors.length) { // If any validation errors, show alert and stop
+      if (errors.length) {
           return showCustomAlert('ข้อผิดพลาด:\n' + errors.join('\n'));
       }
 
       try {
-        await Promise.all(transactions); // Execute all Firebase transactions concurrently
-        
-        // Notify both the selected user and admins via GAS
+        await Promise.all(transactions);
         await notifyAdmins('receive', userName, userId, items);
         
         showCustomAlert('รับเข้าสินค้าและแจ้งเตือนสำเร็จ!');
-        ev.target.reset(); // Clear form
-        document.getElementById('receiveModal').classList.add('hidden'); // Hide modal
-        initializeModal('receiveModal','receiveItemsContainer','addReceiveItemBtn','receive'); // Re-initialize modal for next use
+        ev.target.reset();
+        document.getElementById('receiveModal').classList.add('hidden');
+        initializeModal('receiveModal','receiveItemsContainer','addReceiveItemBtn','receive');
       } catch (e) {
         console.error(e);
         showCustomAlert('เกิดข้อผิดพลาดในการทำรายการ: ' + e.message);
@@ -374,12 +370,12 @@
 
     // Handle Issue form submission
     document.getElementById('issueForm').onsubmit = async ev => {
-      ev.preventDefault(); // Prevent default form submission
+      ev.preventDefault();
       
       const userName = document.getElementById('issUserInput').value.trim();
-      const userId   = employeesMapByName[userName]; // Get userIdLine of the selected employee
+      const userId   = employeesMapByName[userName];
       
-      if (!userId) { // Validate if a valid user was selected
+      if (!userId) {
           showCustomAlert(`ไม่พบรหัสผู้ใช้ LINE สำหรับพนักงาน "${userName}" กรุณาเลือกพนักงานที่ถูกต้อง`);
           return;
       }
@@ -395,7 +391,6 @@
       const transactions = [];
       const errors = [];
       
-      // Validate each item and prepare Firebase transactions
       rows.forEach(row => {
         const code = row.querySelector('.item-code-input').value.split(' ‒ ')[0];
         const qty  = +row.querySelector('.item-qty-input').value;
@@ -405,15 +400,14 @@
         if (qty <= 0)   { errors.push(`จำนวนสินค้า "${info.name}" ต้องมากกว่า 0`); return; }
         if (qty > info.quantity) { errors.push(`สินค้า "${info.name}" คงเหลือไม่พอ (${info.quantity} ${info.unit})`); return; }
 
-        const recordId = issueRef.push().key; // Generate a unique ID for the record
+        const recordId = issueRef.push().key;
         transactions.push(
-          // Decrement stock quantity
           stockRef.child(code).child('quantity').transaction(q => (q||0) - qty)
             .then(() => issueRef.child(recordId).set({
               id: recordId,
               date: new Date().toISOString(),
               timestamp: firebase.database.ServerValue.TIMESTAMP,
-              userId, // User ID of the person who made the transaction
+              userId,
               itemCode: code,
               itemName: info.name,
               quantity: qty
@@ -421,20 +415,18 @@
         );
       });
       
-      if (errors.length) { // If any validation errors, show alert and stop
+      if (errors.length) {
           return showCustomAlert('ข้อผิดพลาด:\n' + errors.join('\n'));
       }
 
       try {
-        await Promise.all(transactions); // Execute all Firebase transactions concurrently
-        
-        // Notify both the selected user and admins via GAS
+        await Promise.all(transactions);
         await notifyAdmins('issue', userName, userId, items);
         
         showCustomAlert('เบิกสินค้าและแจ้งเตือนสำเร็จ!');
-        ev.target.reset(); // Clear form
-        document.getElementById('issueModal').classList.add('hidden'); // Hide modal
-        initializeModal('issueModal','issueItemsContainer','addIssueItemBtn','issue'); // Re-initialize modal for next use
+        ev.target.reset();
+        document.getElementById('issueModal').classList.add('hidden');
+        initializeModal('issueModal','issueItemsContainer','addIssueItemBtn','issue');
       } catch (e) {
         console.error(e);
         showCustomAlert('เกิดข้อผิดพลาดในการทำรายการ: ' + e.message);
