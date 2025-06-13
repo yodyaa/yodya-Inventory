@@ -72,7 +72,7 @@
   <!-- Team Modal -->
   <div id="teamModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
     <div class="bg-white rounded-lg w-11/12 md:w-1/2 p-6 relative">
-      <button id="closeTeamModal" class="absolute top-3 right-3 text-gray-500 hover:text-primary text-2xl">&times;</button>
+      <button id="closeTeamModal" class="absolute top-3 right-3 text-gray-500 hover:text-primary text-2xl">×</button>
       <h3 id="modalTitle" class="text-xl font-semibold mb-4">สร้างทีมใหม่</h3>
       <form id="teamForm" class="space-y-4">
         <div>
@@ -236,6 +236,9 @@
       Object.entries(teams).forEach(([key,t]) => {
         const leaderName = employees[t.leader]?.fullName || t.leader;
         const tr = document.createElement('tr');
+        // =====> โค้ดที่เพิ่มเข้ามา <=====
+        tr.className = 'even:bg-white'; // ทำให้แถวคู่เป็นสีขาว ส่วนแถวคี่จะโปร่งใสเห็นสีพื้นหลัง
+        // =====> สิ้นสุดโค้ดที่เพิ่ม <=====
         tr.innerHTML = `
           <td class="px-4 py-2">${t.name}</td>
           <td class="px-4 py-2">${leaderName}</td>
