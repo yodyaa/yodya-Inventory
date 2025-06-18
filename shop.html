@@ -98,6 +98,27 @@
     <span id="alertMessage"></span>
   </div>
 
+  <!-- Confirmation Modal -->
+  <div id="confirmationModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+      <h3 id="confirmTitle" class="text-xl font-bold text-gray-800 mb-4">ยืนยันการทำรายการ</h3>
+      <p id="confirmMessage" class="text-gray-600 mb-4">คุณต้องการ...?</p>
+      
+      <!-- Item list for confirmation -->
+      <div class="max-h-40 overflow-y-auto bg-gray-50 p-3 rounded-lg border border-gray-200 mb-6">
+          <ul id="confirmationItemList" class="space-y-2">
+             <!-- Items will be dynamically inserted here -->
+          </ul>
+      </div>
+
+      <div class="flex justify-end space-x-4">
+        <button id="confirmCancelBtn" class="px-6 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors duration-200">ยกเลิก</button>
+        <button id="confirmOkBtn" class="px-6 py-2 text-white rounded-lg hover:opacity-90 transition-opacity duration-200">ยืนยัน</button>
+      </div>
+    </div>
+  </div>
+
+
   <div class="w-full max-w-md mx-auto overflow-hidden">
     <!-- Tabs -->
     <div class="flex border-b border-gray-200 bg-gray-50">
@@ -281,10 +302,19 @@
     let basketReceive = [];
     let allInventoryItems = {}; // Cache for all inventory items (code -> {name, quantity})
     let tempScannedCode = null;
+    let onConfirmCallback = null; // Callback for confirmation modal
 
     let historyRecords = [];
     let historyPage = 1;
     const pageSize = 15;
+
+    // DOM elements for Confirmation Modal
+    const confirmationModal = document.getElementById('confirmationModal');
+    const confirmTitle = document.getElementById('confirmTitle');
+    const confirmMessage = document.getElementById('confirmMessage');
+    const confirmationItemList = document.getElementById('confirmationItemList');
+    const confirmOkBtn = document.getElementById('confirmOkBtn');
+    const confirmCancelBtn = document.getElementById('confirmCancelBtn');
 
     // --- UI Helper Functions ---
     const customAlert = document.getElementById('customAlert');
@@ -327,6 +357,48 @@
         }
     }
     
+    // --- Confirmation Modal Logic ---
+    function showConfirmationModal(actionType, items, callback) {
+        onConfirmCallback = callback;
+        const isIssue = actionType === 'issue';
+
+        // Set Title and Message
+        confirmTitle.textContent = isIssue ? 'ยืนยันการเบิก' : 'ยืนยันการรับเข้า';
+        confirmMessage.textContent = `คุณต้องการ${isIssue ? 'เบิก' : 'รับเข้า'}สินค้าตามรายการด้านล่างนี้ใช่หรือไม่?`;
+        
+        // Populate item list
+        confirmationItemList.innerHTML = items.map(item => `
+            <li class="flex justify-between items-center text-sm">
+                <span class="text-gray-700">${item.name} (${item.code})</span>
+                <span class="font-bold ${isIssue ? 'text-red-600' : 'text-green-600'}">× ${item.qty}</span>
+            </li>
+        `).join('');
+
+        // Style OK button
+        confirmOkBtn.textContent = 'ยืนยัน';
+        confirmOkBtn.className = 'px-6 py-2 text-white rounded-lg hover:opacity-90 transition-opacity duration-200'; // Reset classes
+        if (isIssue) {
+            confirmOkBtn.classList.add('bg-red-600');
+        } else {
+            confirmOkBtn.classList.add('bg-blue-600');
+        }
+
+        confirmationModal.classList.remove('hidden');
+    }
+
+    function hideConfirmationModal() {
+        onConfirmCallback = null;
+        confirmationModal.classList.add('hidden');
+    }
+
+    confirmCancelBtn.onclick = hideConfirmationModal;
+    confirmOkBtn.onclick = () => {
+        if (typeof onConfirmCallback === 'function') {
+            onConfirmCallback();
+        }
+        hideConfirmationModal();
+    };
+
     function updateBasketUI(key) {
         const basket = key === 'issue' ? basketIssue : basketReceive;
         const listId = key === 'issue' ? 'basketIssue' : 'basketReceive';
@@ -490,7 +562,6 @@
     setupQtyButtons('issue');
     setupQtyButtons('receive');
 
-    // --- NEW LOGIC FOR "ADD TO LIST" BUTTONS ---
     document.getElementById('addToListIssueBtn').onclick = () => handleAddItemToList('issue');
     document.getElementById('addToListReceiveBtn').onclick = () => handleAddItemToList('receive');
 
@@ -528,7 +599,7 @@
         resetManualInput(key);
     }
     
-    // --- NOTIFICATION AND FLEX MESSAGE LOGIC (Unchanged) ---
+    // --- NOTIFICATION AND FLEX MESSAGE LOGIC ---
     async function getAdminIds() {
         const snap = await employeesRef.orderByChild('role').equalTo('admin').get();
         const ids = []; snap.forEach(ch => { const u = ch.val().userIdLine; if (u) ids.push(u); });
@@ -580,9 +651,10 @@
         }};
     }
 
-    // --- UPDATED SUBMISSION LOGIC ---
-    document.getElementById('submitIssueBtn').onclick = async () => {
-        // If basket is empty, perform a single-item transaction. Otherwise, process the basket.
+    // --- SUBMISSION LOGIC ---
+    document.getElementById('submitIssueBtn').onclick = () => {
+        let itemsToProcess = [];
+        // If basket is empty, get item from input fields. Otherwise, process the basket.
         if (basketIssue.length === 0) {
             const code = document.getElementById('manualCodeIssue').value.split(' ‒ ')[0].trim();
             const qty = +document.getElementById('manualQtyIssue').value;
@@ -590,14 +662,20 @@
             const itemData = allInventoryItems[code];
             if (!itemData) return showAlert(`ไม่พบข้อมูลสินค้าสำหรับรหัส: ${code}`, 'error');
             
-            const singleItem = { code, name: itemData.name, qty };
-            await processIssue([singleItem]);
+            itemsToProcess = [{ code, name: itemData.name, qty }];
         } else {
-            await processIssue(basketIssue);
+            itemsToProcess = basketIssue;
+        }
+
+        if (itemsToProcess.length > 0) {
+            showConfirmationModal('issue', itemsToProcess, () => {
+                processIssue(itemsToProcess);
+            });
         }
     };
 
-    document.getElementById('submitReceiveBtn').onclick = async () => {
+    document.getElementById('submitReceiveBtn').onclick = () => {
+        let itemsToProcess = [];
         if (basketReceive.length === 0) {
             const code = document.getElementById('manualCodeReceive').value.split(' ‒ ')[0].trim();
             const qty = +document.getElementById('manualQtyReceive').value;
@@ -605,10 +683,15 @@
             const itemData = allInventoryItems[code];
             if (!itemData) return showAlert(`ไม่พบข้อมูลสินค้าสำหรับรหัส: ${code}`, 'error');
 
-            const singleItem = { code, name: itemData.name, qty };
-            await processReceive([singleItem]);
+            itemsToProcess = [{ code, name: itemData.name, qty }];
         } else {
-            await processReceive(basketReceive);
+            itemsToProcess = basketReceive;
+        }
+        
+        if (itemsToProcess.length > 0) {
+            showConfirmationModal('receive', itemsToProcess, () => {
+                processReceive(itemsToProcess);
+            });
         }
     };
     
@@ -672,37 +755,7 @@
         }
     }
 
-    // --- HISTORY AND TAB LOGIC (Unchanged) ---
-    async function loadHistory() { /* ... unchanged ... */ }
-    function renderHistory() { /* ... unchanged ... */ }
-    document.getElementById('historyPrev').onclick = () => { /* ... unchanged ... */ };
-    document.getElementById('historyNext').onclick = () => { /* ... unchanged ... */ };
-
-    const tabButtons = document.querySelectorAll('.tab-button');
-    const tabContents = document.querySelectorAll('#tabIssue, #tabReceive, #tabHistory');
-    function activateTab(tabName) {
-      tabButtons.forEach(btn => {
-        btn.classList.remove('active', 'border-[#174D27]', 'text-[#174D27]', 'font-semibold');
-        btn.classList.add('border-transparent', 'text-gray-600');
-      });
-      tabContents.forEach(content => content.classList.add('hidden'));
-
-      if (tabName === 'issue') {
-        document.getElementById('tabIssue').classList.remove('hidden');
-        document.getElementById('tabIssueBtn').classList.add('active', 'border-[#174D27]', 'text-[#174D27]', 'font-semibold');
-        resetFullForm('issue');
-      } else if (tabName === 'receive') {
-        document.getElementById('tabReceive').classList.remove('hidden');
-        document.getElementById('tabReceiveBtn').classList.add('active', 'border-[#174D27]', 'text-[#174D27]', 'font-semibold');
-        resetFullForm('receive');
-      } else if (tabName === 'history') {
-        document.getElementById('tabHistory').classList.remove('hidden');
-        document.getElementById('tabHistoryBtn').classList.add('active', 'border-[#174D27]', 'text-[#174D27]', 'font-semibold');
-        loadHistory();
-      }
-    }
-    
-    // Copy-pasting unchanged history functions for completeness
+    // --- HISTORY AND TAB LOGIC ---
     async function loadHistory() {
       try {
         const [rSnap, iSnap] = await Promise.all([receiveRef.once('value'), issueRef.once('value')]);
@@ -716,6 +769,7 @@
         showAlert('ไม่สามารถโหลดประวัติได้: ' + error.message);
       }
     }
+
     function renderHistory() {
       const start = (historyPage - 1) * pageSize;
       const page = historyRecords.slice(start, start + pageSize);
@@ -742,8 +796,43 @@
       document.getElementById('historyPrev').disabled = historyPage === 1;
       document.getElementById('historyNext').disabled = historyPage === total;
     }
+    
     document.getElementById('historyPrev').onclick = () => { if (historyPage > 1) { historyPage--; renderHistory(); } };
     document.getElementById('historyNext').onclick = () => { const t = Math.ceil(historyRecords.length / pageSize); if (historyPage < t) { historyPage++; renderHistory(); } };
+    
+    const tabButtons = document.querySelectorAll('.tab-button');
+    const tabContents = document.querySelectorAll('#tabIssue, #tabReceive, #tabHistory');
+    function activateTab(tabName) {
+      tabButtons.forEach(btn => {
+        btn.classList.remove('active', 'border-[#174D27]', 'text-[#FFFFFF]', 'font-semibold', 'bg-[#174D27]');
+        btn.classList.add('border-transparent', 'text-gray-600');
+        btn.style.backgroundColor = ''; // Reset inline style
+        btn.style.color = ''; // Reset inline style
+      });
+      tabContents.forEach(content => content.classList.add('hidden'));
+
+      let activeBtn, activeTabContent;
+
+      if (tabName === 'issue') {
+        activeBtn = document.getElementById('tabIssueBtn');
+        activeTabContent = document.getElementById('tabIssue');
+        resetFullForm('issue');
+      } else if (tabName === 'receive') {
+        activeBtn = document.getElementById('tabReceiveBtn');
+        activeTabContent = document.getElementById('tabReceive');
+        resetFullForm('receive');
+      } else if (tabName === 'history') {
+        activeBtn = document.getElementById('tabHistoryBtn');
+        activeTabContent = document.getElementById('tabHistory');
+        loadHistory();
+      }
+
+      if (activeBtn && activeTabContent) {
+          activeTabContent.classList.remove('hidden');
+          activeBtn.classList.add('active', 'border-[#174D27]', 'text-white', 'font-semibold');
+          activeBtn.style.backgroundColor = '#174D27'; 
+      }
+    }
     
     document.getElementById('tabIssueBtn').onclick = () => activateTab('issue');
     document.getElementById('tabReceiveBtn').onclick = () => activateTab('receive');
