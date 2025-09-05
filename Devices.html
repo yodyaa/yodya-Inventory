@@ -3,17 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <title>อุปกรณ์</title>
-  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
-  <!-- QRCode.js -->
   <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
-  <!-- PapaParse for CSV import -->
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-  <!-- firebase-config.js -->
   <script src="firebase-config.js"></script>
   <script>
     tailwind.config = {
@@ -31,7 +26,6 @@
 
 <body class="bg-gray-100">
   <div class="flex min-h-screen">
-    <!-- Sidebar -->
     <aside class="w-64 bg-primary p-6">
       <h1 class="text-white text-md font-bold mb-6">จัดการอุปกรณ์</h1>
       <nav class="space-y-4">
@@ -48,9 +42,7 @@
     </nav>
     </aside>
 
-    <!-- Main -->
     <main class="flex-1 p-6">
-      <!-- Header + Controls + Summary -->
       <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 space-y-4 md:space-y-0">
         <div class="flex space-x-2">
           <button id="openModal" class="bg-primary text-white px-6 py-3 rounded-lg text-md font-semibold">
@@ -67,9 +59,7 @@
         <div id="summaryBoxes" class="grid grid-cols-2 sm:grid-cols-5 gap-4 w-full md:w-auto"></div>
       </div>
 
-      <!-- Table Container -->
       <div class="border-2 border-slate-500 rounded-lg overflow-hidden bg-white">
-        <!-- Filters -->
         <div class="flex flex-wrap items-center px-6 py-4 space-x-6 border-b">
           <div class="flex items-center space-x-2">
             <label for="filterId" class="text-sm">รหัส</label>
@@ -98,7 +88,6 @@
           </div>
         </div>
 
-        <!-- Table -->
         <table class="min-w-full table-fixed">
           <thead class="bg-[#174D27] text-white">
             <tr>
@@ -114,7 +103,6 @@
           <tbody id="deviceList" class="bg-white divide-y divide-gray-200 text-sm"></tbody>
         </table>
 
-        <!-- Footer: Rows & Pagination -->
         <div class="flex justify-between items-center px-6 py-4 bg-gray-50">
           <div class="flex items-center space-x-2">
             <label for="rowsPerPage" class="text-sm">แสดง</label>
@@ -131,7 +119,6 @@
     </main>
   </div>
 
-  <!-- Add/Edit Modal -->
   <div id="deviceModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
     <div class="bg-white rounded-lg w-11/12 md:w-1/2 p-6 relative">
       <button id="closeModal" class="absolute top-3 right-3 text-gray-500 text-2xl">&times;</button>
@@ -174,7 +161,6 @@
     </div>
   </div>
 
-  <!-- Image Preview Modal -->
   <div id="imgModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center hidden z-40">
     <div class="relative">
       <button id="closeImgModal" class="absolute top-2 right-2 text-white text-3xl">&times;</button>
@@ -210,10 +196,21 @@
 
     function applyFilters(data) {
       return data.filter(d => {
-        if (filters.id.value && !d.deviceId.includes(filters.id.value)) return false;
-        if (filters.name.value && !d.deviceName.includes(filters.name.value)) return false;
-        if (filters.category.value && d.category !== filters.category.value) return false;
-        if (filters.status.value && d.status   !== filters.status.value)   return false;
+        // If d is null or undefined, filter it out
+        if (!d) {
+          return false;
+        }
+
+        // Provide default empty strings to prevent errors if properties are missing
+        const deviceId = d.deviceId || '';
+        const deviceName = d.deviceName || '';
+        const category = d.category || '';
+        const status = d.status || '';
+
+        if (filters.id.value && !deviceId.includes(filters.id.value)) return false;
+        if (filters.name.value && !deviceName.includes(filters.name.value)) return false;
+        if (filters.category.value && category !== filters.category.value) return false;
+        if (filters.status.value && status !== filters.status.value) return false;
         return true;
       });
     }
