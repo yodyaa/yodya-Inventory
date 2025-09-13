@@ -10,7 +10,16 @@
       appId: "1:257202949333:web:1e0ed0f840b51f874c265c",
       measurementId: "G-BHBRN5PECH"  };
   
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.database();
-  const storage = firebase.storage();
 
+  // init app
+  firebase.initializeApp(firebaseConfig);
+
+  // เรียกใช้ storage ได้แบบ v8
+  const storage = firebase.storage();
+  const db = firebase.firestore();
+  const auth = firebase.auth();
+
+  // export ไปใช้ได้ ถ้าใช้แบบ module
+  window.storage = storage;
+  window.db = db;
+  window.auth = auth;
