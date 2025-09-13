@@ -155,14 +155,20 @@
       if (!liff.isLoggedIn()) await liff.login();
       const profile = await liff.getProfile();
       userIdLine = profile.userId;
-      const empSnap = await db.ref('employees').orderByChild('userIdLine').equalTo(userIdLine).get();
-      if (!empSnap.exists()) return liff.closeWindow();
+const empSnap = await db.ref('employees').orderByChild('userIdLine').equalTo(userIdLine).get();
+      if (!empSnap.exists()) {
+        alert("ไม่พบข้อมูลพนักงาน กรุณาลงทะเบียนก่อนใช้งาน");
+        return; // หยุดการทำงานของฟังก์ชัน
+      }
       emp = Object.values(empSnap.val())[0];
       userName = emp.fullName || '—';
       userPosition = emp.position || '—';
       document.getElementById('empName').textContent = userName;
       document.getElementById('empPosition').textContent = `ตำแหน่ง: ${userPosition}`;
-      if (!emp.teamId) return liff.closeWindow();
+      if (!emp.teamId) {
+        alert("คุณยังไม่ได้ถูกกำหนดทีม กรุณาติดต่อผู้ดูแลระบบ");
+        return; // หยุดการทำงานของฟังก์ชัน
+      }
       const devSnap = await db.ref('devices').once('value');
       devSnap.forEach(ch => {
         const d = ch.val();
