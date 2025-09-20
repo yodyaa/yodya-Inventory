@@ -84,7 +84,7 @@
 
       <!-- Table -->
       <div class="overflow-x-auto">
-        <table class="min-w-full bg-white">
+  <table class="min-w-full bg-white text-sm">
           <thead class="bg-primary text-white">
             <tr>
               <th class="py-2 px-4 text-left">รหัส</th>
@@ -92,9 +92,10 @@
               <th class="py-2 px-4 text-left">หัวข้อ</th>
               <th class="py-2 px-4 text-left">รายละเอียด</th>
               <th class="py-2 px-4 text-left">รูปก่อนซ่อม</th>
-              <th class="py-2 px-4 text-left">สถานะ</th>
+              <th class="py-2 px-4 text-left w-32">สถานะ</th>
               <th class="py-2 px-4 text-left">ค่าใช้จ่าย</th>
-              <th class="py-2 px-4 text-left">จัดการ</th>
+              <th class="py-2 px-4 text-left">ผู้แจ้งซ่อม</th>
+              <th class="py-2 px-4 text-left w-52">จัดการ</th>
             </tr>
           </thead>
           <tbody id="repairList" class="divide-y"></tbody>
@@ -259,16 +260,18 @@
       filtered.slice(start, start+rowsPerPage).forEach(r=>{
         const tr = document.createElement("tr");
         tr.innerHTML = `
-          <td class="py-2 px-4">${r.deviceId}</td>
-          <td class="py-2 px-4">${r.deviceName}</td>
-          <td class="py-2 px-4">${r.title}</td>
-          <td class="py-2 px-4">${r.details}</td>
-          <td class="py-2 px-4">${r.imageUrl ? `<img src="${r.imageUrl}" class="h-16 rounded cursor-pointer" onclick="openImageModal('${r.imageUrl}')">` : "-"}</td>
-          <td class="py-2 px-4"><span class="px-2 py-1 rounded-full ${getStatusClass(r.status)}">${r.status}</span></td>
-          <td class="py-2 px-4">${r.cost||"-"}</td>
-          <td class="py-2 px-4 space-x-2">
+          <td class="py-2 px-4 text-sm">${r.deviceId}</td>
+          <td class="py-2 px-4 text-sm">${r.deviceName}</td>
+          <td class="py-2 px-4 text-sm">${r.title}</td>
+          <td class="py-2 px-4 text-sm">${r.details}</td>
+          <td class="py-2 px-4 text-sm">${r.imageUrl ? `<img src="${r.imageUrl}" class="h-16 rounded cursor-pointer" onclick="openImageModal('${r.imageUrl}')">` : "-"}</td>
+          <td class="py-2 px-4 text-sm"><span class="px-2 py-1 rounded-full ${getStatusClass(r.status)}">${r.status}</span></td>
+          <td class="py-2 px-4 text-sm">${r.cost||"-"}</td>
+          <td class="py-2 px-4 text-sm">${r.reporterName||'-'}</td>
+          <td class="py-2 px-2 space-x-1 text-sm">
             <button onclick="editRepair('${r.id}')" class="px-3 py-1 bg-primary text-secondary rounded">อัปเดต</button>
             <button onclick="deleteRepair('${r.id}')" class="px-3 py-1 bg-red-500 text-white rounded">ลบ</button>
+            <button onclick="openRepairHistoryModal('${r.deviceId}','${r.deviceName}')" class="px-3 py-1 bg-blue-400 text-white rounded">ประวัติ</button>
           </td>`;
         tbody.appendChild(tr);
       });
@@ -292,6 +295,76 @@
     document.getElementById("imageModal").onclick = ()=>{
       document.getElementById("imageModal").classList.add("hidden");
     };
+
+    // Modal ประวัติการซ่อม
+    if (!document.getElementById('repairHistoryModal')) {
+      const modalHtml = '<div id="repairHistoryModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">'+
+        '<div class="bg-white rounded-lg w-11/12 md:w-1/2 p-6 relative">'+
+          '<h2 class="text-xl font-bold mb-4">ประวัติการซ่อม: <span id="repairDeviceName"></span></h2>'+ 
+          '<button id="closeRepairHistoryBtn" class="absolute top-2 right-2 text-gray-500 hover:text-gray-700">&times;</button>'+ 
+          '<div id="repairHistoryList" class="max-h-96 overflow-y-auto"></div>'+ 
+        '</div>'+ 
+      '</div>';
+      document.body.insertAdjacentHTML('beforeend', modalHtml);
+    }
+
+    window.openRepairHistoryModal = function(deviceId, deviceName) {
+      const modal = document.getElementById('repairHistoryModal');
+      const nameEl = document.getElementById('repairDeviceName');
+      const listEl = document.getElementById('repairHistoryList');
+      nameEl.textContent = deviceName;
+      listEl.innerHTML = '<div class="text-gray-500">กำลังโหลด...</div>';
+      modal.classList.remove('hidden');
+      db.ref('repairReports').orderByChild('deviceId').equalTo(deviceId).once('value').then(function(snap) {
+        if (!snap.exists()) {
+          listEl.innerHTML = '<div class="text-gray-500">ไม่พบประวัติการซ่อม</div>';
+          return;
+        }
+        const data = Object.values(snap.val());
+        let totalCost = 0;
+  let html = '<table class="w-full text-xs"><thead><tr>'+ 
+          '<th class="border px-2 py-1">วันที่</th>'+ 
+          '<th class="border px-2 py-1">หัวข้อ</th>'+ 
+          '<th class="border px-2 py-1">รายละเอียด</th>'+ 
+          '<th class="border px-2 py-1">สถานะ</th>'+ 
+          '<th class="border px-2 py-1">ราคาซ่อม</th>'+ 
+          '<th class="border px-2 py-1">ผู้แจ้งซ่อม</th>'+ 
+        '</tr></thead><tbody>';
+        function formatDate(dt) {
+          if (!dt) return '-';
+          var d = new Date(dt);
+          if (isNaN(d.getTime())) return '-';
+          var pad = n=>n<10?'0'+n:n;
+          return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear()+' '+pad(d.getHours())+':'+pad(d.getMinutes());
+        }
+        data.sort(function(a,b){ return (b.date||'') > (a.date||'') ? 1 : -1; }).forEach(function(r){
+          var cost = parseFloat(r.cost||'0') || 0;
+          totalCost += cost;
+          html += '<tr>'+ 
+            '<td class="border px-2 py-1">'+formatDate(r.date)+'</td>'+ 
+            '<td class="border px-2 py-1">'+(r.title||'-')+'</td>'+ 
+            '<td class="border px-2 py-1">'+(r.details||'-')+'</td>'+ 
+            '<td class="border px-2 py-1">'+(r.status||'-')+'</td>'+ 
+            '<td class="border px-2 py-1 text-right">'+(cost?cost.toLocaleString():'-')+'</td>'+ 
+            '<td class="border px-2 py-1">'+(r.reporterName||'-')+'</td>'+ 
+          '</tr>';
+        });
+        html += '</tbody></table>';
+        html += '<div class="mt-4 text-right font-bold">ผลรวมราคาซ่อม: '+(totalCost?totalCost.toLocaleString():'-')+' บาท</div>';
+        listEl.innerHTML = html;
+      });
+    };
+    if (!window._repairHistoryModalListener) {
+      window._repairHistoryModalListener = true;
+      document.body.addEventListener('click', function(e) {
+        if (e.target.id === 'closeRepairHistoryBtn') {
+          document.getElementById('repairHistoryModal').classList.add('hidden');
+        }
+        if (e.target.id === 'repairHistoryModal') {
+          document.getElementById('repairHistoryModal').classList.add('hidden');
+        }
+      });
+    }
 
     function deleteRepair(id){
       if(!confirm('❗ คุณแน่ใจหรือไม่ว่าจะลบรายการนี้?')) return;

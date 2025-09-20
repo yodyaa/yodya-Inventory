@@ -259,35 +259,110 @@
       const pageData = filtered.slice(start, start+rowsPerPage);
 
       deviceListEl.innerHTML = '';
-      pageData.forEach(d=>{
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td class="py-3 px-4">${d.deviceId}</td>
-          <td class="py-3 px-4">${d.deviceName}</td>
-          <td class="py-3 px-4">${d.category||'-'}</td>
-          <td class="py-3 px-4"><canvas id="qr-${d.deviceId}"></canvas></td>
-          <td class="py-3 px-4"><span class="px-3 py-1 rounded-full ${statusClass(d.status)}">${d.status}</span></td>
-          <td class="py-3 px-4">${ d.imageUrl
-            ? `<img src="${d.imageUrl}" class="w-10 h-10 object-cover rounded cursor-pointer"/>`
-            : `<span class="text-gray-500 italic">ไม่มีรูป</span>` }</td>
-          <td class="py-3 px-4 space-x-2">
-            <button onclick="openEditModal('${d.deviceId}')" class="px-3 py-1 bg-[#174D27] text-white rounded">แก้ไข</button>
-            <button onclick="deleteDevice('${d.deviceId}')" class="px-3 py-1 bg-red-400 text-white rounded">ลบ</button>
-          </td>`;
-        deviceListEl.appendChild(tr);
-        QRCode.toCanvas(document.getElementById(`qr-${d.deviceId}`), d.deviceId);
+      // ดึง deviceIds ที่มี repairReports ก่อน
+      db.ref('repairReports').once('value').then(function(snap) {
+        const repairDeviceIds = snap.exists() ? Object.values(snap.val()).map(r=>r.deviceId) : [];
+        pageData.forEach(d=>{
+          const tr = document.createElement('tr');
+          tr.innerHTML =
+            '<td class="py-3 px-4">' + d.deviceId + '</td>' +
+            '<td class="py-3 px-4">' + d.deviceName + '</td>' +
+            '<td class="py-3 px-4">' + (d.category || '-') + '</td>' +
+            '<td class="py-3 px-4"><canvas id="qr-' + d.deviceId + '"></canvas></td>' +
+            '<td class="py-3 px-4"><span class="px-3 py-1 rounded-full ' + statusClass(d.status) + '">' + d.status + '</span></td>' +
+            '<td class="py-3 px-4">' + (d.imageUrl
+              ? '<img src="' + d.imageUrl + '" class="w-10 h-10 object-cover rounded cursor-pointer"/>'
+              : '<span class="text-gray-500 italic">ไม่มีรูป</span>') + '</td>' +
+            '<td class="py-3 px-4 space-x-2">' +
+              '<button onclick="openEditModal(\'' + d.deviceId + '\')" class="px-3 py-1 bg-[#174D27] text-white rounded">แก้ไข</button>' +
+              (repairDeviceIds.includes(d.deviceId)
+                ? '<button onclick="openRepairHistoryModal(\'' + d.deviceId + '\',\'' + d.deviceName + '\')" class="px-3 py-1 bg-blue-400 text-white rounded">ดูประวัติซ่อม</button>'
+                : '') +
+              '<button onclick="deleteDevice(\'' + d.deviceId + '\')" class="px-3 py-1 bg-red-400 text-white rounded">ลบ</button>' +
+            '</td>';
+          deviceListEl.appendChild(tr);
+          QRCode.toCanvas(document.getElementById(`qr-${d.deviceId}`), d.deviceId);
+        });
+        paginationEl.innerHTML = '';
+        for (let i=1; i<=total; i++){
+          const btn = document.createElement('button');
+          btn.textContent = i;
+          btn.className = `px-3 py-1 rounded ${i===currentPage?'bg-[#174D27] text-white':'bg-gray-300'}`;
+          btn.onclick = ()=>{ currentPage=i; renderTable(); };
+          paginationEl.appendChild(btn);
+        }
+        updateSummary();
       });
+// Modal ประวัติการซ่อม
+if (!document.getElementById('repairHistoryModal')) {
+  const modalHtml = '<div id="repairHistoryModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">'+
+    '<div class="bg-white rounded-lg w-11/12 md:w-1/2 p-6 relative">'+
+      '<h2 class="text-xl font-bold mb-4">ประวัติการซ่อม: <span id="repairDeviceName"></span></h2>'+ 
+      '<button id="closeRepairHistoryBtn" class="absolute top-2 right-2 text-gray-500 hover:text-gray-700">&times;</button>'+ 
+      '<div id="repairHistoryList" class="max-h-96 overflow-y-auto"></div>'+ 
+    '</div>'+ 
+  '</div>';
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
 
-      paginationEl.innerHTML = '';
-      for (let i=1; i<=total; i++){
-        const btn = document.createElement('button');
-        btn.textContent = i;
-        btn.className = `px-3 py-1 rounded ${i===currentPage?'bg-[#174D27] text-white':'bg-gray-300'}`;
-        btn.onclick = ()=>{ currentPage=i; renderTable(); };
-        paginationEl.appendChild(btn);
-      }
-
-      updateSummary();
+window.openRepairHistoryModal = function(deviceId, deviceName) {
+  const modal = document.getElementById('repairHistoryModal');
+  const nameEl = document.getElementById('repairDeviceName');
+  const listEl = document.getElementById('repairHistoryList');
+  nameEl.textContent = deviceName;
+  listEl.innerHTML = '<div class="text-gray-500">กำลังโหลด...</div>';
+  modal.classList.remove('hidden');
+  db.ref('repairReports').orderByChild('deviceId').equalTo(deviceId).once('value').then(function(snap) {
+    if (!snap.exists()) {
+      listEl.innerHTML = '<div class="text-gray-500">ไม่พบประวัติการซ่อม</div>';
+      return;
+    }
+    const data = Object.values(snap.val());
+    let totalCost = 0;
+    let html = '<table class="w-full text-sm"><thead><tr>'+ 
+      '<th class="border px-2 py-1">วันที่</th>'+ 
+      '<th class="border px-2 py-1">หัวข้อ</th>'+ 
+      '<th class="border px-2 py-1">รายละเอียด</th>'+ 
+      '<th class="border px-2 py-1">สถานะ</th>'+ 
+      '<th class="border px-2 py-1">ราคาซ่อม</th>'+ 
+      '<th class="border px-2 py-1">ผู้แจ้งซ่อม</th>'+ 
+    '</tr></thead><tbody>';
+    function formatDate(dt) {
+      if (!dt) return '-';
+      var d = new Date(dt);
+      if (isNaN(d.getTime())) return '-';
+      var pad = n=>n<10?'0'+n:n;
+      return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear()+' '+pad(d.getHours())+':'+pad(d.getMinutes());
+    }
+    data.sort(function(a,b){ return (b.date||'') > (a.date||'') ? 1 : -1; }).forEach(function(r){
+      var cost = parseFloat(r.cost||'0') || 0;
+      totalCost += cost;
+      html += '<tr>'+ 
+        '<td class="border px-2 py-1">'+formatDate(r.date)+'</td>'+ 
+        '<td class="border px-2 py-1">'+(r.title||'-')+'</td>'+ 
+        '<td class="border px-2 py-1">'+(r.details||'-')+'</td>'+ 
+        '<td class="border px-2 py-1">'+(r.status||'-')+'</td>'+ 
+        '<td class="border px-2 py-1 text-right">'+(cost?cost.toLocaleString():'-')+'</td>'+ 
+        '<td class="border px-2 py-1">'+(r.reporterName||'-')+'</td>'+ 
+      '</tr>';
+    });
+    html += '</tbody></table>';
+    html += '<div class="mt-4 text-right font-bold">ผลรวมราคาซ่อม: '+(totalCost?totalCost.toLocaleString():'-')+' บาท</div>';
+    listEl.innerHTML = html;
+  });
+};
+if (!window._repairHistoryModalListener) {
+  window._repairHistoryModalListener = true;
+  document.body.addEventListener('click', function(e) {
+    if (e.target.id === 'closeRepairHistoryBtn') {
+      document.getElementById('repairHistoryModal').classList.add('hidden');
+    }
+    if (e.target.id === 'repairHistoryModal') {
+      document.getElementById('repairHistoryModal').classList.add('hidden');
+    }
+  });
+}
+        // ...existing code...
     }
 
     // Firebase fetch + category filter populate
