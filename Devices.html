@@ -285,13 +285,71 @@
           QRCode.toCanvas(document.getElementById(`qr-${d.deviceId}`), d.deviceId);
         });
         paginationEl.innerHTML = '';
-        for (let i=1; i<=total; i++){
-          const btn = document.createElement('button');
-          btn.textContent = i;
-          btn.className = `px-3 py-1 rounded ${i===currentPage?'bg-[#174D27] text-white':'bg-gray-300'}`;
-          btn.onclick = ()=>{ currentPage=i; renderTable(); };
-          paginationEl.appendChild(btn);
+        
+        // สร้าง Pagination แบบใหม่
+        if (total > 1) {
+          // ปุ่ม หน้าสุด
+          if (currentPage > 1) {
+            const firstBtn = document.createElement('button');
+            firstBtn.textContent = 'หน้าสุด';
+            firstBtn.className = 'px-3 py-1 bg-gray-300 rounded hover:bg-gray-400 text-xs';
+            firstBtn.onclick = () => { currentPage = 1; renderTable(); };
+            paginationEl.appendChild(firstBtn);
+          }
+          
+          // ปุ่ม ก่อนหน้า
+          if (currentPage > 1) {
+            const prevBtn = document.createElement('button');
+            prevBtn.textContent = 'ก่อนหน้า';
+            prevBtn.className = 'px-3 py-1 bg-gray-300 rounded hover:bg-gray-400 text-xs';
+            prevBtn.onclick = () => { currentPage--; renderTable(); };
+            paginationEl.appendChild(prevBtn);
+          }
+          
+          // คำนวณหน้าที่จะแสดง (แสดงแค่ 5 หน้า)
+          const maxVisible = 5;
+          let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+          let endPage = Math.min(total, startPage + maxVisible - 1);
+          
+          // ปรับ startPage ถ้า endPage ติดขอบ
+          if (endPage - startPage + 1 < maxVisible) {
+            startPage = Math.max(1, endPage - maxVisible + 1);
+          }
+          
+          // ปุ่มหน้า
+          for (let i = startPage; i <= endPage; i++) {
+            const btn = document.createElement('button');
+            btn.textContent = i;
+            btn.className = `px-3 py-1 rounded text-sm ${i===currentPage?'bg-[#174D27] text-white':'bg-gray-300 hover:bg-gray-400'}`;
+            btn.onclick = () => { currentPage=i; renderTable(); };
+            paginationEl.appendChild(btn);
+          }
+          
+          // ปุ่ม ถัดไป
+          if (currentPage < total) {
+            const nextBtn = document.createElement('button');
+            nextBtn.textContent = 'ถัดไป';
+            nextBtn.className = 'px-3 py-1 bg-gray-300 rounded hover:bg-gray-400 text-xs';
+            nextBtn.onclick = () => { currentPage++; renderTable(); };
+            paginationEl.appendChild(nextBtn);
+          }
+          
+          // ปุ่ม หลังสุด
+          if (currentPage < total) {
+            const lastBtn = document.createElement('button');
+            lastBtn.textContent = 'หลังสุด';
+            lastBtn.className = 'px-3 py-1 bg-gray-300 rounded hover:bg-gray-400 text-xs';
+            lastBtn.onclick = () => { currentPage = total; renderTable(); };
+            paginationEl.appendChild(lastBtn);
+          }
+          
+          // แสดงข้อมูล pagination
+          const infoDiv = document.createElement('div');
+          infoDiv.className = 'text-sm text-gray-600 ml-4';
+          infoDiv.textContent = `หน้า ${currentPage} จาก ${total}`;
+          paginationEl.appendChild(infoDiv);
         }
+        
         updateSummary();
       });
 // Modal ประวัติการซ่อม
@@ -417,11 +475,23 @@ window.openRepairHistoryModal = function(deviceId, deviceName) {
     // สร้าง Pagination
     paginationEl.innerHTML = '';
     if (totalPages > 1) {
-      // ปุ่ม Previous
+      // ปุ่ม หน้าสุด
+      if (currentRepairPage > 1) {
+        const firstBtn = document.createElement('button');
+        firstBtn.textContent = 'หน้าสุด';
+        firstBtn.className = 'px-3 py-1 bg-gray-300 rounded hover:bg-gray-400 text-xs';
+        firstBtn.onclick = () => {
+          currentRepairPage = 1;
+          renderRepairHistory();
+        };
+        paginationEl.appendChild(firstBtn);
+      }
+      
+      // ปุ่ม ก่อนหน้า
       if (currentRepairPage > 1) {
         const prevBtn = document.createElement('button');
-        prevBtn.textContent = '←';
-        prevBtn.className = 'px-3 py-1 bg-gray-300 rounded hover:bg-gray-400';
+        prevBtn.textContent = 'ก่อนหน้า';
+        prevBtn.className = 'px-3 py-1 bg-gray-300 rounded hover:bg-gray-400 text-xs';
         prevBtn.onclick = () => {
           currentRepairPage--;
           renderRepairHistory();
@@ -429,14 +499,21 @@ window.openRepairHistoryModal = function(deviceId, deviceName) {
         paginationEl.appendChild(prevBtn);
       }
       
-      // ปุ่มหน้า
-      const startPage = Math.max(1, currentRepairPage - 2);
-      const endPage = Math.min(totalPages, currentRepairPage + 2);
+      // คำนวณหน้าที่จะแสดง (แสดงแค่ 5 หน้า)
+      const maxVisible = 5;
+      let startPage = Math.max(1, currentRepairPage - Math.floor(maxVisible / 2));
+      let endPage = Math.min(totalPages, startPage + maxVisible - 1);
       
+      // ปรับ startPage ถ้า endPage ติดขอบ
+      if (endPage - startPage + 1 < maxVisible) {
+        startPage = Math.max(1, endPage - maxVisible + 1);
+      }
+      
+      // ปุ่มหน้า
       for (let i = startPage; i <= endPage; i++) {
         const pageBtn = document.createElement('button');
         pageBtn.textContent = i;
-        pageBtn.className = `px-3 py-1 rounded ${
+        pageBtn.className = `px-3 py-1 rounded text-sm ${
           i === currentRepairPage 
             ? 'bg-[#174D27] text-white' 
             : 'bg-gray-300 hover:bg-gray-400'
@@ -448,16 +525,28 @@ window.openRepairHistoryModal = function(deviceId, deviceName) {
         paginationEl.appendChild(pageBtn);
       }
       
-      // ปุ่ม Next
+      // ปุ่ม ถัดไป
       if (currentRepairPage < totalPages) {
         const nextBtn = document.createElement('button');
-        nextBtn.textContent = '→';
-        nextBtn.className = 'px-3 py-1 bg-gray-300 rounded hover:bg-gray-400';
+        nextBtn.textContent = 'ถัดไป';
+        nextBtn.className = 'px-3 py-1 bg-gray-300 rounded hover:bg-gray-400 text-xs';
         nextBtn.onclick = () => {
           currentRepairPage++;
           renderRepairHistory();
         };
         paginationEl.appendChild(nextBtn);
+      }
+      
+      // ปุ่ม หลังสุด
+      if (currentRepairPage < totalPages) {
+        const lastBtn = document.createElement('button');
+        lastBtn.textContent = 'หลังสุด';
+        lastBtn.className = 'px-3 py-1 bg-gray-300 rounded hover:bg-gray-400 text-xs';
+        lastBtn.onclick = () => {
+          currentRepairPage = totalPages;
+          renderRepairHistory();
+        };
+        paginationEl.appendChild(lastBtn);
       }
       
       // แสดงข้อมูล pagination
@@ -600,11 +689,23 @@ window.openBorrowHistoryModal = function(deviceId, deviceName) {
     // สร้าง Pagination
     paginationEl.innerHTML = '';
     if (totalPages > 1) {
-      // ปุ่ม Previous
+      // ปุ่ม หน้าสุด
+      if (currentBorrowPage > 1) {
+        const firstBtn = document.createElement('button');
+        firstBtn.textContent = 'หน้าสุด';
+        firstBtn.className = 'px-3 py-1 bg-gray-300 rounded hover:bg-gray-400 text-xs';
+        firstBtn.onclick = () => {
+          currentBorrowPage = 1;
+          renderBorrowHistory();
+        };
+        paginationEl.appendChild(firstBtn);
+      }
+      
+      // ปุ่ม ก่อนหน้า
       if (currentBorrowPage > 1) {
         const prevBtn = document.createElement('button');
-        prevBtn.textContent = '←';
-        prevBtn.className = 'px-3 py-1 bg-gray-300 rounded hover:bg-gray-400';
+        prevBtn.textContent = 'ก่อนหน้า';
+        prevBtn.className = 'px-3 py-1 bg-gray-300 rounded hover:bg-gray-400 text-xs';
         prevBtn.onclick = () => {
           currentBorrowPage--;
           renderBorrowHistory();
@@ -612,14 +713,21 @@ window.openBorrowHistoryModal = function(deviceId, deviceName) {
         paginationEl.appendChild(prevBtn);
       }
       
-      // ปุ่มหน้า
-      const startPage = Math.max(1, currentBorrowPage - 2);
-      const endPage = Math.min(totalPages, currentBorrowPage + 2);
+      // คำนวณหน้าที่จะแสดง (แสดงแค่ 5 หน้า)
+      const maxVisible = 5;
+      let startPage = Math.max(1, currentBorrowPage - Math.floor(maxVisible / 2));
+      let endPage = Math.min(totalPages, startPage + maxVisible - 1);
       
+      // ปรับ startPage ถ้า endPage ติดขอบ
+      if (endPage - startPage + 1 < maxVisible) {
+        startPage = Math.max(1, endPage - maxVisible + 1);
+      }
+      
+      // ปุ่มหน้า
       for (let i = startPage; i <= endPage; i++) {
         const pageBtn = document.createElement('button');
         pageBtn.textContent = i;
-        pageBtn.className = `px-3 py-1 rounded ${
+        pageBtn.className = `px-3 py-1 rounded text-sm ${
           i === currentBorrowPage 
             ? 'bg-[#174D27] text-white' 
             : 'bg-gray-300 hover:bg-gray-400'
@@ -631,16 +739,28 @@ window.openBorrowHistoryModal = function(deviceId, deviceName) {
         paginationEl.appendChild(pageBtn);
       }
       
-      // ปุ่ม Next
+      // ปุ่ม ถัดไป
       if (currentBorrowPage < totalPages) {
         const nextBtn = document.createElement('button');
-        nextBtn.textContent = '→';
-        nextBtn.className = 'px-3 py-1 bg-gray-300 rounded hover:bg-gray-400';
+        nextBtn.textContent = 'ถัดไป';
+        nextBtn.className = 'px-3 py-1 bg-gray-300 rounded hover:bg-gray-400 text-xs';
         nextBtn.onclick = () => {
           currentBorrowPage++;
           renderBorrowHistory();
         };
         paginationEl.appendChild(nextBtn);
+      }
+      
+      // ปุ่ม หลังสุด
+      if (currentBorrowPage < totalPages) {
+        const lastBtn = document.createElement('button');
+        lastBtn.textContent = 'หลังสุด';
+        lastBtn.className = 'px-3 py-1 bg-gray-300 rounded hover:bg-gray-400 text-xs';
+        lastBtn.onclick = () => {
+          currentBorrowPage = totalPages;
+          renderBorrowHistory();
+        };
+        paginationEl.appendChild(lastBtn);
       }
       
       // แสดงข้อมูล pagination
