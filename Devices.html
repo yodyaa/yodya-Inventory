@@ -275,6 +275,7 @@
               : '<span class="text-gray-500 italic">ไม่มีรูป</span>') + '</td>' +
             '<td class="py-3 px-4 space-x-2">' +
               '<button onclick="openEditModal(\'' + d.deviceId + '\')" class="px-3 py-1 bg-[#174D27] text-white rounded">แก้ไข</button>' +
+              '<button onclick="openBorrowHistoryModal(\'' + d.deviceId + '\',\'' + d.deviceName + '\')" class="px-3 py-1 bg-green-500 text-white rounded">ประวัติการยืม</button>' +
               (repairDeviceIds.includes(d.deviceId)
                 ? '<button onclick="openRepairHistoryModal(\'' + d.deviceId + '\',\'' + d.deviceName + '\')" class="px-3 py-1 bg-blue-400 text-white rounded">ดูประวัติซ่อม</button>'
                 : '') +
@@ -296,29 +297,83 @@
 // Modal ประวัติการซ่อม
 if (!document.getElementById('repairHistoryModal')) {
   const modalHtml = '<div id="repairHistoryModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">'+
-    '<div class="bg-white rounded-lg w-11/12 md:w-1/2 p-6 relative">'+
+    '<div class="bg-white rounded-lg w-11/12 md:w-3/4 p-6 relative">'+
       '<h2 class="text-xl font-bold mb-4">ประวัติการซ่อม: <span id="repairDeviceName"></span></h2>'+ 
       '<button id="closeRepairHistoryBtn" class="absolute top-2 right-2 text-gray-500 hover:text-gray-700">&times;</button>'+ 
+      '<div class="mb-4">'+
+        '<input id="repairSearchInput" type="text" placeholder="ค้นหาหัวข้อ, รายละเอียด, การแก้ไข หรือผู้แจ้งซ่อม..." class="w-full border border-gray-300 rounded px-3 py-2 text-sm">'+
+      '</div>'+
       '<div id="repairHistoryList" class="max-h-96 overflow-y-auto"></div>'+ 
+      '<div id="repairPagination" class="flex justify-center items-center space-x-2 mt-4"></div>'+
     '</div>'+ 
   '</div>';
   document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+// Modal ประวัติการยืม
+if (!document.getElementById('borrowHistoryModal')) {
+  const borrowModalHtml = '<div id="borrowHistoryModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">'+
+    '<div class="bg-white rounded-lg w-11/12 md:w-3/4 p-6 relative">'+
+      '<h2 class="text-xl font-bold mb-4">ประวัติการยืม: <span id="borrowDeviceName"></span></h2>'+ 
+      '<button id="closeBorrowHistoryBtn" class="absolute top-2 right-2 text-gray-500 hover:text-gray-700">&times;</button>'+ 
+      '<div class="mb-4 flex gap-3">'+
+        '<input id="borrowSearchInput" type="text" placeholder="ค้นหาผู้ใช้งาน, ตำแหน่ง..." class="flex-1 border border-gray-300 rounded px-3 py-2 text-sm">'+
+        '<select id="borrowStatusFilter" class="border border-gray-300 rounded px-3 py-2 text-sm">'+
+          '<option value="">ทั้งหมด</option>'+
+          '<option value="ยืม">ยืม</option>'+
+          '<option value="คืน">คืน</option>'+
+        '</select>'+
+      '</div>'+
+      '<div id="borrowHistoryList" class="max-h-96 overflow-y-auto"></div>'+ 
+      '<div id="borrowPagination" class="flex justify-center items-center space-x-2 mt-4"></div>'+
+    '</div>'+ 
+  '</div>';
+  document.body.insertAdjacentHTML('beforeend', borrowModalHtml);
 }
 
 window.openRepairHistoryModal = function(deviceId, deviceName) {
   const modal = document.getElementById('repairHistoryModal');
   const nameEl = document.getElementById('repairDeviceName');
   const listEl = document.getElementById('repairHistoryList');
+  const paginationEl = document.getElementById('repairPagination');
+  const searchInput = document.getElementById('repairSearchInput');
+  
   nameEl.textContent = deviceName;
   listEl.innerHTML = '<div class="text-gray-500">กำลังโหลด...</div>';
+  paginationEl.innerHTML = '';
+  searchInput.value = '';
   modal.classList.remove('hidden');
-  db.ref('repairReports').orderByChild('deviceId').equalTo(deviceId).once('value').then(function(snap) {
-    if (!snap.exists()) {
-      listEl.innerHTML = '<div class="text-gray-500">ไม่พบประวัติการซ่อม</div>';
-      return;
+  
+  let allRepairData = [];
+  let currentRepairPage = 1;
+  const rowsPerPage = 10;
+  
+  // ฟังก์ชันสำหรับกรองข้อมูล
+  function filterRepairData(data, searchTerm) {
+    if (!searchTerm) return data;
+    const term = searchTerm.toLowerCase();
+    return data.filter(record => 
+      (record.title || '').toLowerCase().includes(term) ||
+      (record.details || '').toLowerCase().includes(term) ||
+      (record.solution || '').toLowerCase().includes(term) ||
+      (record.reporterName || '').toLowerCase().includes(term)
+    );
+  }
+  
+  // ฟังก์ชันสำหรับแสดงข้อมูล
+  function renderRepairHistory() {
+    const searchTerm = searchInput.value;
+    const filteredData = filterRepairData(allRepairData, searchTerm);
+    const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+    
+    if (currentRepairPage > totalPages && totalPages > 0) {
+      currentRepairPage = totalPages;
     }
-    const data = Object.values(snap.val());
-    let totalCost = 0;
+    
+    const startIdx = (currentRepairPage - 1) * rowsPerPage;
+    const endIdx = startIdx + rowsPerPage;
+    const pageData = filteredData.slice(startIdx, endIdx);
+    
     let html = '<table class="w-full text-sm"><thead><tr>'+ 
       '<th class="border px-2 py-1">วันที่</th>'+ 
       '<th class="border px-2 py-1">หัวข้อ</th>'+ 
@@ -327,6 +382,7 @@ window.openRepairHistoryModal = function(deviceId, deviceName) {
       '<th class="border px-2 py-1">ราคาซ่อม</th>'+ 
       '<th class="border px-2 py-1">ผู้แจ้งซ่อม</th>'+ 
     '</tr></thead><tbody>';
+    
     function formatDate(dt) {
       if (!dt) return '-';
       var d = new Date(dt);
@@ -334,21 +390,325 @@ window.openRepairHistoryModal = function(deviceId, deviceName) {
       var pad = n=>n<10?'0'+n:n;
       return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear()+' '+pad(d.getHours())+':'+pad(d.getMinutes());
     }
-    data.sort(function(a,b){ return (b.date||'') > (a.date||'') ? 1 : -1; }).forEach(function(r){
-      var cost = parseFloat(r.cost||'0') || 0;
-      totalCost += cost;
-      html += '<tr>'+ 
-        '<td class="border px-2 py-1">'+formatDate(r.date)+'</td>'+ 
-        '<td class="border px-2 py-1">'+(r.title||'-')+'</td>'+ 
-        '<td class="border px-2 py-1">'+(r.details||'-')+'</td>'+ 
-        '<td class="border px-2 py-1">'+(r.solution||'-')+'</td>'+ 
-        '<td class="border px-2 py-1 text-right">'+(cost?cost.toLocaleString():'-')+'</td>'+ 
-        '<td class="border px-2 py-1">'+(r.reporterName||'-')+'</td>'+ 
-      '</tr>';
-    });
+    
+    let totalCost = 0;
+    
+    if (pageData.length === 0) {
+      html += '<tr><td colspan="6" class="border px-2 py-4 text-center text-gray-500">ไม่พบข้อมูล</td></tr>';
+    } else {
+      pageData.forEach(function(r){
+        var cost = parseFloat(r.cost||'0') || 0;
+        totalCost += cost;
+        html += '<tr>'+ 
+          '<td class="border px-2 py-1">'+formatDate(r.date)+'</td>'+ 
+          '<td class="border px-2 py-1">'+(r.title||'-')+'</td>'+ 
+          '<td class="border px-2 py-1">'+(r.details||'-')+'</td>'+ 
+          '<td class="border px-2 py-1">'+(r.solution||'-')+'</td>'+ 
+          '<td class="border px-2 py-1 text-right">'+(cost?cost.toLocaleString():'-')+'</td>'+ 
+          '<td class="border px-2 py-1">'+(r.reporterName||'-')+'</td>'+ 
+        '</tr>';
+      });
+    }
+    
     html += '</tbody></table>';
-    html += '<div class="mt-4 text-right font-bold">ผลรวมราคาซ่อม: '+(totalCost?totalCost.toLocaleString():'-')+' บาท</div>';
+    
     listEl.innerHTML = html;
+    
+    // สร้าง Pagination
+    paginationEl.innerHTML = '';
+    if (totalPages > 1) {
+      // ปุ่ม Previous
+      if (currentRepairPage > 1) {
+        const prevBtn = document.createElement('button');
+        prevBtn.textContent = '←';
+        prevBtn.className = 'px-3 py-1 bg-gray-300 rounded hover:bg-gray-400';
+        prevBtn.onclick = () => {
+          currentRepairPage--;
+          renderRepairHistory();
+        };
+        paginationEl.appendChild(prevBtn);
+      }
+      
+      // ปุ่มหน้า
+      const startPage = Math.max(1, currentRepairPage - 2);
+      const endPage = Math.min(totalPages, currentRepairPage + 2);
+      
+      for (let i = startPage; i <= endPage; i++) {
+        const pageBtn = document.createElement('button');
+        pageBtn.textContent = i;
+        pageBtn.className = `px-3 py-1 rounded ${
+          i === currentRepairPage 
+            ? 'bg-[#174D27] text-white' 
+            : 'bg-gray-300 hover:bg-gray-400'
+        }`;
+        pageBtn.onclick = () => {
+          currentRepairPage = i;
+          renderRepairHistory();
+        };
+        paginationEl.appendChild(pageBtn);
+      }
+      
+      // ปุ่ม Next
+      if (currentRepairPage < totalPages) {
+        const nextBtn = document.createElement('button');
+        nextBtn.textContent = '→';
+        nextBtn.className = 'px-3 py-1 bg-gray-300 rounded hover:bg-gray-400';
+        nextBtn.onclick = () => {
+          currentRepairPage++;
+          renderRepairHistory();
+        };
+        paginationEl.appendChild(nextBtn);
+      }
+      
+      // แสดงข้อมูล pagination
+      const infoDiv = document.createElement('div');
+      infoDiv.className = 'text-sm text-gray-600 ml-4';
+      infoDiv.textContent = `หน้า ${currentRepairPage} จาก ${totalPages}`;
+      paginationEl.appendChild(infoDiv);
+    }
+  }
+  
+  // Event listener สำหรับการค้นหา
+  searchInput.addEventListener('input', function() {
+    currentRepairPage = 1;
+    renderRepairHistory();
+  });
+  
+  // ดึงข้อมูลจาก Firebase
+  db.ref('repairReports').orderByChild('deviceId').equalTo(deviceId).once('value').then(function(snap) {
+    if (!snap.exists()) {
+      listEl.innerHTML = '<div class="text-gray-500">ไม่พบประวัติการซ่อม</div>';
+      paginationEl.innerHTML = '';
+      return;
+    }
+    
+    allRepairData = Object.values(snap.val());
+    // เรียงตามวันที่ใหม่ไปเก่า
+    allRepairData.sort(function(a,b){ return (b.date||'') > (a.date||'') ? 1 : -1; });
+    
+    currentRepairPage = 1;
+    renderRepairHistory();
+  });
+};
+
+window.openBorrowHistoryModal = function(deviceId, deviceName) {
+  const modal = document.getElementById('borrowHistoryModal');
+  const nameEl = document.getElementById('borrowDeviceName');
+  const listEl = document.getElementById('borrowHistoryList');
+  const paginationEl = document.getElementById('borrowPagination');
+  const searchInput = document.getElementById('borrowSearchInput');
+  const statusFilter = document.getElementById('borrowStatusFilter');
+  
+  nameEl.textContent = deviceName;
+  listEl.innerHTML = '<div class="text-gray-500">กำลังโหลด...</div>';
+  paginationEl.innerHTML = '';
+  searchInput.value = '';
+  statusFilter.value = '';
+  modal.classList.remove('hidden');
+  
+  let allBorrowData = [];
+  let currentBorrowPage = 1;
+  const rowsPerPage = 10;
+  
+  // ฟังก์ชันสำหรับกรองข้อมูล
+  function filterBorrowData(data, searchTerm, statusFilter) {
+    let filtered = data;
+    
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(record => 
+        (record.userName || '').toLowerCase().includes(term) ||
+        (record.userPosition || '').toLowerCase().includes(term)
+      );
+    }
+    
+    if (statusFilter) {
+      filtered = filtered.filter(record => 
+        (record.status || record.action || '') === statusFilter
+      );
+    }
+    
+    return filtered;
+  }
+  
+  // ฟังก์ชันสำหรับแสดงข้อมูล
+  function renderBorrowHistory() {
+    const searchTerm = searchInput.value;
+    const statusValue = statusFilter.value;
+    const filteredData = filterBorrowData(allBorrowData, searchTerm, statusValue);
+    const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+    
+    if (currentBorrowPage > totalPages && totalPages > 0) {
+      currentBorrowPage = totalPages;
+    }
+    
+    const startIdx = (currentBorrowPage - 1) * rowsPerPage;
+    const endIdx = startIdx + rowsPerPage;
+    const pageData = filteredData.slice(startIdx, endIdx);
+    
+    let html = '<table class="w-full text-sm"><thead><tr class="bg-gray-50">'+ 
+      '<th class="border border-gray-300 px-3 py-2 text-left">วันที่</th>'+ 
+      '<th class="border border-gray-300 px-3 py-2 text-left">เวลา</th>'+ 
+      '<th class="border border-gray-300 px-3 py-2 text-left">ผู้ใช้งาน</th>'+ 
+      '<th class="border border-gray-300 px-3 py-2 text-left">ตำแหน่ง</th>'+ 
+      '<th class="border border-gray-300 px-3 py-2 text-center">สถานะ</th>'+ 
+    '</tr></thead><tbody>';
+    
+    function formatDate(dt) {
+      if (!dt) return '-';
+      var d = new Date(dt);
+      if (isNaN(d.getTime())) return '-';
+      var pad = n=>n<10?'0'+n:n;
+      return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear();
+    }
+    
+    function formatTime(dt) {
+      if (!dt) return '-';
+      var d = new Date(dt);
+      if (isNaN(d.getTime())) return '-';
+      var pad = n=>n<10?'0'+n:n;
+      return pad(d.getHours())+':'+pad(d.getMinutes());
+    }
+    
+    function getStatusBadge(status) {
+      if (status === 'ยืม') return '<span class="px-3 py-1 bg-red-100 text-red-800 rounded-full text-xs font-medium border border-red-300">ยืม</span>';
+      if (status === 'คืน') return '<span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium border border-green-300">คืน</span>';
+      return '<span class="px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-xs font-medium border border-gray-300">' + status + '</span>';
+    }
+    
+    if (pageData.length === 0) {
+      html += '<tr><td colspan="5" class="border border-gray-300 px-3 py-8 text-center text-gray-500">ไม่พบข้อมูล</td></tr>';
+    } else {
+      pageData.forEach(function(record, index){
+        const statusText = record.status || record.action || '-';
+        const rowClass = index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
+        
+        html += '<tr class="' + rowClass + '">'+ 
+          '<td class="border border-gray-300 px-3 py-2">'+formatDate(record.date)+'</td>'+ 
+          '<td class="border border-gray-300 px-3 py-2">'+formatTime(record.date)+'</td>'+ 
+          '<td class="border border-gray-300 px-3 py-2">'+(record.userName || '-')+'</td>'+ 
+          '<td class="border border-gray-300 px-3 py-2">'+(record.userPosition || '-')+'</td>'+ 
+          '<td class="border border-gray-300 px-3 py-2 text-center">'+getStatusBadge(statusText)+'</td>'+ 
+        '</tr>';
+      });
+    }
+    
+    html += '</tbody></table>';
+    
+    listEl.innerHTML = html;
+    
+    // สร้าง Pagination
+    paginationEl.innerHTML = '';
+    if (totalPages > 1) {
+      // ปุ่ม Previous
+      if (currentBorrowPage > 1) {
+        const prevBtn = document.createElement('button');
+        prevBtn.textContent = '←';
+        prevBtn.className = 'px-3 py-1 bg-gray-300 rounded hover:bg-gray-400';
+        prevBtn.onclick = () => {
+          currentBorrowPage--;
+          renderBorrowHistory();
+        };
+        paginationEl.appendChild(prevBtn);
+      }
+      
+      // ปุ่มหน้า
+      const startPage = Math.max(1, currentBorrowPage - 2);
+      const endPage = Math.min(totalPages, currentBorrowPage + 2);
+      
+      for (let i = startPage; i <= endPage; i++) {
+        const pageBtn = document.createElement('button');
+        pageBtn.textContent = i;
+        pageBtn.className = `px-3 py-1 rounded ${
+          i === currentBorrowPage 
+            ? 'bg-[#174D27] text-white' 
+            : 'bg-gray-300 hover:bg-gray-400'
+        }`;
+        pageBtn.onclick = () => {
+          currentBorrowPage = i;
+          renderBorrowHistory();
+        };
+        paginationEl.appendChild(pageBtn);
+      }
+      
+      // ปุ่ม Next
+      if (currentBorrowPage < totalPages) {
+        const nextBtn = document.createElement('button');
+        nextBtn.textContent = '→';
+        nextBtn.className = 'px-3 py-1 bg-gray-300 rounded hover:bg-gray-400';
+        nextBtn.onclick = () => {
+          currentBorrowPage++;
+          renderBorrowHistory();
+        };
+        paginationEl.appendChild(nextBtn);
+      }
+      
+      // แสดงข้อมูล pagination
+      const infoDiv = document.createElement('div');
+      infoDiv.className = 'text-sm text-gray-600 ml-4';
+      infoDiv.textContent = `หน้า ${currentBorrowPage} จาก ${totalPages}`;
+      paginationEl.appendChild(infoDiv);
+    }
+  }
+  
+  // Event listener สำหรับการค้นหาและกรอง
+  searchInput.addEventListener('input', function() {
+    currentBorrowPage = 1;
+    renderBorrowHistory();
+  });
+  
+  statusFilter.addEventListener('change', function() {
+    currentBorrowPage = 1;
+    renderBorrowHistory();
+  });
+  
+  // ดึงข้อมูลจาก Firebase
+  Promise.all([
+    db.ref('borrowRecords').orderByChild('deviceId').equalTo(deviceId).once('value'),
+    db.ref('returnRecords').orderByChild('deviceId').equalTo(deviceId).once('value')
+  ]).then(function([borrowSnap, returnSnap]) {
+    allBorrowData = [];
+    
+    console.log('Borrow Records:', borrowSnap.exists() ? Object.keys(borrowSnap.val()).length : 0);
+    console.log('Return Records:', returnSnap.exists() ? Object.keys(returnSnap.val()).length : 0);
+    
+    // รวมข้อมูลจาก borrowRecords
+    if (borrowSnap.exists()) {
+      Object.values(borrowSnap.val()).forEach(function(record) {
+        allBorrowData.push({
+          ...record,
+          action: record.status || 'ยืม', // ใช้ status ที่มีอยู่หรือ default เป็น 'ยืม'
+          status: record.status || 'ยืม'
+        });
+      });
+    }
+    
+    // รวมข้อมูลจาก returnRecords  
+    if (returnSnap.exists()) {
+      Object.values(returnSnap.val()).forEach(function(record) {
+        allBorrowData.push({
+          ...record,
+          action: record.status || 'คืน', // ใช้ status ที่มีอยู่หรือ default เป็น 'คืน'
+          status: record.status || 'คืน'
+        });
+      });
+    }
+    
+    if (allBorrowData.length === 0) {
+      console.log('No borrow/return data found for device:', deviceId);
+      listEl.innerHTML = '<div class="text-gray-500">ไม่พบประวัติการยืม</div>';
+      paginationEl.innerHTML = '';
+      return;
+    }
+    
+    console.log('Total records found:', allBorrowData.length);
+    console.log('Sample data:', allBorrowData.slice(0, 2));
+    
+    // เรียงตามวันที่ใหม่ไปเก่า
+    allBorrowData.sort(function(a,b){ return new Date(b.date || 0) - new Date(a.date || 0); });
+    
+    currentBorrowPage = 1;
+    renderBorrowHistory();
   });
 };
 if (!window._repairHistoryModalListener) {
@@ -359,6 +719,12 @@ if (!window._repairHistoryModalListener) {
     }
     if (e.target.id === 'repairHistoryModal') {
       document.getElementById('repairHistoryModal').classList.add('hidden');
+    }
+    if (e.target.id === 'closeBorrowHistoryBtn') {
+      document.getElementById('borrowHistoryModal').classList.add('hidden');
+    }
+    if (e.target.id === 'borrowHistoryModal') {
+      document.getElementById('borrowHistoryModal').classList.add('hidden');
     }
   });
 }
