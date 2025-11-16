@@ -7,118 +7,191 @@
   <title>ลงทะเบียนพนักงาน</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- LIFF SDK -->
-  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-  <!-- Firebase SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
-    <script>
+  <script>
     tailwind.config = { theme: { extend: {
     colors: {
       primary: '#174D27',
           secondary: '#CADEC3',
     } } } }
   </script>
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
   <script src="firebase-config.js"></script>
 </head>
-<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+<body class="bg-gradient-to-br from-primary to-green-700 min-h-screen flex items-center justify-center p-4">
 
-  <div class="p-6 w-full max-w-md">
-    <h2 class="text-2xl font-bold mb-6 text-center">ลงทะเบียนพนักงาน</h2>
-    <div class="space-y-4">
-      <input type="text" id="empId" placeholder="รหัสพนักงาน"
-        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-        required>
-      <input type="text" id="fullName" placeholder="ชื่อ - สกุล"
-        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-        required>
-      <input type="text" id="position" placeholder="ตำแหน่ง"
-        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-        required>
-      <input type="tel" id="phone" placeholder="เบอร์โทร (0XXXXXXXXX)"
-        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-        required>
-      <input type="text" id="userIdLine" placeholder="UserId จาก LINE" readonly
-        class="w-full px-4 py-2 text-secondary border border-gray-200 rounded-lg bg-gray-100 cursor-not-allowed">
-      <input type="file" id="photo" accept="image/*"
-        class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:border file:border-gray-300 file:rounded-lg file:bg-white file:text-sm file:font-semibold hover:file:bg-gray-100">
+  <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-4xl">
+    <div class="text-center mb-6">
+      <h2 class="text-3xl font-bold text-primary mb-2">ลงทะเบียนพนักงาน</h2>
+      <p class="text-gray-600">สร้างบัญชีใหม่สำหรับเข้าใช้งานระบบ</p>
     </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">รหัสพนักงาน</label>
+        <input type="text" id="empId" placeholder="รหัสพนักงาน"
+          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+          required>
+      </div>
+      
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">ชื่อ - สกุล</label>
+        <input type="text" id="fullName" placeholder="ชื่อ - สกุล"
+          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+          required>
+      </div>
+      
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">ตำแหน่ง</label>
+        <input type="text" id="position" placeholder="ตำแหน่ง"
+          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+          required>
+      </div>
+      
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">เบอร์โทรศัพท์</label>
+        <input type="tel" id="phone" placeholder="0XXXXXXXXX"
+          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+          required>
+      </div>
+      
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">อีเมล</label>
+        <input type="email" id="email" placeholder="example@email.com"
+          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+          required>
+      </div>
+      
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">รหัสผ่าน</label>
+        <input type="password" id="password" placeholder="••••••••"
+          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+          required>
+        <p class="text-xs text-gray-500 mt-1">รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร</p>
+      </div>
+      
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">ยืนยันรหัสผ่าน</label>
+        <input type="password" id="confirmPassword" placeholder="••••••••"
+          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+          required>
+      </div>
+      
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">รูปภาพ (ไม่บังคับ)</label>
+        <input type="file" id="photo" accept="image/*"
+          class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:border file:border-gray-300 file:rounded-lg file:bg-white file:text-sm file:font-semibold hover:file:bg-gray-100 focus:outline-none">
+      </div>
+    </div>
+    
     <button id="saveBtn" onclick="saveEmployee()"
-      class="mt-6 w-full bg-primary text-white font-semibold py-2 rounded-full disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-      บันทึกข้อมูล
+      class="mt-6 w-full bg-primary text-white font-semibold py-3 rounded-lg hover:bg-green-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg">
+      ลงทะเบียน
     </button>
-    <p id="status" class="mt-4 text-center text-gray-600"></p>
+    
+    <div class="mt-4 text-center">
+      <a href="Login.html" class="text-sm text-primary hover:underline">มีบัญชีอยู่แล้ว? เข้าสู่ระบบ</a>
+    </div>
+    
+    <p id="status" class="mt-4 text-center text-sm font-medium"></p>
   </div>
 
   <script>
-
-    window.onload = async () => {
-      await liff.init({ liffId: '2007392451-xb1Ya5r7' });
-      if (!liff.isInClient() && !liff.isLoggedIn()) {
-        liff.login();
-        return;
-      }
-      const profile = await liff.getProfile();
-      document.getElementById("userIdLine").value = profile.userId;
-    };
+    // auth, db, storage ประกาศไว้ใน firebase-config.js แล้ว
 
     async function saveEmployee() {
       const empId = document.getElementById("empId").value.trim();
       const fullName = document.getElementById("fullName").value.trim();
       const position = document.getElementById("position").value.trim();
       const phone = document.getElementById("phone").value.trim();
-      const userIdLine = document.getElementById("userIdLine").value;
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+      const confirmPassword = document.getElementById("confirmPassword").value;
       const file = document.getElementById("photo").files[0];
 
       const statusEl = document.getElementById("status");
       const btn = document.getElementById("saveBtn");
 
       // ตรวจสอบข้อมูลครบ
-      if (!empId || !fullName || !position || !phone || !userIdLine) {
-        return alert("กรุณากรอกข้อมูลให้ครบถ้วน");
+      if (!empId || !fullName || !position || !phone || !email || !password || !confirmPassword) {
+        return showStatus("กรุณากรอกข้อมูลให้ครบถ้วน", "error");
+      }
+
+      // ตรวจสอบรหัสผ่านตรงกัน
+      if (password !== confirmPassword) {
+        return showStatus("รหัสผ่านไม่ตรงกัน", "error");
+      }
+
+      // ตรวจสอบความยาวรหัสผ่าน
+      if (password.length < 6) {
+        return showStatus("รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร", "error");
       }
 
       // ตรวจสอบรูปแบบเบอร์โทร
       const phonePattern = /^0\d{9}$/;
       if (!phonePattern.test(phone)) {
-        return alert("รูปแบบเบอร์โทรไม่ถูกต้อง (เช่น 0XXXXXXXXX)");
+        return showStatus("รูปแบบเบอร์โทรไม่ถูกต้อง (ต้องขึ้นต้นด้วย 0 และมี 10 หลัก)", "error");
+      }
+
+      // ตรวจสอบรูปแบบอีเมล
+      const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailPattern.test(email)) {
+        return showStatus("รูปแบบอีเมลไม่ถูกต้อง", "error");
       }
 
       btn.disabled = true;
-      statusEl.textContent = "กำลังบันทึก...";
+      showStatus("กำลังลงทะเบียน...", "info");
 
       try {
-        // ตรวจสอบ userIdLine ซ้ำ
-        let snap = await db.ref("employees")
-          .orderByChild("userIdLine")
-          .equalTo(userIdLine)
-          .get();
-        if (snap.exists()) {
-          statusEl.textContent = "⚠️ userIdLine นี้ลงทะเบียนแล้ว";
+        // ตรวจสอบรหัสพนักงานซ้ำ
+        const empIdSnap = await db.ref("employees").child(empId).get();
+        if (empIdSnap.exists()) {
+          showStatus("⚠️ รหัสพนักงานนี้มีอยู่ในระบบแล้ว", "error");
           btn.disabled = false;
           return;
         }
+
+        // ตรวจสอบอีเมลซ้ำในฐานข้อมูล
+        let snap = await db.ref("employees")
+          .orderByChild("email")
+          .equalTo(email)
+          .get();
+        if (snap.exists()) {
+          showStatus("⚠️ อีเมลนี้ถูกใช้งานแล้ว", "error");
+          btn.disabled = false;
+          return;
+        }
+
         // ตรวจสอบเบอร์โทรซ้ำ
         snap = await db.ref("employees")
           .orderByChild("phone")
           .equalTo(phone)
           .get();
         if (snap.exists()) {
-          statusEl.textContent = "⚠️ เบอร์โทรนี้ลงทะเบียนแล้ว";
+          showStatus("⚠️ เบอร์โทรนี้ถูกใช้งานแล้ว", "error");
           btn.disabled = false;
           return;
         }
 
+        // สร้างบัญชีใน Firebase Authentication
+        const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+        const user = userCredential.user;
+
+        // อัปเดตชื่อผู้ใช้
+        await user.updateProfile({
+          displayName: fullName
+        });
+
         // อัปโหลดรูป (ถ้ามี)
         let photoURL = "";
-// อัปโหลดรูป
-if (file) {
-  // ตรงนี้ใช้ storage.ref() แทน storage.child()
-  const fileRef = storage.ref(`employee_photos/${empId}_${Date.now()}`);
-  await fileRef.put(file);
-  photoURL = await fileRef.getDownloadURL();
-}
+        if (file) {
+          const fileRef = storage.ref(`employee_photos/${empId}_${Date.now()}`);
+          await fileRef.put(file);
+          photoURL = await fileRef.getDownloadURL();
+        }
 
         // บันทึกข้อมูลลง Realtime Database พร้อม role = "User"
         await db.ref(`employees/${empId}`).set({
@@ -126,18 +199,62 @@ if (file) {
           fullName,
           position,
           phone,
-          userIdLine,
+          email,
           photoURL,
-          role: "User"
+          role: "User",
+          uid: user.uid,
+          createdAt: new Date().toISOString()
         });
 
-        statusEl.textContent = "✅ บันทึกสำเร็จ";
-        setTimeout(() => liff.closeWindow(), 1500);
+        showStatus("✅ ลงทะเบียนสำเร็จ! กำลังเข้าสู่ระบบ...", "success");
+        
+        // รอ 1.5 วินาที แล้วไปหน้า Dashboard
+        setTimeout(() => {
+          window.location.href = "Dashboard.html";
+        }, 1500);
 
       } catch (error) {
-        console.error(error);
-        statusEl.textContent = "❌ เกิดข้อผิดพลาด กรุณาลองใหม่";
+        console.error('Registration error:', error);
+        let message = "❌ เกิดข้อผิดพลาด กรุณาลองใหม่";
+        
+        switch(error.code) {
+          case 'auth/email-already-in-use':
+            message = "อีเมลนี้ถูกใช้งานแล้วใน Firebase Authentication";
+            break;
+          case 'auth/invalid-email':
+            message = "รูปแบบอีเมลไม่ถูกต้อง";
+            break;
+          case 'auth/weak-password':
+            message = "รหัสผ่านไม่แข็งแรงพอ";
+            break;
+          case 'auth/operation-not-allowed':
+            message = "การลงทะเบียนถูกปิดใช้งาน กรุณาติดต่อผู้ดูแลระบบ";
+            break;
+        }
+        
+        showStatus(message, "error");
         btn.disabled = false;
+      }
+    }
+
+    function showStatus(message, type) {
+      const statusEl = document.getElementById("status");
+      statusEl.textContent = message;
+      
+      statusEl.classList.remove('text-red-600', 'text-green-600', 'text-blue-600', 'text-gray-600');
+      
+      switch(type) {
+        case 'error':
+          statusEl.classList.add('text-red-600');
+          break;
+        case 'success':
+          statusEl.classList.add('text-green-600');
+          break;
+        case 'info':
+          statusEl.classList.add('text-blue-600');
+          break;
+        default:
+          statusEl.classList.add('text-gray-600');
       }
     }
   </script>

@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>อุปกรณ์</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="auth-guard.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="firebase-config.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#174D27',
+            secondary: '#CADEC3',
+          }
+        }
+      }
+    }
+  </script>
+</head>
+
+<body class="bg-gray-100">
+  <div class="flex min-h-screen">
+    <aside class="w-64 bg-primary p-6">
+      <h1 class="text-white text-md font-bold mb-6">จัดการอุปกรณ์</h1>
+      <nav class="space-y-4">
+      <a href="./Dashboard.html"      class="block bg-secondary text-primary py-2 px-4 rounded">หน้าหลัก</a>
+      <a href="./Report-show.html"    class="block bg-secondary text-primary py-2 px-4 rounded">แจ้งซ่อม</a>
+      <a href="./Team.html"           class="block bg-secondary text-primary py-2 px-4 rounded">จัดการทีม</a>
+      <div class="p-4 border  flex flex-col space-y-4 ">
+      <a href="./products.html"       class="block bg-secondary text-primary py-2 px-4 rounded">วัสดุ</a>
+      <a href="./transactions.html"   class="block bg-secondary text-primary py-2 px-4 rounded">รับเข้า/เบิก</a>
+      </div>
+      <a href="./Devices.html"        class="block bg-primary border border-secondary text-secondary py-2 px-4 rounded">อุปกรณ์</a>
+      <a href="./User.html"           class="block bg-secondary text-primary py-2 px-4 rounded">สมาชิก</a>
+      <a href="./Setting.html"        class="block bg-secondary text-primary py-2 px-4 rounded">ตั้งค่าการแจ้งเตือน</a>
+    </nav>
+    </aside>
+
+    <main class="flex-1 p-6">
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 space-y-4 md:space-y-0">
+        <div class="flex space-x-2">
+          <button id="openModal" class="bg-primary text-white px-6 py-3 rounded-lg text-md font-semibold">
+            เพิ่มอุปกรณ์
+          </button>
+          <button id="exportCsvBtn" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg text-md font-semibold">
+            Export CSV
+          </button>
+          <label for="csvInput" class="bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-3 rounded-lg text-md font-semibold cursor-pointer">
+            Import CSV
+            <input id="csvInput" type="file" accept=".csv" class="hidden" />
+          </label>
+        </div>
+        <div id="summaryBoxes" class="grid grid-cols-2 sm:grid-cols-5 gap-4 w-full md:w-auto"></div>
+      </div>
+
+      <div class="border-2 border-slate-500 rounded-lg overflow-hidden bg-white">
+        <div class="flex flex-wrap items-center px-6 py-4 space-x-6 border-b">
+          <div class="flex items-center space-x-2">
+            <label for="filterId" class="text-sm">รหัส</label>
+            <input id="filterId" type="text" class="w-32 h-8 border border-gray-300 rounded px-2 text-sm" placeholder="">
+          </div>
+          <div class="flex items-center space-x-2">
+            <label for="filterName" class="text-sm">ชื่อ</label>
+            <input id="filterName" type="text" class="w-32 h-8 border border-gray-300 rounded px-2 text-sm" placeholder="">
+          </div>
+          <div class="flex items-center space-x-2">
+            <label for="filterCategory" class="text-sm">หมวดหมู่</label>
+            <select id="filterCategory" class="w-32 h-8 border border-gray-300 rounded px-2 text-sm">
+              <option value="">ทั้งหมด</option>
+            </select>
+          </div>
+          <div class="flex items-center space-x-2">
+            <label for="filterStatus" class="text-sm">สถานะ</label>
+            <select id="filterStatus" class="w-32 h-8 border border-gray-300 rounded px-2 text-sm">
+              <option value="">ทั้งหมด</option>
+              <option value="พร้อมใช้งาน">พร้อมใช้งาน</option>
+              <option value="กำลังใช้งาน">กำลังใช้งาน</option>
+              <option value="รอซ่อม">รอซ่อม</option>
+              <option value="ส่งซ่อม">ส่งซ่อม</option>
+              <option value="เสียหาย">เสียหาย</option>
+            </select>
+          </div>
+        </div>
+
+        <table class="min-w-full table-fixed">
+          <thead class="bg-[#174D27] text-white">
+            <tr>
+              <th class="py-3 px-4 text-left text-sm">รหัส</th>
+              <th class="py-3 px-4 text-left text-sm">ชื่อ</th>
+              <th class="py-3 px-4 text-left text-sm">หมวดหมู่</th>
+              <th class="py-3 px-4 text-left text-sm">QR</th>
+              <th class="py-3 px-4 text-left text-sm">สถานะ</th>
+              <th class="py-3 px-4 text-left text-sm">รูป</th>
+              <th class="py-3 px-4 text-left text-sm">จัดการ</th>
+            </tr>
+          </thead>
+          <tbody id="deviceList" class="bg-white divide-y divide-gray-200 text-sm"></tbody>
+        </table>
+
+        <div class="flex justify-between items-center px-6 py-4 bg-gray-50">
+          <div class="flex items-center space-x-2">
+            <label for="rowsPerPage" class="text-sm">แสดง</label>
+            <select id="rowsPerPage" class="w-12 h-8 border border-gray-300 rounded text-sm">
+              <option value="15">15</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+            <span class="text-sm">แถวต่อหน้า</span>
+          </div>
+          <div id="pagination" class="flex space-x-2"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div id="deviceModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+    <div class="bg-white rounded-lg w-11/12 md:w-1/2 p-6 relative">
+      <button id="closeModal" class="absolute top-3 right-3 text-gray-500 text-2xl">&times;</button>
+      <h2 id="modalTitle" class="text-xl font-semibold mb-4">เพิ่มอุปกรณ์</h2>
+      <form id="deviceForm" class="space-y-4">
+        <input type="hidden" id="editDeviceId">
+        <div>
+          <label class="block text-sm mb-1">รหัสอุปกรณ์</label>
+          <input id="deviceId" type="text" class="w-full border border-gray-300 rounded px-3 py-2 text-sm" required>
+        </div>
+        <div>
+          <label class="block text-sm mb-1">ชื่ออุปกรณ์</label>
+          <input id="deviceName" type="text" class="w-full border border-gray-300 rounded px-3 py-2 text-sm" required>
+        </div>
+        <div>
+          <label class="block text-sm mb-1">หมวดหมู่</label>
+          <input id="category" type="text" class="w-full border border-gray-300 rounded px-3 py-2 text-sm">
+        </div>
+        <div>
+          <label class="block text-sm mb-1">สถานะ</label>
+          <select id="status" class="w-full border border-gray-300 rounded px-3 py-2 text-sm">
+            <option value="พร้อมใช้งาน">พร้อมใช้งาน</option>
+            <option value="กำลังใช้งาน">กำลังใช้งาน</option>
+            <option value="รอซ่อม">รอซ่อม</option>
+            <option value="ส่งซ่อม">ส่งซ่อม</option>
+            <option value="เสียหาย">เสียหาย</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm mb-1">รูปอุปกรณ์</label>
+          <input id="image" type="file" accept="image/*">
+        </div>
+        <div class="flex justify-end space-x-2">
+          <button type="button" id="cancelBtn" class="px-4 py-2 border rounded text-gray-700 hover:bg-gray-100">ยกเลิก</button>
+          <button type="submit" id="saveBtn" class="px-4 py-2 bg-primary text-white rounded flex items-center">
+            บันทึก
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="imgModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center hidden z-40">
+    <div class="relative">
+      <button id="closeImgModal" class="absolute top-2 right-2 text-white text-3xl">&times;</button>
+      <img id="imgModalContent" class="max-h-screen max-w-screen-lg rounded-lg shadow-lg">
+    </div>
+  </div>
+
+  <script>
+    // State
+    let devicesData = [], currentPage = 1, rowsPerPage = 15;
+
+    // Elements
+    const summaryBoxes    = document.getElementById('summaryBoxes');
+    const deviceListEl    = document.getElementById('deviceList');
+    const paginationEl    = document.getElementById('pagination');
+    const rowsPerPageSel  = document.getElementById('rowsPerPage');
+    const filters = {
+      id:       document.getElementById('filterId'),
+      name:     document.getElementById('filterName'),
+      category: document.getElementById('filterCategory'),
+      status:   document.getElementById('filterStatus'),
+    };
+
+    // Helpers
+    function statusClass(s) {
+      if (s==='พร้อมใช้งาน') return 'bg-green-200 text-green-800';
+      if (s==='กำลังใช้งาน') return 'bg-blue-200 text-blue-800';
+      if (s==='รอซ่อม')      return 'bg-indigo-200 text-indigo-800';
+      if (s==='ส่งซ่อม')    return 'bg-yellow-200 text-yellow-800';
+      if (s==='เสียหาย')    return 'bg-red-200 text-red-800';
+      return 'bg-gray-200 text-gray-800';
+    }
+
+    function applyFilters(data) {
+      return data.filter(d => {
+        // If d is null or undefined, filter it out
+        if (!d) {
+          return false;
+        }
+
+        // Provide default empty strings to prevent errors if properties are missing
+        const deviceId = d.deviceId || '';
+        const deviceName = d.deviceName || '';
+        const category = d.category || '';
+        const status = d.status || '';
+
+        if (filters.id.value && !deviceId.includes(filters.id.value)) return false;
+        if (filters.name.value && !deviceName.includes(filters.name.value)) return false;
+        if (filters.category.value && category !== filters.category.value) return false;
+        if (filters.status.value && status !== filters.status.value) return false;
+        return true;
+      });
+    }
+
+    function updateSummary() {
+      const counts = { ready:0, inUse:0, waiting:0, repair:0, lost:0 };
+      devicesData.forEach(d=>{
+        switch(d.status){
+          case 'พร้อมใช้งาน': counts.ready++; break;
+          case 'กำลังใช้งาน': counts.inUse++; break;
+          case 'รอซ่อม':      counts.waiting++; break;
+          case 'ส่งซ่อม':    counts.repair++; break;
+          case 'เสียหาย':    counts.lost++; break;
+        }
+      });
+      summaryBoxes.innerHTML = `
+        <div class="summary-box cursor-pointer bg-white border rounded p-4 text-center" data-status="">
+          <div class="text-2xl font-bold">${counts.ready}</div><div class="text-sm">พร้อมใช้งาน</div>
+        </div>
+        <div class="summary-box cursor-pointer bg-white border rounded p-4 text-center" data-status="กำลังใช้งาน">
+          <div class="text-2xl font-bold">${counts.inUse}</div><div class="text-sm">กำลังใช้งาน</div>
+        </div>
+        <div class="summary-box cursor-pointer bg-white border rounded p-4 text-center" data-status="รอซ่อม">
+          <div class="text-2xl font-bold">${counts.waiting}</div><div class="text-sm">รอซ่อม</div>
+        </div>
+        <div class="summary-box cursor-pointer bg-white border rounded p-4 text-center" data-status="ส่งซ่อม">
+          <div class="text-2xl font-bold">${counts.repair}</div><div class="text-sm">ส่งซ่อม</div>
+        </div>
+        <div class="summary-box cursor-pointer bg-white border rounded p-4 text-center" data-status="เสียหาย">
+          <div class="text-2xl font-bold">${counts.lost}</div><div class="text-sm">เสียหาย</div>
+        </div>`;
+      summaryBoxes.querySelectorAll('.summary-box').forEach(box=>{
+        box.onclick = ()=>{
+          filters.status.value = box.dataset.status;
+          currentPage = 1;
+          renderTable();
+        };
+      });
+    }
+
+    function renderTable() {
+      const filtered = applyFilters(devicesData);
+      const total    = Math.ceil(filtered.length / rowsPerPage) || 1;
+      if (currentPage > total) currentPage = 1;
+      const start = (currentPage-1)*rowsPerPage;
+      const pageData = filtered.slice(start, start+rowsPerPage);
+
+      deviceListEl.innerHTML = '';
+      // ดึง deviceIds ที่มี repairReports ก่อน
+      db.ref('repairReports').once('value').then(function(snap) {
+        const repairDeviceIds = snap.exists() ? Object.values(snap.val()).map(r=>r.deviceId) : [];
+        pageData.forEach(d=>{
+          const tr = document.createElement('tr');
+          tr.innerHTML =
+            '<td class="py-3 px-4">' + d.deviceId + '</td>' +
+            '<td class="py-3 px-4">' + d.deviceName + '</td>' +
+            '<td class="py-3 px-4">' + (d.category || '-') + '</td>' +
+            '<td class="py-3 px-4"><canvas id="qr-' + d.deviceId + '"></canvas></td>' +
+            '<td class="py-3 px-4"><span class="px-3 py-1 rounded-full ' + statusClass(d.status) + '">' + d.status + '</span></td>' +
+            '<td class="py-3 px-4">' + (d.imageUrl
+              ? '<img src="' + d.imageUrl + '" class="w-10 h-10 object-cover rounded cursor-pointer"/>'
+              : '<span class="text-gray-500 italic">ไม่มีรูป</span>') + '</td>' +
+            '<td class="py-3 px-4 space-x-2">' +
+              '<button onclick="openEditModal(\'' + d.deviceId + '\')" class="px-3 py-1 bg-[#174D27] text-white rounded">แก้ไข</button>' +
+              '<button onclick="openBorrowHistoryModal(\'' + d.deviceId + '\',\'' + d.deviceName + '\')" class="px-3 py-1 bg-green-500 text-white rounded">ประวัติการยืม</button>' +
+              (repairDeviceIds.includes(d.deviceId)
+                ? '<button onclick="openRepairHistoryModal(\'' + d.deviceId + '\',\'' + d.deviceName + '\')" class="px-3 py-1 bg-blue-400 text-white rounded">ดูประวัติซ่อม</button>'
+                : '') +
+              '<button onclick="deleteDevice(\'' + d.deviceId + '\')" class="px-3 py-1 bg-red-400 text-white rounded">ลบ</button>' +
+            '</td>';
+          deviceListEl.appendChild(tr);
+          QRCode.toCanvas(document.getElementById(`qr-${d.deviceId}`), d.deviceId);
+        });
+        paginationEl.innerHTML = '';
+        for (let i=1; i<=total; i++){
+          const btn = document.createElement('button');
+          btn.textContent = i;
+          btn.className = `px-3 py-1 rounded ${i===currentPage?'bg-[#174D27] text-white':'bg-gray-300'}`;
+          btn.onclick = ()=>{ currentPage=i; renderTable(); };
+          paginationEl.appendChild(btn);
+        }
+        updateSummary();
+      });
+// Modal ประวัติการซ่อม
+if (!document.getElementById('repairHistoryModal')) {
+  const modalHtml = '<div id="repairHistoryModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">'+
+    '<div class="bg-white rounded-lg w-11/12 md:w-3/4 p-6 relative">'+
+      '<h2 class="text-xl font-bold mb-4">ประวัติการซ่อม: <span id="repairDeviceName"></span></h2>'+ 
+      '<button id="closeRepairHistoryBtn" class="absolute top-2 right-2 text-gray-500 hover:text-gray-700">&times;</button>'+ 
+      '<div class="mb-4">'+
+        '<input id="repairSearchInput" type="text" placeholder="ค้นหาหัวข้อ, รายละเอียด, การแก้ไข หรือผู้แจ้งซ่อม..." class="w-full border border-gray-300 rounded px-3 py-2 text-sm">'+
+      '</div>'+
+      '<div id="repairHistoryList" class="max-h-96 overflow-y-auto"></div>'+ 
+      '<div id="repairPagination" class="flex justify-center items-center space-x-2 mt-4"></div>'+
+    '</div>'+ 
+  '</div>';
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+// Modal ประวัติการยืม
+if (!document.getElementById('borrowHistoryModal')) {
+  const borrowModalHtml = '<div id="borrowHistoryModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">'+
+    '<div class="bg-white rounded-lg w-11/12 md:w-3/4 p-6 relative">'+
+      '<h2 class="text-xl font-bold mb-4">ประวัติการยืม: <span id="borrowDeviceName"></span></h2>'+ 
+      '<button id="closeBorrowHistoryBtn" class="absolute top-2 right-2 text-gray-500 hover:text-gray-700">&times;</button>'+ 
+      '<div class="mb-4 flex gap-3">'+
+        '<input id="borrowSearchInput" type="text" placeholder="ค้นหาผู้ใช้งาน, ตำแหน่ง..." class="flex-1 border border-gray-300 rounded px-3 py-2 text-sm">'+
+        '<select id="borrowStatusFilter" class="border border-gray-300 rounded px-3 py-2 text-sm">'+
+          '<option value="">ทั้งหมด</option>'+
+          '<option value="ยืม">ยืม</option>'+
+          '<option value="คืน">คืน</option>'+
+        '</select>'+
+      '</div>'+
+      '<div id="borrowHistoryList" class="max-h-96 overflow-y-auto"></div>'+ 
+      '<div id="borrowPagination" class="flex justify-center items-center space-x-2 mt-4"></div>'+
+    '</div>'+ 
+  '</div>';
+  document.body.insertAdjacentHTML('beforeend', borrowModalHtml);
+}
+
+window.openRepairHistoryModal = function(deviceId, deviceName) {
+  const modal = document.getElementById('repairHistoryModal');
+  const nameEl = document.getElementById('repairDeviceName');
+  const listEl = document.getElementById('repairHistoryList');
+  const paginationEl = document.getElementById('repairPagination');
+  const searchInput = document.getElementById('repairSearchInput');
+  
+  nameEl.textContent = deviceName;
+  listEl.innerHTML = '<div class="text-gray-500">กำลังโหลด...</div>';
+  paginationEl.innerHTML = '';
+  searchInput.value = '';
+  modal.classList.remove('hidden');
+  
+  let allRepairData = [];
+  let currentRepairPage = 1;
+  const rowsPerPage = 10;
+  
+  // ฟังก์ชันสำหรับกรองข้อมูล
+  function filterRepairData(data, searchTerm) {
+    if (!searchTerm) return data;
+    const term = searchTerm.toLowerCase();
+    return data.filter(record => 
+      (record.title || '').toLowerCase().includes(term) ||
+      (record.details || '').toLowerCase().includes(term) ||
+      (record.solution || '').toLowerCase().includes(term) ||
+      (record.reporterName || '').toLowerCase().includes(term)
+    );
+  }
+  
+  // ฟังก์ชันสำหรับแสดงข้อมูล
+  function renderRepairHistory() {
+    const searchTerm = searchInput.value;
+    const filteredData = filterRepairData(allRepairData, searchTerm);
+    const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+    
+    if (currentRepairPage > totalPages && totalPages > 0) {
+      currentRepairPage = totalPages;
+    }
+    
+    const startIdx = (currentRepairPage - 1) * rowsPerPage;
+    const endIdx = startIdx + rowsPerPage;
+    const pageData = filteredData.slice(startIdx, endIdx);
+    
+    let html = '<table class="w-full text-sm"><thead><tr>'+ 
+      '<th class="border px-2 py-1"><input type="checkbox" id="selectAllRepair" class="mr-1"> เลือกทั้งหมด</th>'+ 
+      '<th class="border px-2 py-1">วันที่</th>'+ 
+      '<th class="border px-2 py-1">หัวข้อ</th>'+ 
+      '<th class="border px-2 py-1">รายละเอียด</th>'+ 
+      '<th class="border px-2 py-1">การแก้ไข</th>'+ 
+      '<th class="border px-2 py-1">ราคาซ่อม</th>'+ 
+      '<th class="border px-2 py-1">ผู้แจ้งซ่อม</th>'+ 
+      '<th class="border px-2 py-1">จัดการ</th>'+ 
+    '</tr></thead><tbody>';
+    
+    function formatDate(dt) {
+      if (!dt) return '-';
+      var d = new Date(dt);
+      if (isNaN(d.getTime())) return '-';
+      var pad = n=>n<10?'0'+n:n;
+      return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear()+' '+pad(d.getHours())+':'+pad(d.getMinutes());
+    }
+    
+    let totalCost = 0;
+    
+    if (pageData.length === 0) {
+      html += '<tr><td colspan="8" class="border px-2 py-4 text-center text-gray-500">ไม่พบข้อมูล</td></tr>';
+    } else {
+      pageData.forEach(function(r){
+        var cost = parseFloat(r.cost||'0') || 0;
+        totalCost += cost;
+        html += '<tr>'+ 
+          '<td class="border px-2 py-1"><input type="checkbox" class="repair-checkbox" value="'+(r.key||'')+'" data-device-id="'+deviceId+'"></td>'+ 
+          '<td class="border px-2 py-1">'+formatDate(r.date)+'</td>'+ 
+          '<td class="border px-2 py-1">'+(r.title||'-')+'</td>'+ 
+          '<td class="border px-2 py-1">'+(r.details||'-')+'</td>'+ 
+          '<td class="border px-2 py-1">'+(r.solution||'-')+'</td>'+ 
+          '<td class="border px-2 py-1 text-right">'+(cost?cost.toLocaleString():'-')+'</td>'+ 
+          '<td class="border px-2 py-1">'+(r.reporterName||'-')+'</td>'+ 
+          '<td class="border px-2 py-1"><button onclick="deleteRepairRecord(\''+(r.id||r.key||'')+'\', \''+deviceId+'\')" class="px-2 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600">ลบ</button></td>'+ 
+        '</tr>';
+      });
+      
+      // เพิ่มปุ่มลบที่เลือก
+      html += '<tr><td colspan="8" class="border px-2 py-2 text-center">';
+      html += '<button id="deleteSelectedRepair" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed" disabled>';
+      html += 'ลบรายการที่เลือก (<span id="selectedRepairCount">0</span>)</button>';
+      html += '</td></tr>';
+    }
+    
+    html += '</tbody></table>';
+    
+    listEl.innerHTML = html;
+    
+    // Event listeners สำหรับ checkbox ประวัติการซ่อม
+    const selectAllCheckbox = document.getElementById('selectAllRepair');
+    const repairCheckboxes = document.querySelectorAll('.repair-checkbox');
+    const deleteSelectedBtn = document.getElementById('deleteSelectedRepair');
+    const selectedCountSpan = document.getElementById('selectedRepairCount');
+    
+    // ฟังก์ชันอัปเดตจำนวนที่เลือก
+    function updateSelectedCount() {
+      const checked = document.querySelectorAll('.repair-checkbox:checked');
+      const count = checked.length;
+      selectedCountSpan.textContent = count;
+      deleteSelectedBtn.disabled = count === 0;
+    }
+    
+    // Event listener สำหรับ checkbox เลือกทั้งหมด
+    if (selectAllCheckbox) {
+      selectAllCheckbox.addEventListener('change', function() {
+        repairCheckboxes.forEach(cb => cb.checked = this.checked);
+        updateSelectedCount();
+      });
+    }
+    
+    // Event listener สำหรับ checkbox แต่ละรายการ
+    repairCheckboxes.forEach(cb => {
+      cb.addEventListener('change', function() {
+        updateSelectedCount();
+        // อัปเดต checkbox เลือกทั้งหมด
+        if (selectAllCheckbox) {
+          const allChecked = Array.from(repairCheckboxes).every(checkbox => checkbox.checked);
+          const someChecked = Array.from(repairCheckboxes).some(checkbox => checkbox.checked);
+          selectAllCheckbox.checked = allChecked;
+          selectAllCheckbox.indeterminate = someChecked && !allChecked;
+        }
+      });
+    });
+    
+    // Event listener สำหรับปุ่มลบที่เลือก
+    if (deleteSelectedBtn) {
+      deleteSelectedBtn.addEventListener('click', function() {
+        const checkedBoxes = document.querySelectorAll('.repair-checkbox:checked');
+        if (checkedBoxes.length === 0) return;
+        
+        if (confirm(`ต้องการลบประวัติการซ่อม ${checkedBoxes.length} รายการที่เลือกหรือไม่?`)) {
+          const promises = Array.from(checkedBoxes).map(cb => {
+            return db.ref('repairReports').child(cb.value).remove();
+          });
+          
+          Promise.all(promises).then(() => {
+            alert('ลบประวัติการซ่อมที่เลือกเรียบร้อยแล้ว');
+            const deviceName = document.getElementById('repairDeviceName').textContent;
+            openRepairHistoryModal(deviceId, deviceName);
+          }).catch(error => {
+            console.error('Error deleting selected records:', error);
+            alert('เกิดข้อผิดพลาดในการลบประวัติการซ่อม');
+          });
+        }
+      });
+    }
+    
+    // สร้าง Pagination
+    paginationEl.innerHTML = '';
+    if (totalPages > 1) {
+      // ปุ่ม Previous
+      if (currentRepairPage > 1) {
+        const prevBtn = document.createElement('button');
+        prevBtn.textContent = '←';
+        prevBtn.className = 'px-3 py-1 bg-gray-300 rounded hover:bg-gray-400';
+        prevBtn.onclick = () => {
+          currentRepairPage--;
+          renderRepairHistory();
+        };
+        paginationEl.appendChild(prevBtn);
+      }
+      
+      // ปุ่มหน้า
+      const startPage = Math.max(1, currentRepairPage - 2);
+      const endPage = Math.min(totalPages, currentRepairPage + 2);
+      
+      for (let i = startPage; i <= endPage; i++) {
+        const pageBtn = document.createElement('button');
+        pageBtn.textContent = i;
+        pageBtn.className = `px-3 py-1 rounded ${
+          i === currentRepairPage 
+            ? 'bg-[#174D27] text-white' 
+            : 'bg-gray-300 hover:bg-gray-400'
+        }`;
+        pageBtn.onclick = () => {
+          currentRepairPage = i;
+          renderRepairHistory();
+        };
+        paginationEl.appendChild(pageBtn);
+      }
+      
+      // ปุ่ม Next
+      if (currentRepairPage < totalPages) {
+        const nextBtn = document.createElement('button');
+        nextBtn.textContent = '→';
+        nextBtn.className = 'px-3 py-1 bg-gray-300 rounded hover:bg-gray-400';
+        nextBtn.onclick = () => {
+          currentRepairPage++;
+          renderRepairHistory();
+        };
+        paginationEl.appendChild(nextBtn);
+      }
+      
+      // แสดงข้อมูล pagination
+      const infoDiv = document.createElement('div');
+      infoDiv.className = 'text-sm text-gray-600 ml-4';
+      infoDiv.textContent = `หน้า ${currentRepairPage} จาก ${totalPages}`;
+      paginationEl.appendChild(infoDiv);
+    }
+  }
+  
+  // Event listener สำหรับการค้นหา
+  searchInput.addEventListener('input', function() {
+    currentRepairPage = 1;
+    renderRepairHistory();
+  });
+  
+  // ดึงข้อมูลจาก Firebase
+  db.ref('repairReports').orderByChild('deviceId').equalTo(deviceId).once('value').then(function(snap) {
+    if (!snap.exists()) {
+      listEl.innerHTML = '<div class="text-gray-500">ไม่พบประวัติการซ่อม</div>';
+      paginationEl.innerHTML = '';
+      return;
+    }
+    
+    allRepairData = [];
+    snap.forEach(function(child) {
+      const record = child.val();
+      record.key = child.key; // เก็บ key สำหรับการลบ
+      allRepairData.push(record);
+    });
+    
+    // เรียงตามวันที่ใหม่ไปเก่า
+    allRepairData.sort(function(a,b){ return (b.date||'') > (a.date||'') ? 1 : -1; });
+    
+    currentRepairPage = 1;
+    renderRepairHistory();
+  });
+};
+
+window.openBorrowHistoryModal = function(deviceId, deviceName) {
+  const modal = document.getElementById('borrowHistoryModal');
+  const nameEl = document.getElementById('borrowDeviceName');
+  const listEl = document.getElementById('borrowHistoryList');
+  const paginationEl = document.getElementById('borrowPagination');
+  const searchInput = document.getElementById('borrowSearchInput');
+  const statusFilter = document.getElementById('borrowStatusFilter');
+  
+  nameEl.textContent = deviceName;
+  listEl.innerHTML = '<div class="text-gray-500">กำลังโหลด...</div>';
+  paginationEl.innerHTML = '';
+  searchInput.value = '';
+  statusFilter.value = '';
+  modal.classList.remove('hidden');
+  
+  let allBorrowData = [];
+  let currentBorrowPage = 1;
+  const rowsPerPage = 10;
+  
+  // ฟังก์ชันสำหรับกรองข้อมูล
+  function filterBorrowData(data, searchTerm, statusFilter) {
+    let filtered = data;
+    
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(record => 
+        (record.userName || '').toLowerCase().includes(term) ||
+        (record.userPosition || '').toLowerCase().includes(term)
+      );
+    }
+    
+    if (statusFilter) {
+      filtered = filtered.filter(record => 
+        (record.status || record.action || '') === statusFilter
+      );
+    }
+    
+    return filtered;
+  }
+  
+  // ฟังก์ชันสำหรับแสดงข้อมูล
+  function renderBorrowHistory() {
+    const searchTerm = searchInput.value;
+    const statusValue = statusFilter.value;
+    const filteredData = filterBorrowData(allBorrowData, searchTerm, statusValue);
+    const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+    
+    if (currentBorrowPage > totalPages && totalPages > 0) {
+      currentBorrowPage = totalPages;
+    }
+    
+    const startIdx = (currentBorrowPage - 1) * rowsPerPage;
+    const endIdx = startIdx + rowsPerPage;
+    const pageData = filteredData.slice(startIdx, endIdx);
+    
+    let html = '<table class="w-full text-sm"><thead><tr class="bg-gray-50">'+ 
+      '<th class="border border-gray-300 px-3 py-2 text-left"><input type="checkbox" id="selectAllBorrow" class="mr-1"> เลือกทั้งหมด</th>'+ 
+      '<th class="border border-gray-300 px-3 py-2 text-left">วันที่</th>'+ 
+      '<th class="border border-gray-300 px-3 py-2 text-left">เวลา</th>'+ 
+      '<th class="border border-gray-300 px-3 py-2 text-left">ผู้ใช้งาน</th>'+ 
+      '<th class="border border-gray-300 px-3 py-2 text-left">ตำแหน่ง</th>'+ 
+      '<th class="border border-gray-300 px-3 py-2 text-center">สถานะ</th>'+ 
+      '<th class="border border-gray-300 px-3 py-2 text-center">จัดการ</th>'+ 
+    '</tr></thead><tbody>';
+    
+    function formatDate(dt) {
+      if (!dt) return '-';
+      var d = new Date(dt);
+      if (isNaN(d.getTime())) return '-';
+      var pad = n=>n<10?'0'+n:n;
+      return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear();
+    }
+    
+    function formatTime(dt) {
+      if (!dt) return '-';
+      var d = new Date(dt);
+      if (isNaN(d.getTime())) return '-';
+      var pad = n=>n<10?'0'+n:n;
+      return pad(d.getHours())+':'+pad(d.getMinutes());
+    }
+    
+    function getStatusBadge(status) {
+      if (status === 'ยืม') return '<span class="px-3 py-1 bg-red-100 text-red-800 rounded-full text-xs font-medium border border-red-300">ยืม</span>';
+      if (status === 'คืน') return '<span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium border border-green-300">คืน</span>';
+      return '<span class="px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-xs font-medium border border-gray-300">' + status + '</span>';
+    }
+    
+    if (pageData.length === 0) {
+      html += '<tr><td colspan="7" class="border border-gray-300 px-3 py-8 text-center text-gray-500">ไม่พบข้อมูล</td></tr>';
+    } else {
+      pageData.forEach(function(record, index){
+        const statusText = record.status || record.action || '-';
+        const rowClass = index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
+        
+        html += '<tr class="' + rowClass + '">'+ 
+          '<td class="border border-gray-300 px-3 py-2"><input type="checkbox" class="borrow-checkbox" value="'+(record.key||'')+'" data-source="'+(record.source||'unknown')+'" data-device-id="'+deviceId+'"></td>'+ 
+          '<td class="border border-gray-300 px-3 py-2">'+formatDate(record.date)+'</td>'+ 
+          '<td class="border border-gray-300 px-3 py-2">'+formatTime(record.date)+'</td>'+ 
+          '<td class="border border-gray-300 px-3 py-2">'+(record.userName || '-')+'</td>'+ 
+          '<td class="border border-gray-300 px-3 py-2">'+(record.userPosition || '-')+'</td>'+ 
+          '<td class="border border-gray-300 px-3 py-2 text-center">'+getStatusBadge(statusText)+'</td>'+ 
+          '<td class="border border-gray-300 px-3 py-2 text-center"><button onclick="deleteBorrowRecord(\''+(record.key||'')+'\', \''+(record.source||'unknown')+'\', \''+deviceId+'\')" class="px-2 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600">ลบ</button></td>'+ 
+        '</tr>';
+      });
+      
+      // เพิ่มปุ่มลบที่เลือก
+      html += '<tr><td colspan="7" class="border border-gray-300 px-3 py-2 text-center">';
+      html += '<button id="deleteSelectedBorrow" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed" disabled>';
+      html += 'ลบรายการที่เลือก (<span id="selectedBorrowCount">0</span>)</button>';
+      html += '</td></tr>';
+    }
+    
+    html += '</tbody></table>';
+    
+    listEl.innerHTML = html;
+    
+    // Event listeners สำหรับ checkbox ประวัติการยืม
+    const selectAllBorrowCheckbox = document.getElementById('selectAllBorrow');
+    const borrowCheckboxes = document.querySelectorAll('.borrow-checkbox');
+    const deleteSelectedBorrowBtn = document.getElementById('deleteSelectedBorrow');
+    const selectedBorrowCountSpan = document.getElementById('selectedBorrowCount');
+    
+    // ฟังก์ชันอัปเดตจำนวนที่เลือก
+    function updateSelectedBorrowCount() {
+      const checked = document.querySelectorAll('.borrow-checkbox:checked');
+      const count = checked.length;
+      selectedBorrowCountSpan.textContent = count;
+      deleteSelectedBorrowBtn.disabled = count === 0;
+    }
+    
+    // Event listener สำหรับ checkbox เลือกทั้งหมด
+    if (selectAllBorrowCheckbox) {
+      selectAllBorrowCheckbox.addEventListener('change', function() {
+        borrowCheckboxes.forEach(cb => cb.checked = this.checked);
+        updateSelectedBorrowCount();
+      });
+    }
+    
+    // Event listener สำหรับ checkbox แต่ละรายการ
+    borrowCheckboxes.forEach(cb => {
+      cb.addEventListener('change', function() {
+        updateSelectedBorrowCount();
+        // อัปเดต checkbox เลือกทั้งหมด
+        if (selectAllBorrowCheckbox) {
+          const allChecked = Array.from(borrowCheckboxes).every(checkbox => checkbox.checked);
+          const someChecked = Array.from(borrowCheckboxes).some(checkbox => checkbox.checked);
+          selectAllBorrowCheckbox.checked = allChecked;
+          selectAllBorrowCheckbox.indeterminate = someChecked && !allChecked;
+        }
+      });
+    });
+    
+    // Event listener สำหรับปุ่มลบที่เลือก
+    if (deleteSelectedBorrowBtn) {
+      deleteSelectedBorrowBtn.addEventListener('click', function() {
+        const checkedBoxes = document.querySelectorAll('.borrow-checkbox:checked');
+        if (checkedBoxes.length === 0) return;
+        
+        if (confirm(`ต้องการลบประวัติการยืม/คืน ${checkedBoxes.length} รายการที่เลือกหรือไม่?`)) {
+          // จัดกลุ่ม records ตาม source
+          const deletePromises = [];
+          checkedBoxes.forEach(cb => {
+            const source = cb.getAttribute('data-source');
+            const key = cb.value;
+            deletePromises.push(db.ref(source).child(key).remove());
+          });
+          
+          Promise.all(deletePromises).then(() => {
+            alert('ลบประวัติการยืม/คืนที่เลือกเรียบร้อยแล้ว');
+            const deviceName = document.getElementById('borrowDeviceName').textContent;
+            openBorrowHistoryModal(deviceId, deviceName);
+          }).catch(error => {
+            console.error('Error deleting selected borrow records:', error);
+            alert('เกิดข้อผิดพลาดในการลบประวัติการยืม/คืน');
+          });
+        }
+      });
+    }
+    
+    // สร้าง Pagination
+    paginationEl.innerHTML = '';
+    if (totalPages > 1) {
+      // ปุ่ม Previous
+      if (currentBorrowPage > 1) {
+        const prevBtn = document.createElement('button');
+        prevBtn.textContent = '←';
+        prevBtn.className = 'px-3 py-1 bg-gray-300 rounded hover:bg-gray-400';
+        prevBtn.onclick = () => {
+          currentBorrowPage--;
+          renderBorrowHistory();
+        };
+        paginationEl.appendChild(prevBtn);
+      }
+      
+      // ปุ่มหน้า
+      const startPage = Math.max(1, currentBorrowPage - 2);
+      const endPage = Math.min(totalPages, currentBorrowPage + 2);
+      
+      for (let i = startPage; i <= endPage; i++) {
+        const pageBtn = document.createElement('button');
+        pageBtn.textContent = i;
+        pageBtn.className = `px-3 py-1 rounded ${
+          i === currentBorrowPage 
+            ? 'bg-[#174D27] text-white' 
+            : 'bg-gray-300 hover:bg-gray-400'
+        }`;
+        pageBtn.onclick = () => {
+          currentBorrowPage = i;
+          renderBorrowHistory();
+        };
+        paginationEl.appendChild(pageBtn);
+      }
+      
+      // ปุ่ม Next
+      if (currentBorrowPage < totalPages) {
+        const nextBtn = document.createElement('button');
+        nextBtn.textContent = '→';
+        nextBtn.className = 'px-3 py-1 bg-gray-300 rounded hover:bg-gray-400';
+        nextBtn.onclick = () => {
+          currentBorrowPage++;
+          renderBorrowHistory();
+        };
+        paginationEl.appendChild(nextBtn);
+      }
+      
+      // แสดงข้อมูล pagination
+      const infoDiv = document.createElement('div');
+      infoDiv.className = 'text-sm text-gray-600 ml-4';
+      infoDiv.textContent = `หน้า ${currentBorrowPage} จาก ${totalPages}`;
+      paginationEl.appendChild(infoDiv);
+    }
+  }
+  
+  // Event listener สำหรับการค้นหาและกรอง
+  searchInput.addEventListener('input', function() {
+    currentBorrowPage = 1;
+    renderBorrowHistory();
+  });
+  
+  statusFilter.addEventListener('change', function() {
+    currentBorrowPage = 1;
+    renderBorrowHistory();
+  });
+  
+  // ดึงข้อมูลจาก Firebase
+  Promise.all([
+    db.ref('borrowRecords').orderByChild('deviceId').equalTo(deviceId).once('value'),
+    db.ref('returnRecords').orderByChild('deviceId').equalTo(deviceId).once('value')
+  ]).then(function([borrowSnap, returnSnap]) {
+    allBorrowData = [];
+    
+    console.log('Borrow Records:', borrowSnap.exists() ? Object.keys(borrowSnap.val()).length : 0);
+    console.log('Return Records:', returnSnap.exists() ? Object.keys(returnSnap.val()).length : 0);
+    
+    // รวมข้อมูลจาก borrowRecords
+    if (borrowSnap.exists()) {
+      borrowSnap.forEach(function(child) {
+        const record = child.val();
+        record.key = child.key; // เก็บ key สำหรับการลบ
+        record.source = 'borrowRecords'; // ระบุแหล่งที่มาของข้อมูล
+        allBorrowData.push({
+          ...record,
+          action: record.status || 'ยืม',
+          status: record.status || 'ยืม'
+        });
+      });
+    }
+    
+    // รวมข้อมูลจาก returnRecords  
+    if (returnSnap.exists()) {
+      returnSnap.forEach(function(child) {
+        const record = child.val();
+        record.key = child.key; // เก็บ key สำหรับการลบ
+        record.source = 'returnRecords'; // ระบุแหล่งที่มาของข้อมูล
+        allBorrowData.push({
+          ...record,
+          action: record.status || 'คืน',
+          status: record.status || 'คืน'
+        });
+      });
+    }
+    
+    if (allBorrowData.length === 0) {
+      console.log('No borrow/return data found for device:', deviceId);
+      listEl.innerHTML = '<div class="text-gray-500">ไม่พบประวัติการยืม</div>';
+      paginationEl.innerHTML = '';
+      return;
+    }
+    
+    console.log('Total records found:', allBorrowData.length);
+    console.log('Sample data:', allBorrowData.slice(0, 2));
+    
+    // เรียงตามวันที่ใหม่ไปเก่า
+    allBorrowData.sort(function(a,b){ return new Date(b.date || 0) - new Date(a.date || 0); });
+    
+    currentBorrowPage = 1;
+    renderBorrowHistory();
+  });
+};
+
+// ฟังก์ชันลบประวัติการซ่อม
+window.deleteRepairRecord = function(recordKey, deviceId) {
+  if (!recordKey) {
+    alert('ไม่พบรหัสบันทึกที่จะลบ');
+    return;
+  }
+  
+  if (confirm('ต้องการลบประวัติการซ่อมนี้หรือไม่?')) {
+    db.ref('repairReports').child(recordKey).remove()
+      .then(function() {
+        alert('ลบประวัติการซ่อมเรียบร้อยแล้ว');
+        // เรียก modal ใหม่เพื่ออัปเดตข้อมูล
+        const deviceName = document.getElementById('repairDeviceName').textContent;
+        openRepairHistoryModal(deviceId, deviceName);
+      })
+      .catch(function(error) {
+        console.error('Error deleting repair record:', error);
+        alert('เกิดข้อผิดพลาดในการลบประวัติการซ่อม');
+      });
+  }
+};
+
+// ฟังก์ชันลบประวัติการยืม/คืน
+window.deleteBorrowRecord = function(recordKey, source, deviceId) {
+  if (!recordKey || !source) {
+    alert('ไม่พบรหัสบันทึกที่จะลบ');
+    return;
+  }
+  
+  const actionText = source === 'borrowRecords' ? 'ยืม' : 'คืน';
+  if (confirm('ต้องการลบประวัติการ' + actionText + 'นี้หรือไม่?')) {
+    db.ref(source).child(recordKey).remove()
+      .then(function() {
+        alert('ลบประวัติการ' + actionText + 'เรียบร้อยแล้ว');
+        // เรียก modal ใหม่เพื่ออัปเดตข้อมูล
+        const deviceName = document.getElementById('borrowDeviceName').textContent;
+        openBorrowHistoryModal(deviceId, deviceName);
+      })
+      .catch(function(error) {
+        console.error('Error deleting borrow record:', error);
+        alert('เกิดข้อผิดพลาดในการลบประวัติการ' + actionText);
+      });
+  }
+};
+
+if (!window._repairHistoryModalListener) {
+  window._repairHistoryModalListener = true;
+  document.body.addEventListener('click', function(e) {
+    if (e.target.id === 'closeRepairHistoryBtn') {
+      document.getElementById('repairHistoryModal').classList.add('hidden');
+    }
+    if (e.target.id === 'repairHistoryModal') {
+      document.getElementById('repairHistoryModal').classList.add('hidden');
+    }
+    if (e.target.id === 'closeBorrowHistoryBtn') {
+      document.getElementById('borrowHistoryModal').classList.add('hidden');
+    }
+    if (e.target.id === 'borrowHistoryModal') {
+      document.getElementById('borrowHistoryModal').classList.add('hidden');
+    }
+  });
+}
+        // ...existing code...
+    }
+
+    // Firebase fetch + category filter populate
+    db.ref('devices').on('value', snap=>{
+      devicesData = [];
+      snap.forEach(ch=>{
+        const d = ch.val();
+        if (d.deviceId) devicesData.push(d);
+        else Object.values(d).forEach(sub=>devicesData.push(sub));
+      });
+      const cats = Array.from(new Set(devicesData.map(d=>d.category).filter(c=>c)));
+      const catSel = filters.category;
+      catSel.innerHTML = `<option value="">ทั้งหมด</option>` +
+        cats.map(c=>`<option value="${c}">${c}</option>`).join('');
+      currentPage = 1;
+      renderTable();
+    });
+
+    // Event listeners
+    rowsPerPageSel.onchange = e=>{
+      rowsPerPage = +e.target.value;
+      currentPage = 1;
+      renderTable();
+    };
+    ['id','name','category'].forEach(k=>{
+      filters[k].addEventListener(k==='category'?'change':'input', ()=>{
+        currentPage = 1; renderTable();
+      });
+    });
+    filters.status.addEventListener('change', ()=>{
+      currentPage = 1; renderTable();
+    });
+
+    // Modal controls
+    const openModalBtn   = document.getElementById('openModal');
+    const deviceModal    = document.getElementById('deviceModal');
+    const closeModalBtn  = document.getElementById('closeModal');
+    const cancelBtn      = document.getElementById('cancelBtn');
+    const modalTitle     = document.getElementById('modalTitle');
+    const deviceForm     = document.getElementById('deviceForm');
+    const editDeviceIdIn = document.getElementById('editDeviceId');
+    const saveBtn        = document.getElementById('saveBtn');
+
+    openModalBtn.onclick = ()=>{
+      modalTitle.textContent = 'เพิ่มอุปกรณ์';
+      deviceForm.reset();
+      editDeviceIdIn.value = '';
+      document.getElementById('deviceId').disabled = false;
+      deviceModal.classList.remove('hidden');
+    };
+    closeModalBtn.onclick = cancelBtn.onclick = ()=> deviceModal.classList.add('hidden');
+
+    deviceForm.onsubmit = async e=>{
+      e.preventDefault();
+      const orig = saveBtn.innerHTML;
+      saveBtn.innerHTML = '<span class="animate-spin border-2 border-white border-t-transparent rounded-full w-4 h-4 inline-block mr-2"></span>กำลังบันทึก';
+      saveBtn.disabled = true;
+
+      const id       = document.getElementById('deviceId').value.trim();
+      const name     = document.getElementById('deviceName').value.trim();
+      const category = document.getElementById('category').value.trim();
+      const status   = document.getElementById('status').value;
+      const file     = document.getElementById('image').files[0];
+      let updateData = { deviceName:name, category, status };
+
+      if (file) {
+        const ref = storage.ref('device_images/'+id);
+        await ref.put(file);
+        updateData.imageUrl = await ref.getDownloadURL();
+      }
+
+      if (editDeviceIdIn.value) {
+        await db.ref('devices/'+id).update(updateData);
+      } else {
+        await db.ref('devices/'+id).set({
+          deviceId:id,
+          ...updateData,
+          imageUrl:updateData.imageUrl||''
+        });
+      }
+
+      saveBtn.innerHTML = orig;
+      saveBtn.disabled = false;
+      deviceModal.classList.add('hidden');
+    };
+
+    function openEditModal(id) {
+      const d = devicesData.find(x=>x.deviceId===id);
+      if (!d) return;
+      modalTitle.textContent = 'แก้ไขอุปกรณ์';
+      editDeviceIdIn.value = id;
+      document.getElementById('deviceId').value = d.deviceId;
+      document.getElementById('deviceId').disabled = true;
+      document.getElementById('deviceName').value  = d.deviceName;
+      document.getElementById('category').value    = d.category||'';
+      document.getElementById('status').value      = d.status;
+      deviceModal.classList.remove('hidden');
+    }
+    function deleteDevice(id) {
+      if (confirm('ต้องการลบอุปกรณ์ '+id+' หรือไม่?')) {
+        db.ref('devices/'+id).remove();
+      }
+    }
+
+    // Image preview modal
+    const imgModal      = document.getElementById('imgModal');
+    const closeImgModal = document.getElementById('closeImgModal');
+    closeImgModal.onclick = ()=> imgModal.classList.add('hidden');
+    window.onclick = e=>{ if(e.target===imgModal) imgModal.classList.add('hidden'); };
+    document.body.addEventListener('click', e=>{
+      if (e.target.tagName==='IMG' && e.target.closest('#deviceList')) {
+        document.getElementById('imgModalContent').src = e.target.src;
+        imgModal.classList.remove('hidden');
+      }
+    });
+
+    // Export CSV
+    document.getElementById('exportCsvBtn').onclick = ()=>{
+      if (!devicesData.length) return alert('ไม่มีข้อมูลส่งออก');
+      const headers = ['deviceId','deviceName','category','status','imageUrl'];
+      const rows = devicesData.map(d=>
+        [d.deviceId,d.deviceName,d.category||'',d.status,d.imageUrl||'']
+        .map(f=>`"${f.replace(/"/g,'""')}"`).join(',')
+      );
+      const csv = '\uFEFF'+[headers.join(','),...rows].join('\r\n');
+      const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href=url;
+      a.download=`devices_${new Date().toISOString().slice(0,10)}.csv`;
+      a.click(); URL.revokeObjectURL(url);
+    };
+
+    // Import CSV
+    document.getElementById('csvInput').addEventListener('change', e=>{
+      const file = e.target.files[0]; if (!file) return;
+      Papa.parse(file,{ header:true, skipEmptyLines:true, encoding:"UTF-8",
+        complete: async results=>{
+          const data = results.data;
+          const updates = {};
+          data.forEach(row=>{
+            const id=row.deviceId?.trim(); if(!id) return;
+            updates[id]={ deviceId:id,
+              deviceName:row.deviceName||'',
+              category:row.category||'',
+              status:row.status||'พร้อมใช้งาน',
+              imageUrl:row.imageUrl||''
+            };
+          });
+          try{
+            await db.ref('devices').update(updates);
+            alert('นำเข้า CSV สำเร็จ');
+          }catch{
+            alert('เกิดข้อผิดพลาดในการนำเข้า');
+          }
+        }
+      });
+    });
+  </script>
+</body>
+</html>

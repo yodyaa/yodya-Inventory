@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>เข้าสู่ระบบ - YODYA Inventory</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#174D27',
+            secondary: '#CADEC3',
+          }
+        }
+      }
+    }
+  </script>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
+  <script src="firebase-config.js"></script>
+</head>
+<body class="bg-gradient-to-br from-primary to-green-700 min-h-screen flex items-center justify-center p-4">
+
+  <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
+    <!-- Logo/Header -->
+    <div class="text-center mb-8">
+      <div class="inline-block bg-primary text-white rounded-full p-4 mb-4">
+        <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+      </div>
+      <h1 class="text-3xl font-bold text-primary mb-2">YODYA Inventory</h1>
+      <p class="text-gray-600">ระบบจัดการอุปกรณ์และการยืม-คืน</p>
+    </div>
+
+    <!-- Login Form -->
+    <div id="loginForm" class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">อีเมล</label>
+        <input type="email" id="email" placeholder="example@email.com"
+          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+          required>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">รหัสผ่าน</label>
+        <input type="password" id="password" placeholder="••••••••"
+          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+          required>
+      </div>
+      
+      <div class="flex items-center justify-between">
+        <label class="flex items-center">
+          <input type="checkbox" id="remember" class="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary">
+          <span class="ml-2 text-sm text-gray-600">จดจำฉันไว้</span>
+        </label>
+        <a href="#" class="text-sm text-primary hover:underline" onclick="showForgotPassword(); return false;">ลืมรหัสผ่าน?</a>
+      </div>
+
+      <button onclick="loginUser()" id="loginBtn"
+        class="w-full bg-primary text-white font-semibold py-3 rounded-lg hover:bg-green-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg">
+        เข้าสู่ระบบ
+      </button>
+
+      <div class="relative my-6">
+        <div class="absolute inset-0 flex items-center">
+          <div class="w-full border-t border-gray-300"></div>
+        </div>
+        <div class="relative flex justify-center text-sm">
+          <span class="px-2 bg-white text-gray-500">หรือ</span>
+        </div>
+      </div>
+
+      <button onclick="window.location.href='Register.html'"
+        class="w-full bg-secondary text-primary font-semibold py-3 rounded-lg hover:bg-green-200 transition-colors shadow">
+        ลงทะเบียนพนักงานใหม่
+      </button>
+    </div>
+
+    <!-- Forgot Password Form (Hidden) -->
+    <div id="forgotForm" class="space-y-4 hidden">
+      <button onclick="showLoginForm()" class="text-sm text-gray-600 hover:text-primary mb-4">
+        ← กลับไปหน้าเข้าสู่ระบบ
+      </button>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">อีเมลของคุณ</label>
+        <input type="email" id="resetEmail" placeholder="example@email.com"
+          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+          required>
+      </div>
+      <button onclick="resetPassword()" id="resetBtn"
+        class="w-full bg-primary text-white font-semibold py-3 rounded-lg hover:bg-green-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg">
+        ส่งลิงก์รีเซ็ตรหัสผ่าน
+      </button>
+    </div>
+
+    <p id="status" class="mt-4 text-center text-sm font-medium"></p>
+  </div>
+
+  <script>
+
+
+    // ตรวจสอบว่ามีผู้ใช้ล็อกอินอยู่แล้วหรือไม่
+    auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        // ตรวจสอบ role จาก database
+        const empSnap = await db.ref('employees')
+          .orderByChild('userIdLine')
+          .equalTo(user.uid)
+          .once('value');
+        
+        if (!empSnap.exists()) {
+          // ค้นหาด้วย email
+          const emailSnap = await db.ref('employees')
+            .orderByChild('email')
+            .equalTo(user.email)
+            .once('value');
+          
+          if (emailSnap.exists()) {
+            redirectToDashboard();
+          } else {
+            showStatus('ไม่พบข้อมูลพนักงาน กรุณาติดต่อผู้ดูแลระบบ', 'error');
+            auth.signOut();
+          }
+        } else {
+          redirectToDashboard();
+        }
+      }
+    });
+
+    async function loginUser() {
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const btn = document.getElementById('loginBtn');
+
+      if (!email || !password) {
+        return showStatus('กรุณากรอกอีเมลและรหัสผ่าน', 'error');
+      }
+
+      btn.disabled = true;
+      showStatus('กำลังเข้าสู่ระบบ...', 'info');
+
+      try {
+        const userCredential = await auth.signInWithEmailAndPassword(email, password);
+        const user = userCredential.user;
+
+        // ตรวจสอบ role ของผู้ใช้
+        const empSnap = await db.ref('employees')
+          .orderByChild('email')
+          .equalTo(user.email)
+          .once('value');
+
+        if (!empSnap.exists()) {
+          showStatus('ไม่พบข้อมูลพนักงาน กรุณาติดต่อผู้ดูแลระบบ', 'error');
+          await auth.signOut();
+          btn.disabled = false;
+          return;
+        }
+
+        // บันทึกข้อมูลการล็อกอิน
+        if (document.getElementById('remember').checked) {
+          localStorage.setItem('rememberedEmail', email);
+        } else {
+          localStorage.removeItem('rememberedEmail');
+        }
+
+        showStatus('เข้าสู่ระบบสำเร็จ!', 'success');
+        setTimeout(() => redirectToDashboard(), 1000);
+
+      } catch (error) {
+        console.error('Login error:', error);
+        let message = 'เกิดข้อผิดพลาด กรุณาลองใหม่';
+        
+        switch(error.code) {
+          case 'auth/user-not-found':
+          case 'auth/wrong-password':
+            message = 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
+            break;
+          case 'auth/invalid-email':
+            message = 'รูปแบบอีเมลไม่ถูกต้อง';
+            break;
+          case 'auth/user-disabled':
+            message = 'บัญชีนี้ถูกระงับการใช้งาน';
+            break;
+          case 'auth/too-many-requests':
+            message = 'พยายามเข้าสู่ระบบหลายครั้งเกินไป กรุณารอสักครู่';
+            break;
+        }
+        
+        showStatus(message, 'error');
+        btn.disabled = false;
+      }
+    }
+
+    async function resetPassword() {
+      const email = document.getElementById('resetEmail').value.trim();
+      const btn = document.getElementById('resetBtn');
+
+      if (!email) {
+        return showStatus('กรุณากรอกอีเมล', 'error');
+      }
+
+      btn.disabled = true;
+      showStatus('กำลังส่งอีเมล...', 'info');
+
+      try {
+        await auth.sendPasswordResetEmail(email);
+        showStatus('✅ ส่งลิงก์รีเซ็ตรหัสผ่านไปยังอีเมลของคุณแล้ว', 'success');
+        setTimeout(() => showLoginForm(), 2000);
+      } catch (error) {
+        console.error('Reset error:', error);
+        let message = 'เกิดข้อผิดพลาด กรุณาลองใหม่';
+        
+        if (error.code === 'auth/user-not-found') {
+          message = 'ไม่พบอีเมลนี้ในระบบ';
+        } else if (error.code === 'auth/invalid-email') {
+          message = 'รูปแบบอีเมลไม่ถูกต้อง';
+        }
+        
+        showStatus(message, 'error');
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    function redirectToDashboard() {
+      window.location.href = 'Dashboard.html';
+    }
+
+    function showLoginForm() {
+      document.getElementById('loginForm').classList.remove('hidden');
+      document.getElementById('forgotForm').classList.add('hidden');
+      document.getElementById('status').textContent = '';
+    }
+
+    function showForgotPassword() {
+      document.getElementById('loginForm').classList.add('hidden');
+      document.getElementById('forgotForm').classList.remove('hidden');
+      document.getElementById('status').textContent = '';
+    }
+
+    function showStatus(message, type) {
+      const statusEl = document.getElementById('status');
+      statusEl.textContent = message;
+      
+      statusEl.classList.remove('text-red-600', 'text-green-600', 'text-blue-600', 'text-gray-600');
+      
+      switch(type) {
+        case 'error':
+          statusEl.classList.add('text-red-600');
+          break;
+        case 'success':
+          statusEl.classList.add('text-green-600');
+          break;
+        case 'info':
+          statusEl.classList.add('text-blue-600');
+          break;
+        default:
+          statusEl.classList.add('text-gray-600');
+      }
+    }
+
+    // โหลดอีเมลที่จำไว้
+    window.onload = () => {
+      const rememberedEmail = localStorage.getItem('rememberedEmail');
+      if (rememberedEmail) {
+        document.getElementById('email').value = rememberedEmail;
+        document.getElementById('remember').checked = true;
+      }
+    };
+
+    // Enter key support
+    document.getElementById('email').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') document.getElementById('password').focus();
+    });
+    document.getElementById('password').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') loginUser();
+    });
+    document.getElementById('resetEmail').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') resetPassword();
+    });
+  </script>
+
+</body>
+</html>

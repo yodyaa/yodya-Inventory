@@ -20,16 +20,20 @@
   </script>
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
   <!-- your firebase-config.js must initialize app and set `const db = firebase.database();` -->
   <script src="firebase-config.js"></script>
+  <!-- Authentication Guard -->
+  <script src="auth-guard.js"></script>
 </head>
 
 <body class="bg-gray-100 min-h-screen flex">
   <!-- Sidebar -->
-  <aside class="w-64 bg-primary p-6">
-    <h1 class="text-white text-md font-bold mb-6">จัดการการยืมคืน & แจ้งซ่อม</h1>
-     <nav class="space-y-4">
+  <aside class="w-64 bg-primary p-6 flex flex-col h-screen">
+    <h1 class="text-white text-md font-bold mb-4">จัดการการยืมคืน & แจ้งซ่อม</h1>
+    <nav class="space-y-4 flex-1">
       <a href="./Dashboard.html"      class="block bg-primary border border-secondary text-secondary py-2 px-4 rounded">หน้าหลัก</a>
       <a href="./Report-show.html"    class="block bg-secondary text-primary py-2 px-4 rounded">แจ้งซ่อม</a>
       <a href="./Team.html"           class="block bg-secondary text-primary py-2 px-4 rounded">จัดการทีม</a>
@@ -41,7 +45,15 @@
       <a href="./User.html"           class="block bg-secondary text-primary py-2 px-4 rounded">สมาชิก</a>
       <a href="./Setting.html"        class="block bg-secondary text-primary py-2 px-4 rounded">ตั้งค่าการแจ้งเตือน</a>
     </nav>
-
+    <div class="mt-8 pt-4 border-t border-secondary flex flex-col gap-2">
+      <div id="userInfo" class="text-white text-sm font-semibold flex items-center gap-2">
+        <svg class="w-5 h-5 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 15c2.5 0 4.847.655 6.879 1.804M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+        <span id="userName">-</span>
+      </div>
+      <button onclick="logout()" class="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded transition-colors">
+        ออกจากระบบ
+      </button>
+    </div>
   </aside>
 
   <!-- Main content -->
@@ -258,6 +270,27 @@
       const flex = { type: "bubble", body: { type: "box", layout: "vertical", contents } };
       sendFlexToGAS(uid, flex, "🔔 กรุณาคืนอุปกรณ์");
     }
+  </script>
+  <script>
+    // แสดงชื่อผู้ใช้ที่ล็อกอิน (ดึงจาก sessionStorage) หลัง body ถูกแสดง
+    function setUserNameSidebar() {
+      const el = document.getElementById('userName');
+      if (!el) {
+        console.warn('userName element not found');
+        return;
+      }
+      const name = sessionStorage.getItem('userName');
+      console.log('sessionStorage.userName =', name);
+      el.textContent = name && name.trim() ? name : '-';
+    }
+    // เรียกหลัง body ถูกแสดง (auth-guard.js จะเซ็ต sessionStorage ก่อนเสมอ)
+    document.addEventListener('readystatechange', function() {
+      if (document.readyState === 'complete') setUserNameSidebar();
+    });
+    // กรณี SPA หรือ reload เฉพาะบางส่วน
+    window.setTimeout(setUserNameSidebar, 500);
+    // เรียกซ้ำหลัง 1 วินาทีเพื่อ debug
+    window.setTimeout(setUserNameSidebar, 1000);
   </script>
 </body>
 </html>
